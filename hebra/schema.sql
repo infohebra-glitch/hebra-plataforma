@@ -142,8 +142,120 @@ CREATE TABLE IF NOT EXISTS peticio_talla (
     gtin_demanat TEXT NOT NULL,
     talla_demanada TEXT NOT NULL,
     cabina      TEXT,                       -- el client la pot indicar (opcional)
-    estat       TEXT NOT NULL DEFAULT 'pendent' CHECK (estat IN ('pendent', 'lliurada', 'no_disponible')),
+    estat       TEXT NOT NULL DEFAULT 'pendent' CHECK (estat IN ('pendent', 'en_cami', 'lliurada', 'no_disponible')),
     hora_peticio TEXT NOT NULL,
     hora_resolta TEXT,
     disponible  INTEGER                     -- 1/0 segons l'estoc conegut en el moment
+);
+
+-- ================================================================ v0.2: plataforma completa
+-- (Taules afegides per al tauler de la marca, alertes, estoc, experiments i registre de decisions.)
+
+-- ---------------------------------------------------------------- Usuaris del tauler i de botiga
+-- Persones de l'EQUIP de la marca (no clients finals). Contrasenya amb hash (PBKDF2).
+CREATE TABLE IF NOT EXISTS usuari (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    correu      TEXT UNIQUE NOT NULL,
+    nom         TEXT NOT NULL,
+    hash_contrasenya TEXT NOT NULL,
+    rol         TEXT NOT NULL CHECK (rol IN ('admin', 'marca', 'botiga')),
+    botiga_id   TEXT REFERENCES botiga(id),   -- obligatori per al rol 'botiga'
+    actiu       INTEGER NOT NULL DEFAULT 1,
+    creat       TEXT NOT NULL
+);
+
+-- ---------------------------------------------------------------- Estoc de botiga
+CREATE TABLE IF NOT EXISTS estoc (
+    botiga_id   TEXT NOT NULL REFERENCES botiga(id),
+    gtin        TEXT NOT NULL,
+    unitats     INTEGER NOT NULL,
+    actualitzat TEXT NOT NULL,
+    font        TEXT NOT NULL DEFAULT 'csv',  -- 'csv' | 'shopify'
+    PRIMARY KEY (botiga_id, gtin)
+);
+
+-- Recompte manual contra lectura RFID (insight 23, precisió d'estoc de la zona).
+CREATE TABLE IF NOT EXISTS recompte_estoc (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    botiga_id   TEXT NOT NULL REFERENCES botiga(id),
+    data        TEXT NOT NULL,
+    gtin        TEXT NOT NULL,
+    manual      INTEGER NOT NULL,
+    rfid        INTEGER NOT NULL
+);
+
+-- ---------------------------------------------------------------- Experiments (grup de control)
+-- Generalitza l'"origen" a qualsevol canvi (insight 18). La taula `assignacio` (per dies)
+-- ja existeix; `assignacio_model` permet assignar per grups de models.
+CREATE TABLE IF NOT EXISTS experiment (
+    id          TEXT PRIMARY KEY,               -- p. ex. "origen-2026-11"
+    botiga_id   TEXT NOT NULL REFERENCES botiga(id),
+    variable    TEXT NOT NULL,                  -- 'origen' | 'preu' | 'exposicio' | 'peticio_talla' | 'altre'
+    hipotesi    TEXT NOT NULL,
+    unitat      TEXT NOT NULL DEFAULT 'dia' CHECK (unitat IN ('dia', 'model')),
+    inici       TEXT NOT NULL,
+    fi          TEXT NOT NULL,
+    proves_minimes INTEGER NOT NULL DEFAULT 30,
+    estat       TEXT NOT NULL DEFAULT 'actiu' CHECK (estat IN ('previst', 'actiu', 'tancat'))
+);
+
+CREATE TABLE IF NOT EXISTS assignacio_model (
+    experiment  TEXT NOT NULL REFERENCES experiment(id),
+    model       TEXT NOT NULL,
+    grup        TEXT NOT NULL CHECK (grup IN ('amb', 'sense')),
+    PRIMARY KEY (experiment, model)
+);
+
+-- ---------------------------------------------------------------- Registre de decisions (informe D)
+CREATE TABLE IF NOT EXISTS decisio (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    botiga_id   TEXT REFERENCES botiga(id),
+    creada      TEXT NOT NULL,
+    titol       TEXT NOT NULL,
+    descripcio  TEXT NOT NULL DEFAULT '',
+    insight     TEXT,                           -- clau de l'insight que la motiva (p. ex. 'molt_provat_poc_venut')
+    model       TEXT,
+    responsable TEXT,                           -- rol: CEO, PROD, BOT, MKT, SOST
+    data_limit  TEXT,
+    estat       TEXT NOT NULL DEFAULT 'proposada' CHECK (estat IN ('proposada', 'acceptada', 'feta', 'descartada')),
+    experiment_id TEXT REFERENCES experiment(id),
+    resultat    TEXT                            -- què ha passat després (text), s'omple al mensual
+);
+
+-- ---------------------------------------------------------------- Peces abandonades (insight 13 i alerta)
+CREATE TABLE IF NOT EXISTS peca_abandonada (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    epc         TEXT NOT NULL,
+    cabina_id   TEXT NOT NULL REFERENCES cabina(id),
+    detectada   TEXT NOT NULL,                  -- quan es compleix la regla (30 min sense tornar a sala ni vendre's)
+    resolta     TEXT,
+    UNIQUE (epc, cabina_id, detectada)
+);
+
+-- ---------------------------------------------------------------- Pilot (informe F)
+CREATE TABLE IF NOT EXISTS pilot (
+    botiga_id   TEXT PRIMARY KEY REFERENCES botiga(id),
+    inici       TEXT NOT NULL,                  -- setmana 0 (instal·lació)
+    fi          TEXT NOT NULL,
+    criteris_json TEXT NOT NULL DEFAULT '[]',   -- [{"id","descripcio","metrica","objectiu","comparador"}]
+    taxa_error_observacio REAL                  -- de la comparació amb l'observació manual
+);
+
+-- Observació manual per calibrar (setmana 0): què ha vist una persona a la cabina.
+CREATE TABLE IF NOT EXISTS observacio_manual (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    cabina_id   TEXT NOT NULL REFERENCES cabina(id),
+    inici       TEXT NOT NULL,
+    fi          TEXT NOT NULL,
+    gtin        TEXT NOT NULL,
+    nota        TEXT
+);
+
+-- ---------------------------------------------------------------- Altres
+-- Configuració per botiga: marge brut per peça, quota, Shopify...  (clau-valor)
+CREATE TABLE IF NOT EXISTS parametre (
+    botiga_id   TEXT NOT NULL,                  -- '*' = per defecte per a totes
+    clau        TEXT NOT NULL,
+    valor       TEXT NOT NULL,
+    PRIMARY KEY (botiga_id, clau)
 );
