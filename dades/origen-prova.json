@@ -1,0 +1,958 @@
+{
+  "format": "hebra-origen/0.2",
+  "avis": "Dades de prova inventades per al prototip. No són dades reals de cap marca ni de TextileGenesis.",
+  "font": "Exportació simulada d'una plataforma de traçabilitat (format propi de Hebra, no oficial de TextileGenesis)",
+  "marca": "Marca de prova",
+  "peces": [
+    {
+      "epc": "urn:epc:id:sgtin:8400000.012345.100001",
+      "gtin": "08400000123458",
+      "serie": "100001",
+      "nivell": "peca",
+      "nom": {
+        "ca": "Camisa de lli",
+        "es": "Camisa de lino",
+        "fr": "Chemise en lin"
+      },
+      "model": "CL-24-NAT",
+      "color": {
+        "ca": "Natural",
+        "es": "Natural",
+        "fr": "Naturel"
+      },
+      "talla": "M",
+      "preu_eur": 69,
+      "composicio": [
+        {
+          "material": {
+            "ca": "Lli",
+            "es": "Lino",
+            "fr": "Lin"
+          },
+          "pct": 100,
+          "pais": "FR"
+        }
+      ],
+      "etapes": [
+        {
+          "etapa": "cultiu",
+          "pais": "FR",
+          "regio": {
+            "ca": "Normandia",
+            "es": "Normandía",
+            "fr": "Normandie"
+          },
+          "actor": {
+            "ca": "Cooperativa de lli (exemple)",
+            "es": "Cooperativa de lino (ejemplo)",
+            "fr": "Coopérative linière (exemple)"
+          },
+          "data": "2025-07"
+        },
+        {
+          "etapa": "filatura",
+          "pais": "LT",
+          "regio": "Kaunas",
+          "actor": {
+            "ca": "Filatura (exemple)",
+            "es": "Hilatura (ejemplo)",
+            "fr": "Filature (exemple)"
+          },
+          "data": "2025-10"
+        },
+        {
+          "etapa": "teixit",
+          "pais": "IT",
+          "regio": {
+            "ca": "Llombardia",
+            "es": "Lombardía",
+            "fr": "Lombardie"
+          },
+          "actor": {
+            "ca": "Teixidoria (exemple)",
+            "es": "Tejeduría (ejemplo)",
+            "fr": "Tissage (exemple)"
+          },
+          "data": "2025-12"
+        },
+        {
+          "etapa": "confeccio",
+          "pais": "PT",
+          "regio": "Guimarães",
+          "actor": {
+            "ca": "Taller de confecció (exemple)",
+            "es": "Taller de confección (ejemplo)",
+            "fr": "Atelier de confection (exemple)"
+          },
+          "data": "2026-02"
+        }
+      ],
+      "certificats": [
+        {
+          "nom": "European Flax",
+          "abast": {
+            "ca": "Origen de la fibra",
+            "es": "Origen de la fibra",
+            "fr": "Origine de la fibre"
+          },
+          "ref": "EX-FLAX-0001"
+        }
+      ],
+      "forma": "camisa",
+      "textura": "lli",
+      "descripcio": {
+        "ca": "Camisa de tall recte amb coll clàssic i botons de nacre. El lli es fa més suau amb cada rentada.",
+        "es": "Camisa de corte recto con cuello clásico y botones de nácar. El lino se vuelve más suave con cada lavado.",
+        "fr": "Chemise coupe droite, col classique et boutons en nacre. Le lin s'adoucit à chaque lavage."
+      },
+      "color_detall": {
+        "hex": "#D9CDB4",
+        "descripcio": {
+          "ca": "Beix del lli sense tenyir, amb petites variacions de to pròpies de la fibra.",
+          "es": "Beige del lino sin teñir, con pequeñas variaciones de tono propias de la fibra.",
+          "fr": "Beige du lin non teint, avec de légères variations de ton propres à la fibre."
+        }
+      },
+      "colors": [
+        {
+          "nom": {
+            "ca": "Natural",
+            "es": "Natural",
+            "fr": "Naturel"
+          },
+          "hex": "#D9CDB4"
+        },
+        {
+          "nom": {
+            "ca": "Blanc trencat",
+            "es": "Blanco roto",
+            "fr": "Blanc cassé"
+          },
+          "hex": "#F1ECE2"
+        },
+        {
+          "nom": {
+            "ca": "Verd salvia",
+            "es": "Verde salvia",
+            "fr": "Vert sauge"
+          },
+          "hex": "#8E9F86"
+        }
+      ],
+      "talles": [
+        {
+          "talla": "S",
+          "estoc": 2
+        },
+        {
+          "talla": "M",
+          "estoc": 1
+        },
+        {
+          "talla": "L",
+          "estoc": 0
+        },
+        {
+          "talla": "XL",
+          "estoc": 3
+        }
+      ],
+      "ajust": {
+        "ca": "Ajust ample. Si dubtes entre dues talles, tria la més petita.",
+        "es": "Corte holgado. Si dudas entre dos tallas, elige la más pequeña.",
+        "fr": "Coupe ample. Si vous hésitez entre deux tailles, choisissez la plus petite."
+      },
+      "teixit_detall": {
+        "ca": "Teixit pla de 150 g/m², de tacte sec i fresc.",
+        "es": "Tejido de calada de 150 g/m², de tacto seco y fresco.",
+        "fr": "Toile de 150 g/m², au toucher sec et frais."
+      },
+      "cura": [
+        {
+          "ca": "Rentar a 30 °C amb colors semblants",
+          "es": "Lavar a 30 °C con colores similares",
+          "fr": "Laver à 30 °C avec des couleurs similaires"
+        },
+        {
+          "ca": "No fer servir l'assecadora",
+          "es": "No usar secadora",
+          "fr": "Ne pas passer au sèche-linge"
+        },
+        {
+          "ca": "Planxar amb la peça humida, a temperatura mitjana",
+          "es": "Planchar en húmedo, a temperatura media",
+          "fr": "Repasser sur tissu humide, à température moyenne"
+        }
+      ],
+      "faq": [
+        {
+          "q": {
+            "ca": "S'encongeix?",
+            "es": "¿Encoge?",
+            "fr": "Est-ce qu'elle rétrécit ?"
+          },
+          "a": {
+            "ca": "Està prerentada. Si la rentes amb aigua calenta, pot encongir-se un 2 % com a màxim.",
+            "es": "Está prelavada. Si la lavas con agua caliente, puede encoger un 2 % como máximo.",
+            "fr": "Elle est prélavée. En cas de lavage à chaud, elle peut rétrécir de 2 % au maximum."
+          }
+        },
+        {
+          "q": {
+            "ca": "Transparenta?",
+            "es": "¿Transparenta?",
+            "fr": "Est-elle transparente ?"
+          },
+          "a": {
+            "ca": "En color natural, molt poc. En blanc trencat, una mica més.",
+            "es": "En color natural, muy poco. En blanco roto, algo más.",
+            "fr": "En coloris naturel, très peu. En blanc cassé, un peu plus."
+          }
+        },
+        {
+          "q": {
+            "ca": "I si se'm trenca un botó?",
+            "es": "¿Y si se me rompe un botón?",
+            "fr": "Et si un bouton se casse ?"
+          },
+          "a": {
+            "ca": "Porta-la a la botiga i et cosim el botó de recanvi de franc.",
+            "es": "Tráela a la tienda y te cosemos el botón de recambio gratis.",
+            "fr": "Rapportez-la en boutique : nous recousons gratuitement le bouton de rechange."
+          }
+        }
+      ],
+      "combina": [
+        "TX-26-IND",
+        "JM-24-GRF"
+      ]
+    },
+    {
+      "epc": "urn:epc:id:sgtin:8400000.012346.100002",
+      "gtin": "08400000123465",
+      "serie": "100002",
+      "nivell": "peca",
+      "nom": {
+        "ca": "Jersei de llana merino",
+        "es": "Jersey de lana merino",
+        "fr": "Pull en laine mérinos"
+      },
+      "model": "JM-24-GRF",
+      "color": {
+        "ca": "Grafit",
+        "es": "Grafito",
+        "fr": "Graphite"
+      },
+      "talla": "S",
+      "preu_eur": 89,
+      "composicio": [
+        {
+          "material": {
+            "ca": "Llana merino",
+            "es": "Lana merino",
+            "fr": "Laine mérinos"
+          },
+          "pct": 100,
+          "pais": "AU"
+        }
+      ],
+      "etapes": [
+        {
+          "etapa": "fibra",
+          "pais": "AU",
+          "regio": {
+            "ca": "Nova Gal·les del Sud",
+            "es": "Nueva Gales del Sur",
+            "fr": "Nouvelle-Galles du Sud"
+          },
+          "actor": {
+            "ca": "Granja d'ovelles merino (exemple)",
+            "es": "Granja de ovejas merino (ejemplo)",
+            "fr": "Élevage de moutons mérinos (exemple)"
+          },
+          "data": "2025-03"
+        },
+        {
+          "etapa": "filatura",
+          "pais": "IT",
+          "regio": "Biella",
+          "actor": {
+            "ca": "Filatura (exemple)",
+            "es": "Hilatura (ejemplo)",
+            "fr": "Filature (exemple)"
+          },
+          "data": "2025-08"
+        },
+        {
+          "etapa": "tricotat",
+          "pais": "PT",
+          "regio": "Barcelos",
+          "actor": {
+            "ca": "Taller de punt (exemple)",
+            "es": "Taller de punto (ejemplo)",
+            "fr": "Atelier de tricotage (exemple)"
+          },
+          "data": "2025-11"
+        },
+        {
+          "etapa": "confeccio",
+          "pais": "PT",
+          "regio": "Barcelos",
+          "actor": {
+            "ca": "Taller de confecció (exemple)",
+            "es": "Taller de confección (ejemplo)",
+            "fr": "Atelier de confection (exemple)"
+          },
+          "data": "2026-01"
+        }
+      ],
+      "certificats": [
+        {
+          "nom": "RWS",
+          "abast": {
+            "ca": "Benestar animal i gestió de la terra",
+            "es": "Bienestar animal y gestión de la tierra",
+            "fr": "Bien-être animal et gestion des terres"
+          },
+          "ref": "EX-RWS-0002"
+        }
+      ],
+      "forma": "jersei",
+      "textura": "punt",
+      "descripcio": {
+        "ca": "Jersei de punt fi amb coll rodó i punys de canalé. Abriga sense pesar.",
+        "es": "Jersey de punto fino con cuello redondo y puños de canalé. Abriga sin pesar.",
+        "fr": "Pull en maille fine, col rond et poignets côtelés. Chaud sans être lourd."
+      },
+      "color_detall": {
+        "hex": "#3B3F3D",
+        "descripcio": {
+          "ca": "Gris fosc gairebé negre, amb un punt verdós a la llum del dia.",
+          "es": "Gris oscuro casi negro, con un punto verdoso a la luz del día.",
+          "fr": "Gris foncé presque noir, légèrement vert à la lumière du jour."
+        }
+      },
+      "colors": [
+        {
+          "nom": {
+            "ca": "Grafit",
+            "es": "Grafito",
+            "fr": "Graphite"
+          },
+          "hex": "#3B3F3D"
+        },
+        {
+          "nom": {
+            "ca": "Coure",
+            "es": "Cobre",
+            "fr": "Cuivre"
+          },
+          "hex": "#B07A5E"
+        },
+        {
+          "nom": {
+            "ca": "Cru",
+            "es": "Crudo",
+            "fr": "Écru"
+          },
+          "hex": "#E9E1D1"
+        }
+      ],
+      "talles": [
+        {
+          "talla": "XS",
+          "estoc": 1
+        },
+        {
+          "talla": "S",
+          "estoc": 1
+        },
+        {
+          "talla": "M",
+          "estoc": 4
+        },
+        {
+          "talla": "L",
+          "estoc": 2
+        }
+      ],
+      "ajust": {
+        "ca": "Ajust regular. Tria la teva talla habitual.",
+        "es": "Corte regular. Elige tu talla habitual.",
+        "fr": "Coupe classique. Prenez votre taille habituelle."
+      },
+      "teixit_detall": {
+        "ca": "Punt jersei de galga 14, amb llana de 18,5 micres.",
+        "es": "Punto jersey de galga 14, con lana de 18,5 micras.",
+        "fr": "Jersey jauge 14, en laine de 18,5 microns."
+      },
+      "cura": [
+        {
+          "ca": "Rentar a mà o amb el programa de llana, a 20 °C",
+          "es": "Lavar a mano o con el programa de lana, a 20 °C",
+          "fr": "Laver à la main ou en programme laine, à 20 °C"
+        },
+        {
+          "ca": "Assecar en horitzontal",
+          "es": "Secar en horizontal",
+          "fr": "Sécher à plat"
+        },
+        {
+          "ca": "No penjar-lo mullat",
+          "es": "No colgarlo mojado",
+          "fr": "Ne pas le suspendre mouillé"
+        }
+      ],
+      "faq": [
+        {
+          "q": {
+            "ca": "Pica?",
+            "es": "¿Pica?",
+            "fr": "Est-ce qu'il gratte ?"
+          },
+          "a": {
+            "ca": "La llana merino de 18,5 micres és molt fina. A la majoria de la gent no li pica.",
+            "es": "La lana merino de 18,5 micras es muy fina. A la mayoría de la gente no le pica.",
+            "fr": "La laine mérinos de 18,5 microns est très fine. La plupart des gens ne la trouvent pas irritante."
+          }
+        },
+        {
+          "q": {
+            "ca": "Li surten boletes?",
+            "es": "¿Le salen bolitas?",
+            "fr": "Fait-il des bouloches ?"
+          },
+          "a": {
+            "ca": "Una mica, les primeres setmanes i a les zones de fregament. Es treuen amb un treuboles o una pinta per a llana.",
+            "es": "Un poco, las primeras semanas y en las zonas de roce. Se quitan con un quitapelusas o un peine para lana.",
+            "fr": "Un peu, les premières semaines et aux zones de frottement. Elles s'enlèvent avec un rasoir anti-bouloches ou un peigne à laine."
+          }
+        },
+        {
+          "q": {
+            "ca": "Què vol dir RWS?",
+            "es": "¿Qué significa RWS?",
+            "fr": "Que signifie RWS ?"
+          },
+          "a": {
+            "ca": "És una certificació que controla el benestar de les ovelles i la gestió de la terra a la granja.",
+            "es": "Es una certificación que controla el bienestar de las ovejas y la gestión de la tierra en la granja.",
+            "fr": "C'est une certification qui contrôle le bien-être des moutons et la gestion des terres à la ferme."
+          }
+        }
+      ],
+      "combina": [
+        "CL-24-NAT",
+        "TX-26-IND"
+      ]
+    },
+    {
+      "epc": "urn:epc:id:sgtin:8400000.012347.100003",
+      "gtin": "08400000123472",
+      "serie": "100003",
+      "nivell": "lot",
+      "lot": "LOT-2026-0417",
+      "nom": {
+        "ca": "Vestit de viscosa",
+        "es": "Vestido de viscosa",
+        "fr": "Robe en viscose"
+      },
+      "model": "VV-26-VRD",
+      "color": {
+        "ca": "Verd",
+        "es": "Verde",
+        "fr": "Vert"
+      },
+      "talla": "38",
+      "preu_eur": 59,
+      "composicio": [
+        {
+          "material": {
+            "ca": "Viscosa",
+            "es": "Viscosa",
+            "fr": "Viscose"
+          },
+          "pct": 100,
+          "pais": "AT"
+        }
+      ],
+      "etapes": [
+        {
+          "etapa": "fusta",
+          "pais": "AT",
+          "regio": {
+            "ca": "Estíria",
+            "es": "Estiria",
+            "fr": "Styrie"
+          },
+          "actor": {
+            "ca": "Bosc certificat (exemple)",
+            "es": "Bosque certificado (ejemplo)",
+            "fr": "Forêt certifiée (exemple)"
+          },
+          "data": "2025-05"
+        },
+        {
+          "etapa": "fibra",
+          "pais": "AT",
+          "regio": {
+            "ca": "Alta Àustria",
+            "es": "Alta Austria",
+            "fr": "Haute-Autriche"
+          },
+          "actor": {
+            "ca": "Productor de fibra (exemple)",
+            "es": "Productor de fibra (ejemplo)",
+            "fr": "Producteur de fibre (exemple)"
+          },
+          "data": "2025-07"
+        },
+        {
+          "etapa": "filatura",
+          "pais": "TR",
+          "regio": "Denizli",
+          "actor": {
+            "ca": "Filatura (exemple)",
+            "es": "Hilatura (ejemplo)",
+            "fr": "Filature (exemple)"
+          },
+          "data": "2025-10"
+        },
+        {
+          "etapa": "teixit",
+          "pais": "TR",
+          "regio": "Bursa",
+          "actor": {
+            "ca": "Teixidoria (exemple)",
+            "es": "Tejeduría (ejemplo)",
+            "fr": "Tissage (exemple)"
+          },
+          "data": "2025-12"
+        },
+        {
+          "etapa": "confeccio",
+          "pais": "MA",
+          "regio": {
+            "ca": "Tànger",
+            "es": "Tánger",
+            "fr": "Tanger"
+          },
+          "actor": {
+            "ca": "Taller de confecció (exemple)",
+            "es": "Taller de confección (ejemplo)",
+            "fr": "Atelier de confection (exemple)"
+          },
+          "data": "2026-02"
+        }
+      ],
+      "certificats": [
+        {
+          "nom": "FSC",
+          "abast": {
+            "ca": "Fusta de boscos gestionats",
+            "es": "Madera de bosques gestionados",
+            "fr": "Bois de forêts gérées"
+          },
+          "ref": "EX-FSC-0003"
+        }
+      ],
+      "forma": "vestit",
+      "textura": "viscosa",
+      "descripcio": {
+        "ca": "Vestit midi de caiguda fluida, amb la cintura lleugerament marcada. Fresc a l'estiu.",
+        "es": "Vestido midi de caída fluida, con la cintura ligeramente marcada. Fresco en verano.",
+        "fr": "Robe midi fluide, à la taille légèrement marquée. Fraîche en été."
+      },
+      "color_detall": {
+        "hex": "#2F5A4C",
+        "descripcio": {
+          "ca": "Verd bosc profund, amb una lleugera brillantor quan es mou.",
+          "es": "Verde bosque profundo, con un ligero brillo al moverse.",
+          "fr": "Vert forêt profond, légèrement brillant en mouvement."
+        }
+      },
+      "colors": [
+        {
+          "nom": {
+            "ca": "Verd",
+            "es": "Verde",
+            "fr": "Vert"
+          },
+          "hex": "#2F5A4C"
+        },
+        {
+          "nom": {
+            "ca": "Terracota",
+            "es": "Terracota",
+            "fr": "Terracotta"
+          },
+          "hex": "#A65A3F"
+        },
+        {
+          "nom": {
+            "ca": "Negre",
+            "es": "Negro",
+            "fr": "Noir"
+          },
+          "hex": "#1F2120"
+        }
+      ],
+      "talles": [
+        {
+          "talla": "36",
+          "estoc": 0
+        },
+        {
+          "talla": "38",
+          "estoc": 2
+        },
+        {
+          "talla": "40",
+          "estoc": 1
+        },
+        {
+          "talla": "42",
+          "estoc": 1
+        }
+      ],
+      "ajust": {
+        "ca": "Ajust fluid a la cintura. Llargada de 118 cm en la talla 38.",
+        "es": "Ajuste fluido en la cintura. Largo de 118 cm en la talla 38.",
+        "fr": "Coupe fluide à la taille. Longueur de 118 cm en taille 38."
+      },
+      "teixit_detall": {
+        "ca": "Sarja de viscosa de 120 g/m², de caiguda suau.",
+        "es": "Sarga de viscosa de 120 g/m², de caída suave.",
+        "fr": "Sergé de viscose de 120 g/m², au tombé souple."
+      },
+      "cura": [
+        {
+          "ca": "Rentar a 30 °C del revés",
+          "es": "Lavar a 30 °C del revés",
+          "fr": "Laver à 30 °C sur l'envers"
+        },
+        {
+          "ca": "No centrifugar ni escórrer",
+          "es": "No centrifugar ni escurrir",
+          "fr": "Ne pas essorer"
+        },
+        {
+          "ca": "Planxar a temperatura baixa",
+          "es": "Planchar a temperatura baja",
+          "fr": "Repasser à basse température"
+        }
+      ],
+      "faq": [
+        {
+          "q": {
+            "ca": "La viscosa és natural o sintètica?",
+            "es": "¿La viscosa es natural o sintética?",
+            "fr": "La viscose est-elle naturelle ou synthétique ?"
+          },
+          "a": {
+            "ca": "Ni una cosa ni l'altra: es fa amb fusta, que es transforma en fibra.",
+            "es": "Ni una cosa ni otra: se fabrica con madera, que se transforma en fibra.",
+            "fr": "Ni l'un ni l'autre : elle est fabriquée à partir de bois transformé en fibre."
+          }
+        },
+        {
+          "q": {
+            "ca": "S'arruga?",
+            "es": "¿Se arruga?",
+            "fr": "Se froisse-t-elle ?"
+          },
+          "a": {
+            "ca": "Una mica. Si la penges al bany mentre et dutxes, el vapor la desarruga.",
+            "es": "Un poco. Si la cuelgas en el baño mientras te duchas, el vapor la desarruga.",
+            "fr": "Un peu. Suspendez-la dans la salle de bain pendant votre douche : la vapeur la défroisse."
+          }
+        },
+        {
+          "q": {
+            "ca": "Per què diu «dades del lot»?",
+            "es": "¿Por qué pone «datos del lote»?",
+            "fr": "Pourquoi « données du lot » ?"
+          },
+          "a": {
+            "ca": "La marca coneix l'origen de tota la producció d'aquest vestit, però no el de cada peça per separat.",
+            "es": "La marca conoce el origen de toda la producción de este vestido, pero no el de cada prenda por separado.",
+            "fr": "La marque connaît l'origine de toute la production de cette robe, mais pas celle de chaque pièce."
+          }
+        }
+      ],
+      "combina": [
+        "JM-24-GRF"
+      ]
+    },
+    {
+      "epc": "urn:epc:id:sgtin:8400000.012348.100004",
+      "gtin": "08400000123489",
+      "serie": "100004",
+      "nivell": "peca",
+      "nom": {
+        "ca": "Texans de cotó orgànic",
+        "es": "Vaqueros de algodón orgánico",
+        "fr": "Jean en coton biologique"
+      },
+      "model": "TX-26-IND",
+      "color": {
+        "ca": "Indi",
+        "es": "Índigo",
+        "fr": "Indigo"
+      },
+      "talla": "40",
+      "preu_eur": 79,
+      "composicio": [
+        {
+          "material": {
+            "ca": "Cotó orgànic",
+            "es": "Algodón orgánico",
+            "fr": "Coton biologique"
+          },
+          "pct": 98,
+          "pais": "IN"
+        },
+        {
+          "material": {
+            "ca": "Elastà",
+            "es": "Elastano",
+            "fr": "Élasthanne"
+          },
+          "pct": 2,
+          "pais": "CN"
+        }
+      ],
+      "etapes": [
+        {
+          "etapa": "cultiu",
+          "pais": "IN",
+          "regio": "Madhya Pradesh",
+          "actor": {
+            "ca": "Agricultors de cotó (exemple)",
+            "es": "Agricultores de algodón (ejemplo)",
+            "fr": "Producteurs de coton (exemple)"
+          },
+          "data": "2025-01"
+        },
+        {
+          "etapa": "filatura",
+          "pais": "IN",
+          "regio": "Gujarat",
+          "actor": {
+            "ca": "Filatura (exemple)",
+            "es": "Hilatura (ejemplo)",
+            "fr": "Filature (exemple)"
+          },
+          "data": "2025-05"
+        },
+        {
+          "etapa": "teixit",
+          "pais": "TR",
+          "regio": {
+            "ca": "Esmirna",
+            "es": "Esmirna",
+            "fr": "Izmir"
+          },
+          "actor": {
+            "ca": "Teixidoria de denim (exemple)",
+            "es": "Tejeduría de denim (ejemplo)",
+            "fr": "Tissage de denim (exemple)"
+          },
+          "data": "2025-09"
+        },
+        {
+          "etapa": "confeccio",
+          "pais": "TR",
+          "regio": {
+            "ca": "Esmirna",
+            "es": "Esmirna",
+            "fr": "Izmir"
+          },
+          "actor": {
+            "ca": "Taller de confecció (exemple)",
+            "es": "Taller de confección (ejemplo)",
+            "fr": "Atelier de confection (exemple)"
+          },
+          "data": "2025-12"
+        }
+      ],
+      "certificats": [
+        {
+          "nom": "GOTS",
+          "abast": {
+            "ca": "Fibra orgànica i processament",
+            "es": "Fibra orgánica y procesado",
+            "fr": "Fibre biologique et transformation"
+          },
+          "ref": "EX-GOTS-0004"
+        }
+      ],
+      "forma": "texans",
+      "textura": "denim",
+      "descripcio": {
+        "ca": "Texans de cintura alta i camal recte, amb una mica d'elasticitat perquè siguin més còmodes.",
+        "es": "Vaqueros de tiro alto y pierna recta, con algo de elasticidad para que sean más cómodos.",
+        "fr": "Jean taille haute à jambe droite, légèrement stretch pour plus de confort."
+      },
+      "color_detall": {
+        "hex": "#2B3A55",
+        "descripcio": {
+          "ca": "Blau indi fosc, sense rentar, que s'anirà aclarint amb l'ús.",
+          "es": "Azul índigo oscuro, sin lavar, que se irá aclarando con el uso.",
+          "fr": "Bleu indigo foncé, brut, qui s'éclaircira au fil du temps."
+        }
+      },
+      "colors": [
+        {
+          "nom": {
+            "ca": "Indi",
+            "es": "Índigo",
+            "fr": "Indigo"
+          },
+          "hex": "#2B3A55"
+        },
+        {
+          "nom": {
+            "ca": "Blau rentat",
+            "es": "Azul lavado",
+            "fr": "Bleu délavé"
+          },
+          "hex": "#6E86A6"
+        },
+        {
+          "nom": {
+            "ca": "Cru",
+            "es": "Crudo",
+            "fr": "Écru"
+          },
+          "hex": "#E6DDCB"
+        }
+      ],
+      "talles": [
+        {
+          "talla": "36",
+          "estoc": 1
+        },
+        {
+          "talla": "38",
+          "estoc": 2
+        },
+        {
+          "talla": "40",
+          "estoc": 2
+        },
+        {
+          "talla": "42",
+          "estoc": 0
+        }
+      ],
+      "ajust": {
+        "ca": "Camal recte i cintura alta. Llargada de cama: 78 cm.",
+        "es": "Pierna recta y tiro alto. Largo de pierna: 78 cm.",
+        "fr": "Jambe droite et taille haute. Longueur d'entrejambe : 78 cm."
+      },
+      "teixit_detall": {
+        "ca": "Denim de sarja 3/1, de 12 oz.",
+        "es": "Denim de sarga 3/1, de 12 oz.",
+        "fr": "Denim sergé 3/1, 12 oz."
+      },
+      "cura": [
+        {
+          "ca": "Rentar poques vegades, del revés i a 30 °C",
+          "es": "Lavar pocas veces, del revés y a 30 °C",
+          "fr": "Laver rarement, sur l'envers, à 30 °C"
+        },
+        {
+          "ca": "Rentar-los sols les primeres vegades",
+          "es": "Lavarlos solos las primeras veces",
+          "fr": "Le laver seul les premières fois"
+        },
+        {
+          "ca": "No fer servir lleixiu",
+          "es": "No usar lejía",
+          "fr": "Ne pas utiliser d'eau de Javel"
+        }
+      ],
+      "faq": [
+        {
+          "q": {
+            "ca": "Destenyeixen?",
+            "es": "¿Destiñen?",
+            "fr": "Est-ce qu'il déteint ?"
+          },
+          "a": {
+            "ca": "L'indi pot tacar teixits clars els primers dies. Renta'ls sols les primeres vegades.",
+            "es": "El índigo puede manchar tejidos claros los primeros días. Lávalos solos las primeras veces.",
+            "fr": "L'indigo peut tacher les tissus clairs au début. Lavez-le seul les premières fois."
+          }
+        },
+        {
+          "q": {
+            "ca": "Es poden escurçar?",
+            "es": "¿Se pueden acortar?",
+            "fr": "Peut-on le raccourcir ?"
+          },
+          "a": {
+            "ca": "Sí. A la botiga et fem el baix en 48 hores.",
+            "es": "Sí. En la tienda te hacemos el bajo en 48 horas.",
+            "fr": "Oui. Nous faisons l'ourlet en boutique en 48 heures."
+          }
+        },
+        {
+          "q": {
+            "ca": "Per què porten elastà?",
+            "es": "¿Por qué llevan elastano?",
+            "fr": "Pourquoi y a-t-il de l'élasthanne ?"
+          },
+          "a": {
+            "ca": "El 2 % d'elastà els fa més còmodes, però també fa més difícil reciclar el teixit al final de la seva vida útil.",
+            "es": "El 2 % de elastano los hace más cómodos, pero también dificulta reciclar el tejido al final de su vida útil.",
+            "fr": "Les 2 % d'élasthanne apportent du confort, mais rendent le tissu plus difficile à recycler en fin de vie."
+          }
+        }
+      ],
+      "combina": [
+        "CL-24-NAT",
+        "JM-24-GRF"
+      ]
+    }
+  ],
+  "faq_general": [
+    {
+      "q": {
+        "ca": "Com sabeu d'on ve?",
+        "es": "¿Cómo sabéis de dónde viene?",
+        "fr": "Comment savez-vous d'où il vient ?"
+      },
+      "a": {
+        "ca": "Els proveïdors de la marca registren cada etapa en una plataforma de traçabilitat, i l'etiqueta de la peça hi està vinculada.",
+        "es": "Los proveedores de la marca registran cada etapa en una plataforma de trazabilidad, y la etiqueta de la prenda está vinculada a ella.",
+        "fr": "Les fournisseurs de la marque enregistrent chaque étape sur une plateforme de traçabilité, et l'étiquette du vêtement y est reliée."
+      }
+    },
+    {
+      "q": {
+        "ca": "Guardeu dades sobre mi?",
+        "es": "¿Guardáis datos sobre mí?",
+        "fr": "Enregistrez-vous des données sur moi ?"
+      },
+      "a": {
+        "ca": "No. La pantalla només llegeix l'etiqueta de la peça. No hi ha cap càmera i no es guarda cap dada teva.",
+        "es": "No. La pantalla solo lee la etiqueta de la prenda. No hay ninguna cámara y no se guarda ningún dato tuyo.",
+        "fr": "Non. L'écran lit uniquement l'étiquette du vêtement. Il n'y a pas de caméra et aucune donnée vous concernant n'est enregistrée."
+      }
+    },
+    {
+      "q": {
+        "ca": "Puc canviar-la o tornar-la?",
+        "es": "¿Puedo cambiarla o devolverla?",
+        "fr": "Puis-je l'échanger ou la retourner ?"
+      },
+      "a": {
+        "ca": "Sí, tens 30 dies amb el tiquet de compra.",
+        "es": "Sí, tienes 30 días con el tique de compra.",
+        "fr": "Oui, vous disposez de 30 jours sur présentation du ticket de caisse."
+      }
+    }
+  ]
+}

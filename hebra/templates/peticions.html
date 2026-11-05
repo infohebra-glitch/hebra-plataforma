@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titol %}Peticions de talla · Hebra{% endblock %}
+{% block cos %}
+<a class="marca" href="/">Hebra</a>
+<div class="fila entre"><h1>Peticions de talla</h1><a class="boto" href="">Actualitza</a></div>
+<p class="muted">El client la demana des de la fitxa NFC. Porta-la a la cabina i marca-la com a lliurada.</p>
+{% for f in files %}
+<div class="panell fila entre">
+  <div>
+    <b>{{ f.model }} · {{ f.color }} · talla {{ f.talla_demanada }}</b>
+    {% if f.cabina %}<span class="etiqueta">{{ f.cabina }}</span>{% endif %}<br>
+    <span class="petit muted">{{ f.hora_peticio[11:16] }} · {{ f.hora_peticio[:10] }}
+      {% if f.disponible == 0 %}· <span class="alerta">segons l'estoc, no n'hi ha</span>{% endif %}</span>
+  </div>
+  {% if f.estat == 'pendent' %}
+  <form method="post" action="/botiga/peticions/{{ f.id }}" class="fila">
+    <input type="hidden" name="b" value="{{ b }}">
+    <button class="primari" name="estat" value="lliurada">Lliurada</button>
+    <button name="estat" value="no_disponible">No n'hi ha</button>
+  </form>
+  {% else %}<span class="muted">{{ 'Lliurada' if f.estat == 'lliurada' else "No n'hi havia" }} · {{ (f.hora_resolta or '')[11:16] }}</span>{% endif %}
+</div>
+{% else %}<p class="muted">Cap petició.</p>{% endfor %}
+{% endblock %}
