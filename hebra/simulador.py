@@ -47,7 +47,7 @@ def prepara_botiga(con: sqlite3.Connection) -> None:
         con.execute("INSERT OR IGNORE INTO antena (id, cabina_id, port, llindar_rssi) VALUES (?, ?, ?, -60)",
                     (f"R700-1:{i + 1}", c, i + 1))
     con.commit()
-    cataleg.importa_origen(con, ORIGEN_PROVA)
+    cataleg.importa_origen(con, ORIGEN_PROVA, genera_talles=True)
 
 
 def _peces_fisiques(con: sqlite3.Connection, per_sku: int = 3) -> list[tuple[str, sqlite3.Row]]:
@@ -61,7 +61,7 @@ def _peces_fisiques(con: sqlite3.Connection, per_sku: int = 3) -> list[tuple[str
         for s in range(per_sku):
             sg = epc_mod.Sgtin(empresa, ref, str(900000 + s))
             con.execute("INSERT OR IGNORE INTO etiqueta (epc, nfc_token, gtin) VALUES (?, ?, ?)",
-                        (sg.urn, cataleg.token_nfc(sg), g))
+                        (sg.urn, cataleg.nou_token(), g))
             peces.append((sg.urn, k))
     con.commit()
     return peces

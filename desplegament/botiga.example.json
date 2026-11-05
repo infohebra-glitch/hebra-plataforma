@@ -1,0 +1,14 @@
+{
+  "id": "BCN-01",
+  "nom": "Botiga pilot",
+  "nivell": "cabina",
+  "zona_horaria": "Europe/Madrid",
+  "cabines": [
+    {"id": "BCN-01-C1", "nom": "Cabina 1", "veines": ["BCN-01-C2"],
+     "antenes": [{"id": "R700-1:1", "port": 1, "llindar_rssi": -60}]},
+    {"id": "BCN-01-C2", "nom": "Cabina 2", "veines": ["BCN-01-C1", "BCN-01-C3"],
+     "antenes": [{"id": "R700-1:2", "port": 2, "llindar_rssi": -60}]},
+    {"id": "BCN-01-C3", "nom": "Cabina 3", "veines": ["BCN-01-C2"],
+     "antenes": [{"id": "R700-1:3", "port": 3, "llindar_rssi": -60}]}
+  ]
+}

@@ -2,8 +2,8 @@
 
 ## Per revisar amb el Xavier
 
-1. **Interfície del R700**: REST, MQTT o LLRP? Defineix com serà la passarel·la. El núvol ja espera lots agregats (`hebra/passarella.py`).
-2. **Passarel·la (Raspberry Pi)**: no està feta. Ha de llegir el lector i els sensors per cable, filtrar per prefix d'EPC, agregar cada 5-10 s, guardar 7 dies si cau la xarxa i enviar a `POST /api/v1/lots`.
+1. **Interfície del R700**: la passarel·la (`hebra_passarella/lector.py`) fa servir l'API REST d'Impinj (IoT Device Interface) i el flux HTTP de línies JSON. **Està provada contra un lector fals, no contra un R700 real.** Cal comprovar al Swagger del lector: camins (v0 o v1), mètodes, si el flux és `GET /api/v1/data/stream`, i el format exacte de l'esdeveniment. Tot és configurable a `passarella.toml`.
+2. **Passarel·la (Raspberry Pi)**: feta (`hebra_passarella/`): lector, sensors GPIO, agregació cada 10 s, cua de 7 dies i enviament. Falta provar-la amb maquinari: cablejat dels sensors, comportament del radar LD2410C, rebots del contacte de porta. El filtre per prefix d'EPC es fa a la Raspberry; es podria passar al lector (filtres del preset).
 3. **Calibratge** amb la prova de laboratori de 20 peces: llindar RSSI per antena, temps mínim (60 s?), lectures mínimes, marges de confiança. Tot és configurable per variables d'entorn; el llindar és per antena a la taula `antena`.
 4. **Les etiquetes són SGTIN-96?** Si no, cal omplir la taula `etiqueta` (EPC → GTIN) des del dossier de la marca.
 5. **Tecnologia**: SQLite val per al pilot d'una botiga. Per a més botigues, PostgreSQL. Revisar si FastAPI + plantilles al servidor li sembla bé.
@@ -17,11 +17,11 @@
 - **Altres informes**: alertes, resum diari, mensual d'accions, fi de temporada, final de pilot, pilot de Mango.
 - **Estoc real** a la fitxa: ara surt del fitxer d'origen (fix). Hauria de venir del TPV o de Shopify.
 - **Avisos al mòbil del dependent** quan arriba una petició (ara cal actualitzar la pàgina).
-- **Gestió de botigues, cabines i antenes** des de la web (ara: SQL o el simulador).
+- **Gestió de botigues, cabines i antenes** des de la web (ara: `python -m hebra.admin`).
+- **Recàlcul incremental de proves**: ara es recalcula tot l'historial de cada cabina cada 5 minuts. Per a 8 setmanes i una botiga va bé; per a moltes botigues caldrà fer-ho només dels darrers dies.
 
 ## Abans de posar-ho davant d'una botiga real
 
-- **Token NFC aleatori o signat.** Ara és `GTIN-sèrie`, fàcil d'endevinar (`cataleg.token_nfc`).
 - **Canviar totes les claus i contrasenyes** i servir-ho només amb HTTPS.
 - Usuaris per botiga (ara hi ha un sol usuari de botiga per a tot).
 - Límit de peticions a la fitxa i a l'API.

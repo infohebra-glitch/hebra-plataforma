@@ -5,13 +5,17 @@ Per al MVP en creem:
   * una fila de `catalog_sku` per a cada talla del model (un GTIN per talla);
   * una fila d'`etiqueta` per a la peça del fitxer (EPC + token NFC).
 
-Els GTIN de les altres talles es deriven de la referència del model (+1, +2...).
-És una convenció NOMÉS per a les dades de prova: amb una marca real, els GTIN
-surten del seu catàleg o de Shopify.
+Amb una marca real, les variants (un GTIN per talla) s'importen abans des del seu
+catàleg (`python -m hebra.admin cataleg`), i aquí només s'hi enganxa la fitxa
+d'origen a totes les variants del model.
+
+Amb `genera_talles=True` (només el simulador) es creen GTIN de prova per a les
+altres talles sumant 1000 a la referència del model.
 """
 
 import json
 import logging
+import secrets
 import sqlite3
 from pathlib import Path
 
@@ -29,8 +33,8 @@ def gtin_per_talla(sgtin: epc_mod.Sgtin, index: int, index_base: int) -> str:
     return variant.gtin
 
 
-def importa_origen(con: sqlite3.Connection, ruta: str | Path) -> int:
-    """Importa un fitxer hebra-origen. Retorna el nombre de SKU creats o actualitzats."""
+def importa_origen(con: sqlite3.Connection, ruta: str | Path, genera_talles: bool = False) -> int:
+    """Importa un fitxer hebra-origen. Retorna quantes variants del catàleg tenen ara aquesta fitxa."""
     dades = json.loads(Path(ruta).read_text(encoding="utf-8"))
     if dades.get("format") != FORMAT_ACCEPTAT:
         raise ValueError(f"Format no suportat: {dades.get('format')!r} (esperat {FORMAT_ACCEPTAT})")
@@ -49,6 +53,8 @@ def importa_origen(con: sqlite3.Connection, ruta: str | Path) -> int:
         origen = dict(peca, faq_general=dades.get("faq_general", []), estoc=estoc)
 
         for i, talla in enumerate(talles):
+            if i != index_base and not genera_talles:
+                continue
             gtin = sgtin.gtin if i == index_base else gtin_per_talla(sgtin, i, index_base)
             con.execute(
                 """INSERT INTO catalog_sku (gtin, model, color, talla, categoria, preu_eur, origen_json)
@@ -59,25 +65,23 @@ def importa_origen(con: sqlite3.Connection, ruta: str | Path) -> int:
                 (gtin, peca["model"], peca["color"]["ca"], talla, peca.get("forma", "altres"),
                  peca.get("preu_eur"), json.dumps(origen, ensure_ascii=False)),
             )
-            total += 1
 
+        # La fitxa d'origen és del model: l'enganxem a totes les seves variants ja conegudes.
+        n = con.execute("UPDATE catalog_sku SET origen_json = ? WHERE model = ?",
+                        (json.dumps(origen, ensure_ascii=False), peca["model"])).rowcount
+        total += n
         con.execute(
             """INSERT INTO etiqueta (epc, nfc_token, gtin) VALUES (?, ?, ?)
                ON CONFLICT(epc) DO UPDATE SET gtin=excluded.gtin""",
-            (sgtin.urn, token_nfc(sgtin), sgtin.gtin),
+            (sgtin.urn, nou_token(), sgtin.gtin),
         )
     con.commit()
     return total
 
 
-def token_nfc(sgtin: epc_mod.Sgtin) -> str:
-    """Token que va gravat a la URL del xip NFC.
-
-    Al MVP és el GTIN + la sèrie (llegible, fàcil de depurar). Abans de produir
-    etiquetes reals convé passar a un token aleatori o signat (vegeu docs/PENDENT.md)
-    perquè no es puguin endevinar fitxes d'altres peces.
-    """
-    return f"{sgtin.gtin}-{sgtin.serie}"
+def nou_token() -> str:
+    """Token aleatori per a la URL del xip NFC (no es pot endevinar la fitxa d'una altra peça)."""
+    return secrets.token_urlsafe(9)
 
 
 def sku(con: sqlite3.Connection, gtin: str) -> sqlite3.Row | None:

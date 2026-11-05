@@ -40,6 +40,8 @@ class Config:
     usuari_botiga: str = field(default_factory=lambda: os.environ.get("HEBRA_USUARI_BOTIGA", "botiga"))
     contrasenya_botiga: str = field(default_factory=lambda: os.environ.get("HEBRA_CONTRASENYA_BOTIGA", "hebra"))
     regla: ReglaProva = field(default_factory=ReglaProva)
+    # Cada quants minuts es recalculen proves i atribucions (0 = mai; llavors cal cridar /api/v1/processa).
+    processa_cada_min: float = field(default_factory=lambda: _float("HEBRA_PROCESSA_CADA_MIN", 5))
 
 
 def carrega() -> Config:

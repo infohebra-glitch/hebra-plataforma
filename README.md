@@ -9,6 +9,8 @@ Aquest repositori és la primera versió de la plataforma per al **pilot de 8 se
 - **Cap dada personal.** Ni càmeres, ni galetes, ni comptes de client.
 
 > Totes les dades del repositori són **inventades** (dades de prova). Cap xifra és d'una marca real.
+>
+> Funciona de dues maneres: amb el **simulador** (per provar-ho sense res) o amb **maquinari real** (lector Impinj R700 + Raspberry Pi + sensors de cabina). La instal·lació real és a [`docs/INSTAL-LACIO.md`](docs/INSTAL-LACIO.md).
 
 ## Què fa
 
@@ -21,6 +23,8 @@ Aquest repositori és la primera versió de la plataforma per al **pilot de 8 se
 | Fitxa NFC | `hebra/fitxa.py`, `/p/{token}` | La pàgina que s'obre al mòbil: talles, composició, origen, cura, **demanar una altra talla** i **«per què no te l'emportes?»**. En català, castellà, francès i anglès. |
 | Web del dependent | `/botiga/peticions` | Llista de talles demanades des de la fitxa, per portar-les a la cabina. |
 | Informe setmanal | `hebra/informes.py`, `/botiga/informe` | «Provat, venut, convertit» per model, categoria i talla; efecte de l'origen amb i sense; demanda perduda; motius de no compra; una acció de la setmana. |
+| Passarel·la real | `hebra_passarella/` | Programa de la Raspberry Pi: llegeix el lector R700 (API REST d'Impinj), els sensors de porta i presència pels GPIO, agrupa lectures cada 10 s i les envia; guarda 7 dies si cau la xarxa. |
+| Administració | `hebra/admin.py` | Alta de botiga, cabines i antenes; catàleg de la marca en CSV; fitxa d'origen; etiquetes (EPC ↔ URL NFC amb codi aleatori); grup de control. |
 | Simulador | `hebra/simulador.py` | Omple la base de dades amb una botiga de 3 cabines i setmanes de pilot simulades, per veure-ho tot funcionant sense maquinari. |
 | Descodificador EPC | `hebra/epc.py` | SGTIN-96 (hex o URN) a GTIN-14 i número de sèrie (estàndard GS1). |
 
@@ -72,6 +76,14 @@ Per variables d'entorn (vegeu [`.env.example`](.env.example)). Per carregar-les:
 
 **Abans de fer-ho servir amb una botiga real cal canviar totes les claus i contrasenyes.**
 
+## Maquinari real
+
+Resum (detall a [`docs/INSTAL-LACIO.md`](docs/INSTAL-LACIO.md)):
+
+1. **Servidor**: `uvicorn` + Caddy (HTTPS), amb els fitxers de `desplegament/`.
+2. **Raspberry Pi**: `python3 -m hebra_passarella /etc/hebra/passarella.toml` (servei systemd inclòs).
+3. **Dades**: `python -m hebra.admin botiga|cataleg|origen|etiquetes|control`.
+
 ## Com encaixa amb el maquinari
 
 ```
@@ -86,7 +98,7 @@ Sensors de porta i presència (per cable) ────────────�
 Mòbil del client ─(toc NFC)─► /p/{token}?b=BOTIGA ─► fitxa, petició de talla, motiu
 ```
 
-La **passarel·la real encara no existeix**: el simulador fa el seu paper. El format del lot que ha d'enviar és a `hebra/passarella.py`.
+La passarel·la real és a `hebra_passarella/`. **Encara no s'ha provat amb un R700 de veritat**: els camins de l'API són configurables i s'han de comprovar a la documentació del lector (vegeu PENDENT).
 
 ## Estructura
 
@@ -105,9 +117,12 @@ hebra/
   fitxa.py         lògica de la fitxa NFC
   informes.py      informe setmanal
   textos.py        textos de la fitxa en 4 idiomes
+  admin.py         alta de botiga, catàleg, etiquetes i grup de control
   simulador.py     pilot simulat
   templates/       pàgines (Jinja2)
   static/          estil
+hebra_passarella/         programa de la Raspberry Pi (lector, sensors, cua, enviament)
+desplegament/             serveis systemd, Caddy i exemples de configuració
 dades/origen-prova.json   4 peces de prova (inventades)
 tests/                    proves automàtiques
 docs/                     arquitectura i pendents

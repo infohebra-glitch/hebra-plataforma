@@ -8,7 +8,10 @@ Tres públics, tres zones:
 Arrencada:  uvicorn hebra.app:app --reload
 """
 
+import asyncio
+import logging
 import secrets
+from contextlib import asynccontextmanager
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -26,7 +29,38 @@ cfg = carrega()
 con = db.connecta(cfg.ruta_bd)
 db.inicialitza(con)
 
-app = FastAPI(title="Hebra", version=__version__, docs_url="/api/docs", redoc_url=None)
+log = logging.getLogger("hebra")
+
+
+def processa_tot() -> None:
+    """Recalcula proves i atribucions de totes les botigues (amb una connexió pròpia)."""
+    c = db.connecta(cfg.ruta_bd)
+    try:
+        for b in c.execute("SELECT id FROM botiga").fetchall():
+            proves.processa_botiga(c, b["id"], cfg.regla)
+            vendes.atribueix(c, b["id"])
+    finally:
+        c.close()
+
+
+async def _bucle_processament() -> None:
+    while True:
+        await asyncio.sleep(cfg.processa_cada_min * 60)
+        try:
+            await asyncio.to_thread(processa_tot)
+        except Exception:
+            log.exception("Error recalculant les proves")
+
+
+@asynccontextmanager
+async def _cicle_de_vida(_app):
+    tasca = asyncio.create_task(_bucle_processament()) if cfg.processa_cada_min > 0 else None
+    yield
+    if tasca:
+        tasca.cancel()
+
+
+app = FastAPI(title="Hebra", version=__version__, docs_url="/api/docs", redoc_url=None, lifespan=_cicle_de_vida)
 app.mount("/static", StaticFiles(directory=ARREL / "static"), name="static")
 plantilles = Jinja2Templates(directory=ARREL / "templates")
 plantilles.env.globals["pais"] = textos.pais

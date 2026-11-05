@@ -15,9 +15,11 @@ ESQUEMA = Path(__file__).with_name("schema.sql")
 
 
 def connecta(ruta: str) -> sqlite3.Connection:
-    con = sqlite3.connect(ruta, check_same_thread=False)
+    con = sqlite3.connect(ruta, check_same_thread=False, timeout=30)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
+    # WAL: la web pot llegir mentre el càlcul periòdic de proves escriu.
+    con.execute("PRAGMA journal_mode = WAL")
     return con
 
 
