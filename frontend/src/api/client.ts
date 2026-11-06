@@ -7,6 +7,7 @@
  * En mode demostració (vegeu src/mock), `transport` es reemplaça per un
  * servidor fals en memòria i la resta del codi no se n'assabenta.
  */
+import { rutaActual, rutaApp } from '../lib/mode';
 import type { Filtre } from './types';
 
 export const BASE = '/api/v2';
@@ -22,10 +23,8 @@ export type Transport = (url: string, init: RequestInit) => Promise<Response>;
 
 let transport: Transport = (url, init) => fetch(url, init);
 let enNoAutenticat: () => void = () => {
-  if (!window.location.pathname.startsWith('/app/entra')) {
-    const tornar = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.assign(`/app/entra?torna=${tornar}`);
-  }
+  const actual = rutaActual();
+  if (!actual.startsWith('/entra')) window.location.assign(rutaApp(`/entra?torna=${encodeURIComponent(actual)}`));
 };
 
 /** Per al mode demostració i per a les proves. */

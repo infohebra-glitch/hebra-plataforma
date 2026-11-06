@@ -28,7 +28,7 @@ async function importaCsv(tipus: string, fitxer: File) {
 export function activaMock(): void {
   configuraTransport(async (url, init) => {
     await espera(180 + Math.random() * 220);
-    const u = new URL(url, window.location.origin);
+    const u = new URL(url, 'http://demo.hebra');
     const metode = (init.method ?? 'GET').toUpperCase();
     let cos: unknown;
     if (init.body instanceof FormData) {

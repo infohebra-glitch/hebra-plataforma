@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 import { sessio } from '../api/endpoints';
 import type { Botiga, Rol, Usuari } from '../api/types';
+import { rutaApp } from '../lib/mode';
 import { useApi } from '../lib/useApi';
 import { ErrorEstat, Esquelet } from '../components/Estat';
 
@@ -23,7 +24,7 @@ export function useSessio(): ValorSessio {
 export function ProveidorSessio({ children }: { children: ReactNode }) {
   const q = useApi(() => sessio.jo(), []);
   const surt = useCallback(async () => {
-    try { await sessio.surt(); } finally { window.location.assign('/app/entra'); }
+    try { await sessio.surt(); } finally { window.location.assign(rutaApp('/entra')); }
   }, []);
   const valor = useMemo<ValorSessio | null>(() => (q.dades ? {
     usuari: q.dades.usuari,

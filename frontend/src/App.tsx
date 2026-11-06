@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Link, Navigate, Route, Routes } from 'react-router-dom';
+import { esDemo } from './lib/mode';
 import { Esquelet } from './components/Estat';
 import { Shell } from './components/Shell';
 import { ProveidorFiltre } from './context/Filtre';
@@ -35,9 +36,14 @@ function AmbSessio({ children }: { children: ReactNode }) {
   return <ProveidorSessio><ProveidorFiltre><Suspense fallback={espera}>{children}</Suspense></ProveidorFiltre></ProveidorSessio>;
 }
 
+// La demo d'un sol fitxer fa servir rutes amb #; el tauler real, /app/...
+function Router({ children }: { children: ReactNode }) {
+  return esDemo() ? <HashRouter>{children}</HashRouter> : <BrowserRouter basename="/app">{children}</BrowserRouter>;
+}
+
 export function App() {
   return (
-    <BrowserRouter basename="/app">
+    <Router>
       <Routes>
         <Route path="/entra" element={<Entra />} />
         <Route path="/dependent" element={<AmbSessio><Dependent /></AmbSessio>} />
@@ -58,10 +64,10 @@ export function App() {
           <Route path="*" element={<NoTrobada />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 
 function NoTrobada() {
-  return <div className="buit"><h3>Aquesta pàgina no existeix</h3><p>Potser l’enllaç és antic. Torna al <a href="/app/">resum</a>.</p></div>;
+  return <div className="buit"><h3>Aquesta pàgina no existeix</h3><p>Potser l’enllaç és antic. Torna al <Link to="/">resum</Link>.</p></div>;
 }

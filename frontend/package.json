@@ -10,7 +10,8 @@
     "build:mock": "tsc --noEmit && VITE_MOCK=1 vite build --outDir dist-mock",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:demo": "tsc --noEmit && vite build --mode demo && node scripts/demo-un-fitxer.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

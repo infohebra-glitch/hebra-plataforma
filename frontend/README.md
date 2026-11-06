@@ -72,3 +72,8 @@ Rutes: `/app/entra`, `/app` (resum), `/app/peces`, `/app/peces/:model`, `/app/ta
   canviar de pàgina, objectius tàctils de 44 px al mòbil (56 px a la web del dependent).
 - **Mode fosc**: segueix el sistema, o es tria al menú d'usuari (Clara / Fosca).
 - **Informes**: «Desa en PDF» obre el diàleg d'impressió; el CSS d'impressió amaga la navegació.
+
+## Demo d'un sol fitxer
+
+`npm run build:demo` genera `dist-demo/hebra-demo.html`: el tauler amb dades d'exemple, sense backend,
+en un sol HTML que s'obre amb doble clic (rutes amb `#`). Serveix per ensenyar-lo i recollir correccions.
