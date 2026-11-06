@@ -114,5 +114,7 @@ describe('cabines en directe', () => {
     const r = aplicaCabina(d, c('C1', 'ocupada', 3));
     expect(r.resum).toEqual({ ocupades: 2, lliures: 0, sessions_avui: 4, proves_avui: 8 });
     expect(aplicaCabina(d, c('C3', 'lliure')).cabines).toHaveLength(3);
+    // com el servidor: «porta oberta» també és ocupada (hi ha algú dins)
+    expect(aplicaCabina(d, c('C1', 'porta_oberta')).resum.ocupades).toBe(2);
   });
 });

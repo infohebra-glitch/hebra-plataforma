@@ -18,14 +18,18 @@ Format del lot (JSON) que espera el núvol:
     }
 
 Després de desar el lot es publica l'estat en directe de les cabines afectades
-(esdeveniment SSE `cabina`, hebra/provadors.py).
+(esdeveniment SSE `cabina`, hebra/provadors.py). És un avís de millor esforç: si falla,
+es registra i la resposta a la passarel·la continua sent bona (el lot ja és desat).
 """
 
+import logging
 import sqlite3
 from dataclasses import dataclass
 
 from . import epc as epc_mod
 from . import provadors, temps
+
+log = logging.getLogger("hebra.passarella")
 
 TIPUS_SENSOR = {"porta_tancada", "porta_oberta", "presencia_si", "presencia_no"}
 
@@ -72,5 +76,10 @@ def desa_lot(con: sqlite3.Connection, lot: dict) -> Resultat:
             res.errors.append(f"sensor {i}: {e!r}")
     con.commit()
     if afectades:
-        provadors.notifica_lot(con, afectades)
+        # El lot ja és desat: si l'avís en directe falla, la passarel·la no ha de rebre un error
+        # (el tornaria a enviar i es duplicarien les files).
+        try:
+            provadors.notifica_lot(con, afectades)
+        except Exception:
+            log.exception("No s'ha pogut publicar l'estat en directe de les cabines %s", sorted(afectades))
     return res

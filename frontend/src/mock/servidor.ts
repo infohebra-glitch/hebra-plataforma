@@ -304,7 +304,7 @@ function estatSistema(): T.EstatSistema {
 function alertes(): T.RespostaAlertes {
   return {
     alertes: [
-      ...estat.peticions.filter((p) => p.estat === 'pendent').map((p) => ({ id: `pt-${p.id}`, tipus: 'peticio_talla' as const, text: `Cabina ${p.cabina.slice(-1)} demana ${p.nom.toLowerCase()} en ${p.talla}.`, botiga_id: 'BCN-01', cabina: p.cabina, creada: p.hora_peticio, estat: 'pendent', ref: p.id })),
+      ...estat.peticions.filter((p) => p.estat === 'pendent').map((p) => ({ id: `pt-${p.id}`, tipus: 'peticio_talla' as const, text: `Cabina ${(p.cabina ?? '?').slice(-1)} demana ${p.nom.toLowerCase()} en ${p.talla}.`, botiga_id: 'BCN-01', cabina: p.cabina, creada: p.hora_peticio, estat: 'pendent', ref: p.id })),
       ...estat.abandonades.filter((a) => !a.resolta).map((a) => ({ id: `ab-${a.id}`, tipus: 'peca_abandonada' as const, text: `${a.nom} (${a.talla}) fa més de 30 min fora de la sala.`, botiga_id: 'BCN-01', cabina: a.cabina, creada: a.detectada, estat: 'pendent', ref: a.id })),
       { id: 'mp-VV', tipus: 'molt_provat_poc_venut' as const, text: 'El vestit de viscosa es prova molt i es ven poc aquesta setmana.', botiga_id: 'BCN-01', cabina: null, creada: new Date().toISOString(), estat: 'pendent', ref: 'VV-26-VRD' },
     ],

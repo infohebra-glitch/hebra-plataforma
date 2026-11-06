@@ -35,7 +35,12 @@ def _tipus(tipus: str) -> str:
     return tipus
 
 
-def _pdf(contingut: bytes, nom: str) -> Response:
+def _pdf(fes, nom: str) -> Response:
+    """Pinta el PDF (`fes()` -> bytes); si WeasyPrint no hi és, 400 amb el motiu en català."""
+    try:
+        contingut = fes()
+    except informe_pdf.ErrorPdf as e:
+        raise HTTPException(400, str(e))
     return Response(contingut, media_type="application/pdf",
                     headers={"Content-Disposition": f'inline; filename="{nom}"'})
 
@@ -45,10 +50,10 @@ class Destinataris(BaseModel):
 
 
 def _envia(fn):
-    """Crida un enviament i converteix ErrorCorreu en 400 amb el motiu."""
+    """Crida un enviament i converteix ErrorCorreu (o ErrorPdf) en 400 amb el motiu."""
     try:
         return fn()
-    except correu.ErrorCorreu as e:
+    except (correu.ErrorCorreu, informe_pdf.ErrorPdf) as e:
         raise HTTPException(400, str(e))
 
 
@@ -203,7 +208,7 @@ def nou_lliurat(cos: NouLliurat, con: sqlite3.Connection = Depends(bd), u: dict 
 def lliurat_pdf(lid: int, con: sqlite3.Connection = Depends(bd), u: dict = Depends(usuari)) -> Response:
     f = _lliurat_permes(con, u, lid)
     inf = json.loads(f["dades_json"])
-    return _pdf(informe_pdf.pdf(con, inf, f["botiga_id"], f["generat"]), informe_pdf.nom_fitxer(inf, f["botiga_id"]))
+    return _pdf(lambda: informe_pdf.pdf(con, inf, f["botiga_id"], f["generat"]), informe_pdf.nom_fitxer(inf, f["botiga_id"]))
 
 
 @router.post("/informes/lliurats/{lid}/envia")
@@ -230,7 +235,7 @@ def _informe(con: sqlite3.Connection, f: analitica.Filtre, tipus: str) -> dict:
 @router.get("/informes/{tipus}.pdf")
 def informe_pdf_ara(tipus: str, f: analitica.Filtre = Depends(filtre), con: sqlite3.Connection = Depends(bd)) -> Response:
     inf = _informe(con, f, tipus)
-    return _pdf(informe_pdf.pdf(con, inf, f.botiga_id), informe_pdf.nom_fitxer(inf, f.botiga_id))
+    return _pdf(lambda: informe_pdf.pdf(con, inf, f.botiga_id), informe_pdf.nom_fitxer(inf, f.botiga_id))
 
 
 @router.post("/informes/{tipus}/envia")

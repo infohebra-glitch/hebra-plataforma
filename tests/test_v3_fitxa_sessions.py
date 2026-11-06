@@ -29,6 +29,7 @@ def entorn(tmp_path, monkeypatch):
     auth.crea_usuari(con, "marca@hebra.cat", "Marca", "marca", "contrasenya-marca")
     auth.crea_usuari(con, "bcn@hebra.cat", "BCN", "botiga", "contrasenya-bcn", "BCN-01")
     provadors._darrera_publicacio.clear()
+    provadors._pendents.clear()
     return app_mod, con
 
 
@@ -325,6 +326,104 @@ def test_provadors_directe_i_flux(entorn):
     cm = _client(app_mod, "marca@hebra.cat")
     assert {x["botiga_id"] for x in cm.get("/api/v2/provadors/directe").json()["cabines"]} == {"BCN-01", "GIR-01"}
     assert TestClient(app_mod.app).get("/api/v2/provadors/directe").status_code == 401
+
+
+def test_lot_desat_encara_que_falli_l_avis_en_directe(entorn, monkeypatch):
+    """Revisió: si la publicació SSE falla, el lot desat no torna 500 (la passarel·la el reenviaria i es duplicaria)."""
+    app_mod, con = entorn
+    ara = datetime.fromisoformat(temps.ara())
+
+    def peta(*a, **k):
+        raise RuntimeError("bus caigut")
+    monkeypatch.setattr(provadors, "directe", peta)
+    lot = {"sensors": [{"cabina": "BCN-01-C1", "ts": _iso(ara), "tipus": "porta_tancada"}]}
+    r = TestClient(app_mod.app).post("/api/v1/lots", json=lot, headers={"X-Hebra-Clau": "clau"})
+    assert r.status_code == 200 and r.json()["sensors"] == 1
+    assert con.execute("SELECT COUNT(*) FROM sensor_event").fetchone()[0] == 1
+    assert "BCN-01-C1" in provadors._pendents  # es tornarà a provar
+
+
+def test_directe_lectures_amb_zero_lectures_no_peta(entorn):
+    """Revisió: un lot amb n = 0 (SUM(n_lectures) = 0) dona RSSI NULL: no ha de fer un TypeError."""
+    _, con = entorn
+    ara = datetime.fromisoformat(temps.ara())
+    p = _peca(con)
+    con.execute("""INSERT INTO lectura_agregada (epc, antena_id, inici, fi, n_lectures, rssi_max, rssi_mitja)
+                   VALUES (?, 'R700-1:1', ?, ?, 0, -40, -40)""", (p["epc"], _iso(ara - timedelta(seconds=10)), _iso(ara)))
+    con.commit()
+    c1 = {c["cabina_id"]: c for c in provadors.directe(con, "BCN-01", _iso(ara))["cabines"]}["BCN-01-C1"]
+    assert c1["peces"] == []
+
+
+def test_directe_compara_hores_i_no_text(entorn):
+    """Revisió: `ara` amb un altre desplaçament (UTC) i el dia d'«avui» a la zona de la botiga."""
+    _, con = entorn
+    p = _peca(con)
+    local = datetime.fromisoformat("2026-11-16T12:00:00+01:00")
+    con.execute("""INSERT INTO lectura_agregada (epc, antena_id, inici, fi, n_lectures, rssi_max, rssi_mitja)
+                   VALUES (?, 'R700-1:1', ?, ?, 8, -45, -50)""",
+                (p["epc"], _iso(local - timedelta(seconds=20)), _iso(local - timedelta(seconds=10))))
+    con.execute("INSERT INTO sensor_event (cabina_id, ts, tipus) VALUES ('BCN-01-C1', ?, 'presencia_si')",
+                (_iso(local - timedelta(minutes=1)),))
+    con.commit()
+    # 11:00 UTC = 12:00 a Barcelona: com a text, «11:59:40+01:00» > «11:00:00+00:00» i la peça no hi seria.
+    d = provadors.directe(con, "BCN-01", "2026-11-16T11:00:00+00:00")
+    c1 = {c["cabina_id"]: c for c in d["cabines"]}["BCN-01-C1"]
+    assert [x["epc"] for x in c1["peces"]] == [p["epc"]] and c1["estat"] == "porta_oberta"
+
+    # El dia: a les 23:30 UTC ja és l'endemà a Barcelona.
+    con.execute("INSERT INTO sessio (cabina_id, inici, fi) VALUES ('BCN-01-C1', ?, ?)",
+                ("2026-11-17T00:10:00+01:00", "2026-11-17T00:15:00+01:00"))
+    con.commit()
+    c1 = {c["cabina_id"]: c for c in provadors.directe(con, "BCN-01", "2026-11-16T23:30:00+00:00")["cabines"]}["BCN-01-C1"]
+    assert c1["avui"]["sessions"] == 1
+
+    # Canvi d'hora (25/10/2026, 03:00 +02:00 -> 02:00 +01:00): «02:30+01:00» és DESPRÉS de «02:50+02:00».
+    con.execute("DELETE FROM sensor_event")
+    con.execute("""INSERT INTO sensor_event (cabina_id, ts, tipus) VALUES ('BCN-01-C2', '2026-10-25T02:50:00+02:00',
+                   'presencia_si'), ('BCN-01-C2', '2026-10-25T02:30:00+01:00', 'presencia_no')""")
+    con.commit()
+    c2 = {c["cabina_id"]: c for c in provadors.directe(con, "BCN-01", "2026-10-25T02:55:00+01:00")["cabines"]}["BCN-01-C2"]
+    assert c2["estat"] == "lliure" and c2["des_de"] == "2026-10-25T02:30:00+01:00"
+
+
+def test_throttle_publica_el_darrer_canvi(entorn, monkeypatch):
+    """Revisió: el throttle de 5 s no ha de perdre el darrer estat: la cabina queda pendent i surt després."""
+    _, con = entorn
+    rellotge = [1000.0]
+    monkeypatch.setattr(provadors.time, "monotonic", lambda: rellotge[0])
+    ara = datetime.fromisoformat(temps.ara())
+    alertes.bus.recents.clear()
+    assert provadors.notifica_lot(con, {"BCN-01-C1"}) == 1
+    con.execute("INSERT INTO sensor_event (cabina_id, ts, tipus) VALUES ('BCN-01-C1', ?, 'presencia_si')", (_iso(ara),))
+    con.commit()
+    rellotge[0] += 2
+    assert provadors.notifica_lot(con, {"BCN-01-C1"}) == 0            # dins la finestra: queda pendent
+    assert provadors._pendents == {"BCN-01-C1"} and not provadors.hi_ha_pendents()
+    assert provadors.publica_pendents(con) == 0
+    rellotge[0] += 3.5
+    assert provadors.hi_ha_pendents()
+    assert provadors.publica_pendents(con) == 1 and not provadors._pendents
+    evs = [e for e in alertes.bus.recents if e.tipus == "cabina"]
+    assert len(evs) == 2 and evs[-1].dades["estat"] == "porta_oberta"  # l'estat d'ara, no el de la primera
+    # També surt amb el lot següent d'una altra cabina.
+    rellotge[0] += 1
+    provadors.notifica_lot(con, {"BCN-01-C1"})
+    rellotge[0] += 5
+    assert provadors.notifica_lot(con, {"BCN-01-C2"}) == 2
+
+
+def test_notifica_lot_nomes_calcula_les_botigues_afectades(entorn, monkeypatch):
+    """Revisió: un lot d'una cabina de Barcelona no ha de calcular les peces de Girona."""
+    _, con = entorn
+    calculades = []
+    original = provadors._peces
+    monkeypatch.setattr(provadors, "_peces", lambda c, cabs, ara: calculades.append({x["botiga_id"] for x in cabs})
+                        or original(c, cabs, ara))
+    alertes.bus.recents.clear()
+    assert provadors.notifica_lot(con, {"BCN-01-C1"}) == 1
+    assert calculades == [{"BCN-01"}]
+    assert [e.dades["cabina_id"] for e in alertes.bus.recents if e.tipus == "cabina"] == ["BCN-01-C1"]
 
 
 # ---------------------------------------------------------------- C. Sessions

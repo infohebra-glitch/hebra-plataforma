@@ -18,6 +18,12 @@ from markupsafe import Markup
 from . import db, grafics_svg
 
 PLANTILLES = Path(__file__).with_name("templates")
+MOTIU_SENSE_PDF = ("No s'ha pogut generar el PDF: al servidor hi falta WeasyPrint o les seves biblioteques "
+                   "(Pango); vegeu docs/INSTAL-LACIO.md")
+
+
+class ErrorPdf(Exception):
+    """No s'ha pogut fer el PDF (WeasyPrint o Pango no hi són, o han fallat). Missatge en català."""
 
 
 def _data(text: str | None) -> str:
@@ -66,9 +72,13 @@ def html(con: sqlite3.Connection, inf: dict, botiga_id: str | None, generat: str
 
 
 def pdf(con: sqlite3.Connection, inf: dict, botiga_id: str | None, generat: str | None = None) -> bytes:
-    """PDF (bytes) de l'informe."""
-    from weasyprint import HTML  # import tardà: carrega Pango i triga una mica
-    return HTML(string=html(con, inf, botiga_id, generat), base_url=str(PLANTILLES)).write_pdf()
+    """PDF (bytes) de l'informe. ErrorPdf si WeasyPrint no hi és o falla en pintar-lo."""
+    contingut = html(con, inf, botiga_id, generat)
+    try:
+        from weasyprint import HTML  # import tardà: carrega Pango i triga una mica
+        return HTML(string=contingut, base_url=str(PLANTILLES)).write_pdf()
+    except (ImportError, OSError) as e:
+        raise ErrorPdf(MOTIU_SENSE_PDF) from e
 
 
 def nom_fitxer(inf: dict, botiga_id: str | None) -> str:

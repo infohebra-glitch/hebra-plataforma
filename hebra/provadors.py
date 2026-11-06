@@ -19,9 +19,16 @@ igual a l'id de la cabina, al seu nom o al seu número («2» ↔ «Cabina 2»);
 l'escriu a mà a la fitxa. `avui`: sessions ja processades del dia (el càlcul periòdic
 de proves les crea; poden anar uns minuts endarrerides).
 
+Hores: les de la base de dades són en hora local de la botiga, però `ara` pot arribar amb
+qualsevol desplaçament (i a l'octubre una mateixa botiga passa de +02:00 a +01:00). Per això
+les comparacions es fan amb `julianday()` a SQL i amb `datetime` a Python, mai com a text, i
+el dia d'«avui» és el de la zona horària de la botiga.
+
 Flux SSE: `notifica_lot` publica l'esdeveniment `cabina` (el mateix objecte) quan entra
 un lot de la passarel·la que afecta la cabina, com a molt un cop cada `THROTTLE_S`
-segons per cabina (els lots arriben cada 5-10 s; si se'n salta un, el següent l'actualitza).
+segons per cabina. Si un lot arriba dins de la finestra, la cabina queda pendent i se'n
+publica l'estat més recent quan la finestra passa (al lot següent o amb `publica_pendents`,
+que el bucle de fons crida cada segon): així no es perd mai el darrer canvi.
 """
 
 import re
@@ -38,12 +45,24 @@ HORES_SENSE_DADES = 2
 THROTTLE_S = 5.0
 _HISTORIA_SENSORS = 400  # darrers esdeveniments de sensor que es miren per saber des de quan dura l'estat
 
+_MARGE_TEXT = timedelta(hours=3)  # prefiltre de text (per l'índex): cobreix el canvi d'hora i offsets diferents
+
 _darrera_publicacio: dict[str, float] = {}
+_pendents: set[str] = set()   # cabines amb un canvi que el throttle encara no ha deixat publicar
 _pany = threading.Lock()
 
 
 def _dt(text: str) -> datetime:
-    return datetime.fromisoformat(text)
+    return datetime.fromisoformat(text.replace("Z", "+00:00"))
+
+
+def _iso(dt: datetime) -> str:
+    return dt.isoformat(timespec="seconds")
+
+
+def _darrer(*valors: str | None) -> str | None:
+    """L'hora més tardana (comparada com a hora, no com a text)."""
+    return max((v for v in valors if v), key=_dt, default=None)
 
 
 def _estat_sensors(esdeveniments: list[sqlite3.Row]) -> tuple[str | None, str | None]:
@@ -79,35 +98,42 @@ def _nom(origen_json: str | None, model: str | None) -> str | None:
 
 def _peces(con: sqlite3.Connection, cabines: list[sqlite3.Row], ara: datetime) -> dict[str, list[dict]]:
     """{cabina_id: [peça]} amb les peces que hi són ara (cada EPC a la cabina que el llegeix més fort)."""
-    des = (ara - timedelta(seconds=FINESTRA_PECES_S)).isoformat()
+    des = ara - timedelta(seconds=FINESTRA_PECES_S)
     ids = [c["id"] for c in cabines]
     if not ids:
         return {}
     marques = ",".join("?" * len(ids))
+    # SUM(n_lectures) = 0 (lots amb n = 0) dona rssi NULL: no és cap lectura i no compta.
     files = con.execute(
-        f"""SELECT a.cabina_id, l.epc, SUM(l.rssi_mitja * l.n_lectures) / SUM(l.n_lectures) AS rssi,
+        f"""SELECT a.cabina_id, l.epc, SUM(l.rssi_mitja * l.n_lectures) / NULLIF(SUM(l.n_lectures), 0) AS rssi,
                    MIN(a.llindar_rssi) AS llindar
             FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
-            WHERE a.cabina_id IN ({marques}) AND l.fi >= ? AND l.inici <= ?
-            GROUP BY a.cabina_id, l.epc""", (*ids, des, ara.isoformat())).fetchall()
+            WHERE a.cabina_id IN ({marques}) AND l.inici >= ? AND julianday(l.fi) >= julianday(?)
+                  AND julianday(l.inici) <= julianday(?)
+            GROUP BY a.cabina_id, l.epc""",
+        (*ids, _iso(des - _MARGE_TEXT - timedelta(hours=HORES_SENSE_DADES)), _iso(des), _iso(ara))).fetchall()
     millor: dict[str, tuple[float, str]] = {}
     for f in files:
-        if f["rssi"] >= f["llindar"] and (f["epc"] not in millor or f["rssi"] > millor[f["epc"]][0]):
+        if f["rssi"] is None or f["llindar"] is None or f["rssi"] < f["llindar"]:
+            continue
+        if f["epc"] not in millor or f["rssi"] > millor[f["epc"]][0]:
             millor[f["epc"]] = (f["rssi"], f["cabina_id"])
     out: dict[str, list[dict]] = defaultdict(list)
-    limit_enrere = (ara - timedelta(hours=HORES_SENSE_DADES)).isoformat()
+    limit_enrere = ara - timedelta(hours=HORES_SENSE_DADES)
     for epc, (_, cabina_id) in sorted(millor.items()):
         k = con.execute("""SELECT k.model, k.talla, k.color, k.origen_json FROM etiqueta e
                            JOIN catalog_sku k ON k.gtin = e.gtin WHERE e.epc = ?""", (epc,)).fetchone()
         lectures = con.execute(
             """SELECT l.inici, l.fi FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
-               WHERE a.cabina_id = ? AND l.epc = ? AND l.fi >= ? AND l.inici <= ? ORDER BY l.fi DESC""",
-            (cabina_id, epc, limit_enrere, ara.isoformat())).fetchall()
+               WHERE a.cabina_id = ? AND l.epc = ? AND l.inici >= ? AND julianday(l.fi) >= julianday(?)
+                     AND julianday(l.inici) <= julianday(?) ORDER BY julianday(l.fi) DESC""",
+            (cabina_id, epc, _iso(limit_enrere - _MARGE_TEXT - timedelta(hours=HORES_SENSE_DADES)),
+             _iso(limit_enrere), _iso(ara))).fetchall()
         des_de = lectures[0]["inici"] if lectures else None
         for anterior in lectures[1:]:  # enrere mentre la presència és contínua
             if (_dt(des_de) - _dt(anterior["fi"])).total_seconds() >= alertes.BUIT_MAXIM_S:
                 break
-            des_de = min(des_de, anterior["inici"])
+            des_de = min(des_de, anterior["inici"], key=_dt)
         out[cabina_id].append({"epc": epc, "model": k["model"] if k else None,
                                "nom": _nom(k["origen_json"], k["model"]) if k else None,
                                "talla": k["talla"] if k else None, "color": k["color"] if k else None,
@@ -131,45 +157,64 @@ def directe(con: sqlite3.Connection, botiga_id: str | None, ara: str | None = No
             cabines: set[str] | None = None) -> dict:
     """`GET /provadors/directe`: estat de les cabines (d'una botiga o de totes) i resum.
 
-    `cabines` limita el càlcul a unes cabines (per al flux SSE); el resum és només d'aquestes.
+    `cabines` limita el càlcul a unes cabines (per al flux SSE): només es calculen les botigues
+    d'aquestes cabines, i el resum és només d'aquestes.
     """
     ara = ara or temps.ara()
-    ara_dt = _dt(ara)
-    dia = ara[:10]
-    llindar_dades = (ara_dt - timedelta(hours=HORES_SENSE_DADES)).isoformat()
-    totes = con.execute("""SELECT id, nom, botiga_id FROM cabina WHERE (? IS NULL OR botiga_id = ?)
-                           ORDER BY botiga_id, id""", (botiga_id, botiga_id)).fetchall()
+    if cabines is not None:
+        ids = sorted(cabines)
+        marques = ",".join("?" * len(ids))
+        totes = con.execute(
+            f"""SELECT c.id, c.nom, c.botiga_id, b.zona_horaria FROM cabina c JOIN botiga b ON b.id = c.botiga_id
+                WHERE c.botiga_id IN (SELECT botiga_id FROM cabina WHERE id IN ({marques}))
+                AND (? IS NULL OR c.botiga_id = ?) ORDER BY c.botiga_id, c.id""",
+            (*ids, botiga_id, botiga_id)).fetchall() if ids else []
+    else:
+        totes = con.execute("""SELECT c.id, c.nom, c.botiga_id, b.zona_horaria FROM cabina c
+                               JOIN botiga b ON b.id = c.botiga_id WHERE (? IS NULL OR c.botiga_id = ?)
+                               ORDER BY c.botiga_id, c.id""", (botiga_id, botiga_id)).fetchall()
+    botigues = sorted({c["botiga_id"] for c in totes})
+    # Cada botiga, a la seva hora local (el dia d'«avui» i el text de les consultes).
+    ara_local = {b: _dt(temps.local(ara, next(c["zona_horaria"] for c in totes if c["botiga_id"] == b)
+                                    or temps.ZONA_PER_DEFECTE)) for b in botigues}
     # Les peces es reparteixen entre totes les cabines de la botiga (veïnes), encara que només en calculem unes.
     peces = {}
-    for b in sorted({c["botiga_id"] for c in totes}):
-        peces |= _peces(con, [c for c in totes if c["botiga_id"] == b], ara_dt)
+    for b in botigues:
+        peces |= _peces(con, [c for c in totes if c["botiga_id"] == b], ara_local[b])
+    marques_b = ",".join("?" * len(botigues))
     obertes = con.execute(
-        """SELECT botiga_id, cabina FROM peticio_talla WHERE estat IN ('pendent', 'en_cami')
-           AND (? IS NULL OR botiga_id = ?) AND cabina IS NOT NULL""", (botiga_id, botiga_id)).fetchall()
+        f"""SELECT botiga_id, cabina FROM peticio_talla WHERE estat IN ('pendent', 'en_cami')
+            AND botiga_id IN ({marques_b}) AND cabina IS NOT NULL""", botigues).fetchall() if botigues else []
 
     out = []
     for c in totes:
         if cabines is not None and c["id"] not in cabines:
             continue
-        sensors = con.execute("""SELECT ts, tipus FROM sensor_event WHERE cabina_id = ? AND ts <= ?
-                                 ORDER BY ts DESC, id DESC LIMIT ?""", (c["id"], ara, _HISTORIA_SENSORS)).fetchall()
+        local = ara_local[c["botiga_id"]]
+        llindar_dades = local - timedelta(hours=HORES_SENSE_DADES)
+        sensors = con.execute("""SELECT ts, tipus FROM sensor_event WHERE cabina_id = ? AND julianday(ts) <= julianday(?)
+                                 ORDER BY julianday(ts) DESC, id DESC LIMIT ?""",
+                              (c["id"], _iso(local), _HISTORIA_SENSORS)).fetchall()
         sensors = list(reversed(sensors))
-        lectura = con.execute("""SELECT MAX(l.fi) FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
-                                 WHERE a.cabina_id = ? AND l.inici <= ?""", (c["id"], ara)).fetchone()[0]
+        lectures = con.execute(
+            """SELECT l.fi FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
+               WHERE a.cabina_id = ? AND l.inici <= ? AND julianday(l.inici) <= julianday(?)
+               ORDER BY l.inici DESC LIMIT 50""", (c["id"], _iso(local + _MARGE_TEXT), _iso(local))).fetchall()
+        lectura = _darrer(*(f["fi"] for f in lectures))
         dins = peces.get(c["id"], [])
-        darrera = max([x for x in (sensors[-1]["ts"] if sensors else None, lectura) if x], default=None)
-        if darrera is None or darrera < llindar_dades:
+        darrera = _darrer(sensors[-1]["ts"] if sensors else None, lectura)
+        if darrera is None or _dt(darrera) < llindar_dades:
             estat, des_de = "sense_dades", darrera
         elif sensors:
             estat, des_de = _estat_sensors(sensors)
         else:  # sense sensors (nivell Bàsic): només les lectures
             estat = "ocupada" if dins else "lliure"
-            des_de = min((p["des_de"] for p in dins if p["des_de"]), default=lectura)
+            des_de = min((p["des_de"] for p in dins if p["des_de"]), key=_dt, default=lectura)
         out.append({"cabina_id": c["id"], "nom": c["nom"], "botiga_id": c["botiga_id"], "estat": estat,
                     "des_de": des_de, "peces": dins,
                     "peticions_obertes": sum(1 for p in obertes
                                              if p["botiga_id"] == c["botiga_id"] and _es_de_la_cabina(p["cabina"], c)),
-                    "avui": _avui(con, c["id"], dia)})
+                    "avui": _avui(con, c["id"], local.date().isoformat())})
     return {"generat": ara, "cabines": out, "resum": {
         "ocupades": sum(1 for c in out if c["estat"] in ("ocupada", "porta_oberta")),
         "lliures": sum(1 for c in out if c["estat"] == "lliure"),
@@ -180,15 +225,39 @@ def directe(con: sqlite3.Connection, botiga_id: str | None, ara: str | None = No
 def notifica_lot(con: sqlite3.Connection, cabines: set[str], ara: str | None = None) -> int:
     """Publica l'esdeveniment SSE `cabina` de les cabines afectades per un lot (màx. un cop cada 5 s per cabina).
 
-    Retorna quantes cabines s'han publicat.
+    Les que el throttle no deixa publicar queden pendents i es publiquen (amb l'estat d'aquell moment)
+    en la primera crida un cop passada la finestra. Retorna quantes cabines s'han publicat.
     """
     rellotge = time.monotonic()
     with _pany:
-        toca = {c for c in cabines if rellotge - _darrera_publicacio.get(c, -THROTTLE_S) >= THROTTLE_S}
+        candidates = set(cabines) | _pendents
+        toca = {c for c in candidates if rellotge - _darrera_publicacio.get(c, -THROTTLE_S) >= THROTTLE_S}
         for c in toca:
             _darrera_publicacio[c] = rellotge
+        _pendents.difference_update(toca)
+        _pendents.update(set(cabines) - toca)
     if not toca:
         return 0
-    for c in directe(con, None, ara, cabines=toca)["cabines"]:
+    try:
+        estats = directe(con, None, ara, cabines=toca)["cabines"]
+    except Exception:
+        with _pany:  # no s'ha pogut calcular: es tornarà a provar
+            _pendents.update(toca)
+            for c in toca:
+                _darrera_publicacio.pop(c, None)
+        raise
+    for c in estats:
         alertes.bus.publica("cabina", c, c["botiga_id"])
     return len(toca)
+
+
+def hi_ha_pendents() -> bool:
+    """Hi ha alguna cabina pendent de publicar que ja pot sortir? (sense tocar la base de dades)."""
+    rellotge = time.monotonic()
+    with _pany:
+        return any(rellotge - _darrera_publicacio.get(c, -THROTTLE_S) >= THROTTLE_S for c in _pendents)
+
+
+def publica_pendents(con: sqlite3.Connection, ara: str | None = None) -> int:
+    """Publica les cabines pendents a qui ja ha passat la finestra del throttle."""
+    return notifica_lot(con, set(), ara)

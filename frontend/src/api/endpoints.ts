@@ -76,7 +76,7 @@ export const integracions = {
   crea: (i: T.NovaIntegracio) => api.post<T.Integracio>('/integracions', i),
   canvia: (id: number, c: T.CanviIntegracio) => api.patch<T.Integracio>(`/integracions/${id}`, c),
   esborra: (id: number) => api.del<{ ok: boolean }>(`/integracions/${id}`),
-  prova: (c: { proveidor: T.Proveidor; config: Record<string, unknown>; secret?: string | null; id?: number }) => api.post<T.ResultatProvaIntegracio>('/integracions/prova', c),
+  prova: (c: { proveidor: T.Proveidor; config: Record<string, unknown>; secret?: string | null; id?: number; botiga_id?: string | null }) => api.post<T.ResultatProvaIntegracio>('/integracions/prova', c),
   sincronitza: (id: number) => api.post<{ resum: T.ResumSync }>(`/integracions/${id}/sincronitza`),
   registre: (id: number, s?: AbortSignal) => api.get<{ registre: T.RegistreSync[] }>(`/integracions/${id}/registre`, undefined, s),
 };

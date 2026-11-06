@@ -6,7 +6,13 @@
     primera vegada, els darrers 30 dies. Després, `vendes.atribueix` de les botigues tocades.
   * Cada execució queda a `sync_registre` (se'n guarden les 200 darreres per integració).
   * Les botigues configurades a l'antiga (paràmetres shopify_* i HEBRA_SHOPIFY_TOKEN_<BOTIGA>)
-    es continuen sincronitzant cada hora si no tenen una integració Shopify activa.
+    es continuen sincronitzant cada hora si no tenen una integració Shopify activa (l'hora es
+    compta des de l'intent anterior, paràmetre `shopify_darrer_intent`, encara que fallés).
+  * Abast per defecte de Shopify i Square: vendes i estoc. El catàleg s'ha de demanar; i quan
+    es demana, només crea els GTIN nous i actualitza el preu dels que ja hi són (vegeu desa.cataleg).
+  * `prova` amb `id` només fa servir el secret desat si la configuració nova apunta al mateix
+    lloc (domini de Shopify, entorn de Square, servidors de les URL del CSV); si no, cal tornar a
+    escriure'l. El mateix val per a `actualitza`: el secret no se'n va mai a un destí nou.
 """
 
 import json
@@ -16,6 +22,7 @@ import sqlite3
 import threading
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlsplit
 
 from .. import db, vendes
 from . import PROVEIDORS, connector, shopify, xifratge
@@ -30,6 +37,7 @@ DIES_MARGE = 2
 DIES_INICIALS = 30
 REGISTRES_GUARDATS = 200
 RESUM = ("cataleg", "linies_venda", "devolucions", "estoc")
+ABAST_DEFECTE = ("vendes", "estoc")  # Shopify i Square: el catàleg, només si es demana
 CLAUS_SECRETES = {"token", "secret", "testimoni", "access_token", "authorization", "contrasenya", "password", "api_key"}
 
 _pany = threading.Lock()
@@ -98,7 +106,7 @@ def _abast(proveidor: str, abast, config: dict) -> list[str]:
         if proveidor == "csv_url":
             from .csv_url import TIPUS
             return [t for t in ABAST if config.get(TIPUS[t])]
-        return list(ABAST)
+        return list(ABAST_DEFECTE)
     if not isinstance(abast, list) or not abast or not set(abast) <= set(ABAST):
         raise ErrorIntegracio("«abast» ha de ser una llista amb «cataleg», «vendes» i/o «estoc»")
     return [a for a in ABAST if a in abast]
@@ -163,11 +171,14 @@ def actualitza(con: sqlite3.Connection, clau: str, iid: int, canvis: dict) -> di
         else json.loads(f["abast"] or "[]")
     config = _config(con, f["proveidor"], config, botiga_id, abast)
     secret_xifrat = f["secret_xifrat"]
-    if "secret" in canvis and canvis["secret"] is not None:
+    secret_nou = "secret" in canvis and canvis["secret"] is not None
+    if secret_nou:
         s = canvis["secret"].strip()
         if not s and f["proveidor"] in ("shopify", "square"):
             raise ErrorIntegracio("Cal el testimoni d'accés")
         secret_xifrat = xifratge.xifra(clau, s) if s else None
+    elif secret_xifrat and not _mateix_desti(f["proveidor"], config, json.loads(f["config_json"] or "{}")):
+        raise ErrorIntegracio(SECRET_DESTI_NOU.format(_nom_desti(f["proveidor"])))
     interval = _interval(canvis["interval_min"]) if canvis.get("interval_min") is not None else f["interval_min"]
     actiu = (1 if canvis["actiu"] else 0) if canvis.get("actiu") is not None else f["actiu"]
     con.execute("""UPDATE integracio SET botiga_id = ?, config_json = ?, secret_xifrat = ?, actiu = ?, abast = ?,
@@ -185,6 +196,37 @@ def esborra(con: sqlite3.Connection, iid: int) -> None:
     con.commit()
 
 
+def desti(proveidor: str, config: dict) -> set[str]:
+    """On s'envia el secret amb aquesta configuració: domini de Shopify, entorn de Square o
+    servidors (esquema + host + port) de les URL del CSV."""
+    config = config or {}
+    if proveidor == "shopify":
+        return {str(config.get("domini") or "").strip().lower().rstrip("/")}
+    if proveidor == "square":
+        return {str(config.get("entorn") or "produccio")}
+    if proveidor == "csv_url":
+        from .csv_url import TIPUS
+        out = set()
+        for clau_url in TIPUS.values():
+            if config.get(clau_url):
+                u = urlsplit(str(config[clau_url]).strip())
+                out.add(f"{u.scheme.lower()}://{(u.netloc or '').lower()}")
+        return out
+    return set()
+
+
+def _mateix_desti(proveidor: str, nova: dict, desada: dict) -> bool:
+    return desti(proveidor, nova) <= desti(proveidor, desada)
+
+
+SECRET_DESTI_NOU = ("Has canviat on es connecta ({}): per seguretat, torna a escriure el testimoni "
+                    "d'accés (el desat no s'envia a un lloc nou)")
+
+
+def _nom_desti(proveidor: str) -> str:
+    return {"shopify": "el domini de Shopify", "square": "l'entorn de Square"}.get(proveidor, "les adreces dels fitxers")
+
+
 def _secret(clau: str, f: sqlite3.Row) -> str | None:
     return xifratge.desxifra(clau, f["secret_xifrat"]) if f["secret_xifrat"] else None
 
@@ -192,17 +234,23 @@ def _secret(clau: str, f: sqlite3.Row) -> str | None:
 def prova(con: sqlite3.Connection, clau: str, proveidor: str | None, config: dict | None, secret: str | None,
           iid: int | None = None, botiga_id: str | None = None) -> dict:
     """Prova la connexió sense desar res. Amb `iid`, el que no s'enviï es pren de la integració desada."""
+    reutilitza = False
     if iid is not None:
         f = obte(con, iid)
         proveidor = f["proveidor"]
-        config = config or json.loads(f["config_json"] or "{}")
+        desada = json.loads(f["config_json"] or "{}")
+        config = config or desada
         botiga_id = botiga_id or f["botiga_id"]
-        if not secret:
-            try:
-                secret = _secret(clau, f)
-            except xifratge.SecretIllegible as e:
-                raise ErrorIntegracio(str(e))
+        reutilitza = not secret and bool(f["secret_xifrat"])
     config = _config(con, proveidor or "", config or {}, botiga_id, [])
+    if reutilitza:
+        # El secret desat només va al mateix lloc on ja anava (si no, es podria fer arribar a qualsevol servidor).
+        if not _mateix_desti(proveidor, config, desada):
+            raise ErrorIntegracio(SECRET_DESTI_NOU.format(_nom_desti(proveidor)))
+        try:
+            secret = _secret(clau, f)
+        except xifratge.SecretIllegible as e:
+            raise ErrorIntegracio(str(e))
     if proveidor in ("shopify", "square") and not secret:
         raise ErrorIntegracio("Cal el testimoni d'accés")
     return connector(proveidor, config, secret, botiga_id).prova()
@@ -310,9 +358,18 @@ def sincronitza_pendents(con: sqlite3.Connection, clau: str, ara: datetime | Non
         except ErrorIntegracio as e:
             fet[iid] = {"error": str(e)}
     for b in botigues_antigues(con):
-        if toca(60, db.parametre(con, b, "shopify_darrera_sync"), ara):
-            try:
-                fet[f"shopify:{b}"] = shopify.sincronitza(con, b)
-            except ErrorIntegracio as e:
-                fet[f"shopify:{b}"] = {"error": str(e)}
+        darrer = max((d for d in (_dt(db.parametre(con, b, "shopify_darrer_intent")),
+                                  _dt(db.parametre(con, b, "shopify_darrera_sync"))) if d), default=None)
+        if not toca(60, darrer.isoformat() if darrer else None, ara):
+            continue
+        # Es marca l'intent abans: si falla, no es torna a provar cada minut sinó d'aquí a una hora.
+        db.desa_parametre(con, b, "shopify_darrer_intent", ara.isoformat())
+        con.commit()
+        try:
+            fet[f"shopify:{b}"] = shopify.sincronitza(con, b)
+        except Exception as e:
+            con.rollback()
+            if not isinstance(e, ErrorIntegracio):
+                log.exception("Error inesperat sincronitzant Shopify (configuració antiga) de %s", b)
+            fet[f"shopify:{b}"] = {"error": str(e)}
     return fet

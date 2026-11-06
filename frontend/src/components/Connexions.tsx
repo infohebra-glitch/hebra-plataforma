@@ -17,6 +17,10 @@ const PROVEIDORS: { p: Proveidor; nom: string; descripcio: string; secret: strin
   { p: 'csv_url', nom: 'CSV per URL', descripcio: 'Per a TPV que exporten un fitxer (Ágora, Revo, Lightspeed…): Hebra el descarrega cada cert temps.', secret: 'Capçalera d’autorització (opcional)', ajudaSecret: 'Si l’adreça demana clau, per exemple «Bearer abc123».' },
 ];
 const ABAST: { a: AbastSync; nom: string }[] = [{ a: 'cataleg', nom: 'Catàleg' }, { a: 'vendes', nom: 'Vendes' }, { a: 'estoc', nom: 'Estoc' }];
+/** Shopify i Square, com el servidor: per defecte vendes i estoc; el catàleg s’ha de demanar. */
+const ABAST_DEFECTE: AbastSync[] = ['vendes', 'estoc'];
+const URL_CSV: Record<AbastSync, string> = { vendes: 'url_vendes', estoc: 'url_estoc', cataleg: 'url_cataleg' };
+const NOM_FITXER: Record<string, string> = { vendes: 'Vendes', estoc: 'Estoc', cataleg: 'Catàleg' };
 const INTERVALS = [15, 30, 60, 120, 240, 1440];
 const nomInterval = (m: number) => (m < 60 ? `Cada ${m} min` : m === 60 ? 'Cada hora' : m === 1440 ? 'Un cop al dia' : `Cada ${m / 60} h`);
 
@@ -80,7 +84,7 @@ function TargetaIntegracio({ i, def, enCanvi }: { i: Integracio; def: (typeof PR
     try { await integracions.esborra(i.id); enCanvi(); } catch (e) { setMissatge({ ok: false, text: (e as Error).message }); }
   };
   if (editant) return <FormIntegracio def={def} inicial={i} enTanca={(desat) => { setEditant(false); if (desat) enCanvi(); }} />;
-  const ubicacio = (i.config.ubicacio_nom as string | undefined) ?? (i.config.domini as string | undefined);
+  const ubicacio = (i.config.ubicacio_nom as string | undefined) ?? (i.config.domini as string | undefined) ?? (i.config.ubicacio ? `Ubicació ${String(i.config.ubicacio)}` : undefined);
   return (
     <article className={`targeta integracio ${i.estat}`} aria-label={`${def.nom} · ${nomBotiga}`}>
       <div className="targeta-cap">
@@ -149,9 +153,14 @@ function CampSecret({ etiqueta, ajuda, desat, valor, setValor, obligatori }: { e
 function FormIntegracio({ def, inicial, enTanca }: { def: (typeof PROVEIDORS)[number]; inicial?: Integracio; enTanca: (desat: boolean) => void }) {
   const { botigues } = useSessio();
   const [botiga, setBotiga] = useState<string>(inicial ? inicial.botiga_id ?? '' : botigues[0]?.id ?? '');
-  const [config, setConfig] = useState<Record<string, unknown>>(inicial?.config ?? (def.p === 'shopify' ? { opcio_talla: 'Talla', opcio_color: 'Color', incloure_en_linia: false } : {}));
+  // Claus de config com les espera el servidor (hebra/integracions): `ubicacio`, `en_linia`, `entorn`...
+  // `ubicacio_nom` és només per ensenyar-la (el servidor accepta claus de més).
+  const [config, setConfig] = useState<Record<string, unknown>>(inicial?.config ?? (def.p === 'shopify' ? { en_linia: false } : def.p === 'square' ? { entorn: 'produccio' } : {}));
   const [secret, setSecret] = useState<string | null>(inicial?.te_secret ? null : '');
-  const [abast, setAbast] = useState<AbastSync[]>(inicial?.abast ?? (def.p === 'csv_url' ? ['vendes', 'estoc'] : ['cataleg', 'vendes', 'estoc']));
+  const [abast, setAbast] = useState<AbastSync[]>(inicial?.abast ?? (def.p === 'csv_url' ? ['cataleg', 'vendes', 'estoc'] : ABAST_DEFECTE));
+  // CSV: només es pot portar el que té URL.
+  const teUrl = (a: AbastSync) => def.p !== 'csv_url' || !!String(config[URL_CSV[a]] ?? '').trim();
+  const abastEfectiu = abast.filter(teUrl);
   const [interval, setIntervalMin] = useState(inicial?.interval_min ?? 60);
   const [prova, setProva] = useState<ResultatProvaIntegracio | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -163,21 +172,21 @@ function FormIntegracio({ def, inicial, enTanca }: { def: (typeof PROVEIDORS)[nu
   const fesProva = async () => {
     setEnCurs('prova'); setError(null); setProva(null);
     try {
-      const r = await integracions.prova({ proveidor: def.p, config, secret: secret || null, id: inicial?.id });
+      const r = await integracions.prova({ proveidor: def.p, config, secret: secret || null, id: inicial?.id, botiga_id: botiga || null });
       setProva(r);
       const u = r.detall.ubicacions;
-      if (u?.length === 1 && !config.ubicacio_id) setConfig((c) => ({ ...c, ubicacio_id: u[0].id, ubicacio_nom: u[0].nom }));
+      if (u?.length === 1 && !config.ubicacio) setConfig((c) => ({ ...c, ubicacio: u[0].id, ubicacio_nom: u[0].nom }));
     } catch (e) { setError((e as Error).message); } finally { setEnCurs(null); }
   };
   const desa = async (e: FormEvent) => {
     e.preventDefault();
-    if (!abast.length) { setError('Tria què vols portar: catàleg, vendes o estoc.'); return; }
+    if (!abastEfectiu.length) { setError(def.p === 'csv_url' ? 'Escriu com a mínim una URL i tria què vols portar.' : 'Tria què vols portar: catàleg, vendes o estoc.'); return; }
     if (def.p !== 'csv_url' && !inicial?.te_secret && !secret) { setError('Falta el testimoni d’accés.'); return; }
-    if (def.p !== 'csv_url' && !config.ubicacio_id) { setError('Prova la connexió i tria la ubicació de la botiga.'); return; }
+    if (def.p !== 'csv_url' && !config.ubicacio && abastEfectiu.some((a) => a !== 'cataleg')) { setError('Prova la connexió i tria la ubicació de la botiga.'); return; }
     setEnCurs('desa'); setError(null);
     try {
-      if (inicial) await integracions.canvia(inicial.id, { config, abast, interval_min: interval, botiga_id: botiga || null, ...(secret ? { secret } : {}) });
-      else await integracions.crea({ botiga_id: botiga || null, proveidor: def.p, config, secret: secret || null, abast, interval_min: interval } satisfies NovaIntegracio);
+      if (inicial) await integracions.canvia(inicial.id, { config, abast: abastEfectiu, interval_min: interval, botiga_id: botiga || null, ...(secret ? { secret } : {}) });
+      else await integracions.crea({ botiga_id: botiga || null, proveidor: def.p, config, secret: secret || null, abast: abastEfectiu, interval_min: interval } satisfies NovaIntegracio);
       enTanca(true);
     } catch (err) { setError((err as Error).message); } finally { setEnCurs(null); }
   };
@@ -194,6 +203,15 @@ function FormIntegracio({ def, inicial, enTanca }: { def: (typeof PROVEIDORS)[nu
         </select>
       </label>
       {def.p === 'shopify' && camp('domini', 'Domini de Shopify', 'El que acaba en .myshopify.com (no el domini propi).', 'nom-botiga.myshopify.com')}
+      {def.p === 'square' && (
+        <label className="camp"><span>Entorn</span>
+          <select value={cfg('entorn') || 'produccio'} onChange={(e) => posa('entorn', e.target.value)}>
+            <option value="produccio">Producció</option>
+            <option value="sandbox">Proves (sandbox)</option>
+          </select>
+          <small>El testimoni ha de ser del mateix entorn.</small>
+        </label>
+      )}
       {def.p === 'csv_url' && (
         <>
           {camp('url_vendes', 'URL de les vendes', 'Columnes: data_hora, botiga, gtin, quantitat (les devolucions, en negatiu).', 'https://…/vendes.csv')}
@@ -206,45 +224,47 @@ function FormIntegracio({ def, inicial, enTanca }: { def: (typeof PROVEIDORS)[nu
         <button type="button" onClick={fesProva} disabled={enCurs !== null}>{enCurs === 'prova' ? 'Provant…' : 'Prova la connexió'}</button>
         <span role="status" aria-live="polite" className="petit">{prova?.ok && <span className="missatge-ok">✓ Connecta{prova.detall.botiga ? ` amb «${prova.detall.botiga}»` : ''}.</span>}</span>
       </div>
-      {prova?.ok && Array.isArray(prova.detall.fitxers) && (
+      {prova?.ok && prova.detall.fitxers && Object.keys(prova.detall.fitxers).length > 0 && (
         <ul className="petit" style={{ margin: 0, paddingLeft: 18 }}>
-          {(prova.detall.fitxers as { url: string; files: number }[]).map((f) => <li key={f.url}>{f.url.split('/').pop()}: {plural(f.files, 'fila', 'files')}</li>)}
+          {Object.entries(prova.detall.fitxers).map(([tipus, f]) => <li key={tipus}>{NOM_FITXER[tipus] ?? tipus}: {plural(f.files, 'fila', 'files')}{f.columnes?.length ? <span className="muted"> ({f.columnes.join(', ')})</span> : null}</li>)}
         </ul>
       )}
-      {(ubicacions.length > 0 || !!config.ubicacio_id) && def.p !== 'csv_url' && (
+      {(ubicacions.length > 0 || !!config.ubicacio) && def.p !== 'csv_url' && (
         <fieldset className="sense-vora">
           <legend className="etiqueta-mini">Ubicació que correspon a aquesta botiga</legend>
           {ubicacions.length ? (
             <div className="pila" style={{ gap: 4 }}>
               {ubicacions.map((u) => (
-                <label key={u.id} className="interruptor"><input type="radio" name={`ubicacio-${def.p}`} checked={config.ubicacio_id === u.id} onChange={() => setConfig((c) => ({ ...c, ubicacio_id: u.id, ubicacio_nom: u.nom }))} />{u.nom}</label>
+                <label key={u.id} className="interruptor"><input type="radio" name={`ubicacio-${def.p}`} checked={String(config.ubicacio ?? '') === u.id} onChange={() => setConfig((c) => ({ ...c, ubicacio: u.id, ubicacio_nom: u.nom }))} />{u.nom}{u.activa === false ? <span className="muted"> (inactiva)</span> : null}</label>
               ))}
             </div>
-          ) : <p className="petit" style={{ margin: 0 }}>{String(config.ubicacio_nom ?? config.ubicacio_id)} · <span className="muted">prova la connexió per canviar-la</span></p>}
+          ) : <p className="petit" style={{ margin: 0 }}>{String(config.ubicacio_nom ?? config.ubicacio)} · <span className="muted">prova la connexió per canviar-la</span></p>}
         </fieldset>
       )}
       <fieldset className="sense-vora">
         <legend className="etiqueta-mini">Què es porta</legend>
         <div className="xips-tria">
           {ABAST.map((x) => {
-            const on = abast.includes(x.a);
-            return <label key={x.a} className={on ? 'on' : undefined}><input type="checkbox" checked={on} onChange={(e) => setAbast(e.target.checked ? [...abast, x.a] : abast.filter((y) => y !== x.a))} />{x.nom}</label>;
+            const pot = teUrl(x.a);
+            const on = pot && abast.includes(x.a);
+            return <label key={x.a} className={on ? 'on' : undefined} title={pot ? undefined : 'Primer escriu la URL d’aquest fitxer'}><input type="checkbox" checked={on} disabled={!pot} onChange={(e) => setAbast(e.target.checked ? [...abast.filter((y) => y !== x.a), x.a] : abast.filter((y) => y !== x.a))} />{x.nom}</label>;
           })}
         </div>
-        {abast.includes('vendes') && <small className="muted">Les vendes es tornen a llegir des de 2 dies abans de la darrera sincronització, per agafar les devolucions.</small>}
+        {def.p !== 'csv_url' && <small className="muted">Catàleg (opcional): afegeix els productes que encara no tens a Hebra i n’actualitza el preu; mai no canvia el model, el color, la talla ni la categoria dels que ja hi són, perquè no es perdi la fitxa ni les dades de cada model.</small>}
+        {abastEfectiu.includes('vendes') && <small className="muted">Les vendes es tornen a llegir des de 2 dies abans de la darrera sincronització, per agafar les devolucions.</small>}
       </fieldset>
       <div className="dues">
         <label className="camp"><span>Cada quan</span><select value={interval} onChange={(e) => setIntervalMin(Number(e.target.value))}>{INTERVALS.map((m) => <option key={m} value={m}>{nomInterval(m)}</option>)}</select></label>
         {def.p === 'shopify' && (
-          <label className="interruptor" style={{ alignSelf: 'end' }}><input type="checkbox" checked={!!config.incloure_en_linia} onChange={(e) => posa('incloure_en_linia', e.target.checked)} />Inclou també les vendes en línia</label>
+          <label className="interruptor" style={{ alignSelf: 'end' }}><input type="checkbox" checked={!!config.en_linia} onChange={(e) => posa('en_linia', e.target.checked)} />Inclou també les vendes en línia</label>
         )}
       </div>
       {def.p === 'shopify' && (
         <details className="veure-taula">
           <summary>Opcions avançades</summary>
           <div className="dues" style={{ marginTop: 8 }}>
-            {camp('opcio_talla', 'Nom de l’opció de talla', 'Com es diu a Shopify: «Talla», «Size»…')}
-            {camp('opcio_color', 'Nom de l’opció de color', 'Per defecte, «Color».')}
+            {camp('opcio_talla', 'Nom de l’opció de talla', 'Com es diu a Shopify (separa’n diversos amb comes). Per defecte: Talla, Size, Taille, Tamaño, Talle.', 'Talla, Size')}
+            {camp('opcio_color', 'Nom de l’opció de color', 'Per defecte: Color, Colour, Couleur, Colore.', 'Color')}
           </div>
         </details>
       )}

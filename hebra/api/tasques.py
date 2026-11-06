@@ -57,7 +57,7 @@ class NovaTasca(BaseModel):
     botiga_id: str | None = None          # usuari de botiga: per defecte, la seva
     tipus: Literal["traspassar", "moure_a_sala", "promocio", "retornar", "revisar", "recompte", "altre"]
     titol: str | None = Field(default=None, max_length=200)   # sense títol, se'n genera un
-    detall: str = Field(default="", max_length=2000)
+    detall: str | None = Field(default="", max_length=2000)   # null = sense detall
     gtin: str | None = Field(default=None, pattern=r"^\d{1,14}$")
     unitats: int | None = Field(default=None, ge=1, le=100000)
     botiga_desti: str | None = None
@@ -98,7 +98,7 @@ def nova_tasca(cos: NovaTasca, con: sqlite3.Connection = Depends(bd), u: dict = 
             raise HTTPException(400, f"Botiga de destí no vàlida: {cos.botiga_desti}")
     elif cos.tipus == "traspassar":
         raise HTTPException(400, "Un traspàs necessita la botiga de destí")
-    t, _nova = tasques.crea(con, botiga_id, cos.tipus, cos.titol, cos.detall, gtin, cos.unitats, cos.botiga_desti,
+    t, _nova = tasques.crea(con, botiga_id, cos.tipus, cos.titol, cos.detall or "", gtin, cos.unitats, cos.botiga_desti,
                             creada_per=u["id"])
     return t
 

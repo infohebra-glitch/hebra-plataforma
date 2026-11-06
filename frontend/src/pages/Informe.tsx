@@ -150,7 +150,7 @@ function Barra({ molla, pdf, envia, inicials, titol, carregat }: { molla: string
   const [baixant, setBaixant] = useState(false);
   const descarrega = async () => {
     setError(null); setBaixant(true);
-    try { desaBlob(await pdf(), `${titol.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}.pdf`); } catch (e) { setError((e as Error).message); } finally { setBaixant(false); }
+    try { desaBlob(await pdf(), `${titol.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').toLowerCase()}.pdf`); } catch (e) { setError((e as Error).message); } finally { setBaixant(false); }
   };
   return (
     <>

@@ -2,7 +2,7 @@
 import type { EstatDecisio, EstatPeticio, Motiu, Seccio, TipusAlerta, TipusInforme } from '../api/types';
 
 export const MOTIUS: Record<Motiu, string> = {
-  talla: 'Talla', tall: 'Tall o patró', preu: 'Preu', color: 'Color', qualitat: 'Qualitat o teixit', altre: 'Altre',
+  talla: 'Talla', tall: 'Tall o patró', preu: 'Preu', color: 'Color', qualitat: 'Qualitat o teixit', nomes_mirava: 'Només mirava', altre: 'Altre',
 };
 export const motiu = (m: string | null | undefined): string => (m ? MOTIUS[m as Motiu] ?? m : '—');
 

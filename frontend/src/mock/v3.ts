@@ -6,6 +6,7 @@
 import type * as T from '../api/types';
 import { dataLocal, isoData } from '../lib/format';
 import { properaExecucio } from '../lib/programacio';
+import { NOMS_TIPUS_TASCA } from '../lib/tasques';
 import { BOTIGUES, MODELS, ORIGENS, arr, avui, conv, cub, defModel, dies, estat, sumaCompres, sumaProves, type FiltreMock } from './dades';
 import { atzar } from './estadistica';
 
@@ -31,7 +32,7 @@ export const tasquesMock: T.Tasca[] = [
 ];
 
 export function creaTasca(c: T.NovaTasca): T.Tasca {
-  const t: T.Tasca = { id: seguentTasca++, botiga_id: c.botiga_id, tipus: c.tipus, titol: c.titol, detall: c.detall ?? null, gtin: c.gtin ?? null, unitats: c.unitats ?? null, botiga_desti: c.botiga_desti ?? null, estat: 'pendent', creada: ara().toISOString(), feta: null };
+  const t: T.Tasca = { id: seguentTasca++, botiga_id: c.botiga_id ?? 'BCN-01', tipus: c.tipus, titol: c.titol ?? NOMS_TIPUS_TASCA[c.tipus], detall: c.detall ?? null, gtin: c.gtin ?? null, unitats: c.unitats ?? null, botiga_desti: c.botiga_desti ?? null, estat: 'pendent', creada: ara().toISOString(), feta: null };
   tasquesMock.unshift(t);
   avisos.tasca(t);
   return t;
@@ -161,7 +162,7 @@ export function provadorsDirecte(botigues: string[]): T.ProvadorsDirecte {
   return {
     generat: ara().toISOString(), cabines: cab,
     resum: {
-      ocupades: cab.filter((c) => c.estat === 'ocupada').length, lliures: cab.filter((c) => c.estat === 'lliure').length,
+      ocupades: cab.filter((c) => c.estat === 'ocupada' || c.estat === 'porta_oberta').length, lliures: cab.filter((c) => c.estat === 'lliure').length,
       sessions_avui: cab.reduce((s, c) => s + c.avui.sessions, 0), proves_avui: cab.reduce((s, c) => s + c.avui.proves, 0),
     },
   };
@@ -409,8 +410,8 @@ export function validaConfig(c: T.ConfigFitxaParcial): string | null {
 let seguentIntegracio = 3;
 export const integracionsMock: (T.Integracio & { registre: T.RegistreSync[] })[] = [
   {
-    id: 1, botiga_id: 'BCN-01', proveidor: 'shopify', config: { domini: 'hebra-gracia.myshopify.com', ubicacio_id: '7712', ubicacio_nom: 'Gràcia (botiga física)', incloure_en_linia: false, opcio_talla: 'Talla', opcio_color: 'Color' },
-    te_secret: true, actiu: true, abast: ['cataleg', 'vendes', 'estoc'], interval_min: 60, darrera_sync: fa(23), estat: 'ok', missatge: '31 línies de venda, 2 devolucions, 214 nivells d’estoc.',
+    id: 1, botiga_id: 'BCN-01', proveidor: 'shopify', config: { domini: 'hebra-gracia.myshopify.com', ubicacio: '7712', ubicacio_nom: 'Gràcia (botiga física)', en_linia: false, opcio_talla: ['Talla'], opcio_color: ['Color'] },
+    te_secret: true, actiu: true, abast: ['vendes', 'estoc'], interval_min: 60, darrera_sync: fa(23), estat: 'ok', missatge: '31 línies de venda, 2 devolucions, 214 nivells d’estoc.',
     registre: Array.from({ length: 6 }, (_, i) => ({ inici: fa(23 + 60 * i), fi: fa(22.6 + 60 * i), estat: 'ok', resum: { cataleg: i === 5 ? 186 : 0, linies_venda: 31 - i * 3, devolucions: i % 3 === 0 ? 2 : 0, estoc: 214 }, error: null })),
   },
   {
@@ -424,28 +425,34 @@ export const integracionsMock: (T.Integracio & { registre: T.RegistreSync[] })[]
 ];
 export const publica = ({ registre: _r, ...i }: T.Integracio & { registre: T.RegistreSync[] }): T.Integracio => i;
 
-export function provaIntegracio(c: { proveidor: T.Proveidor; config: Record<string, unknown>; secret?: string | null; id?: number }): { estat: number; cos: unknown } {
+export function provaIntegracio(c: { proveidor: T.Proveidor; config: Record<string, unknown>; secret?: string | null; id?: number; botiga_id?: string | null }): { estat: number; cos: unknown } {
   const desat = c.id ? integracionsMock.find((x) => x.id === c.id) : undefined;
+  // Com el servidor: el secret desat només es fa servir si la connexió apunta al mateix lloc.
+  const mateixDesti = !desat || (c.proveidor === 'shopify' ? String(desat.config.domini ?? '') === String(c.config.domini ?? '')
+    : c.proveidor === 'square' ? (desat.config.entorn ?? 'produccio') === (c.config.entorn ?? 'produccio')
+      : ['url_vendes', 'url_estoc', 'url_cataleg'].every((k) => !c.config[k] || ['url_vendes', 'url_estoc', 'url_cataleg'].some((d) => desat.config[d] && new URL(String(desat.config[d])).host === new URL(String(c.config[k])).host)));
+  if (!c.secret && desat?.te_secret && !mateixDesti) return { estat: 400, cos: { detail: 'Has canviat on es connecta: per seguretat, torna a escriure el testimoni d’accés (el desat no s’envia a un lloc nou)' } };
   const teSecret = !!c.secret || !!desat?.te_secret;
   if (c.proveidor === 'shopify') {
     const d = String(c.config.domini ?? '');
     if (!/^[a-z0-9-]+\.myshopify\.com$/.test(d)) return { estat: 400, cos: { detail: 'El domini ha de ser del tipus nom-botiga.myshopify.com.' } };
     if (!teSecret) return { estat: 400, cos: { detail: 'Falta el testimoni d’accés (comença per shpat_).' } };
     if (c.secret && !c.secret.startsWith('shpat_')) return { estat: 400, cos: { detail: 'Shopify ha rebutjat el testimoni: ha de començar per shpat_ i tenir permisos de lectura.' } };
-    return { estat: 200, cos: { ok: true, detail: undefined, detall: { botiga: 'Hebra · Gràcia', moneda: 'EUR', ubicacions: [{ id: '7712', nom: 'Gràcia (botiga física)' }, { id: '7713', nom: 'Magatzem central' }, { id: '7714', nom: 'Botiga en línia' }] } } };
+    return { estat: 200, cos: { ok: true, detall: { botiga: 'Hebra · Gràcia', domini: d, moneda: 'EUR', ubicacions: [{ id: '7712', nom: 'Gràcia (botiga física)', activa: true }, { id: '7713', nom: 'Magatzem central', activa: true }, { id: '7714', nom: 'Botiga en línia', activa: true }] } } };
   }
   if (c.proveidor === 'square') {
     if (!teSecret) return { estat: 400, cos: { detail: 'Falta el testimoni d’accés de Square.' } };
-    return { estat: 200, cos: { ok: true, detall: { botiga: 'Hebra Madrid', ubicacions: [{ id: 'L8XK2', nom: 'Malasaña' }] } } };
+    return { estat: 200, cos: { ok: true, detall: { botiga: 'Hebra Madrid', comerc: 'ML7Q2', moneda: 'EUR', ubicacions: [{ id: 'L8XK2', nom: 'Malasaña', activa: true }] } } };
   }
-  const urls = ['url_vendes', 'url_estoc', 'url_cataleg'].map((k) => String(c.config[k] ?? '')).filter(Boolean);
-  if (!urls.length) return { estat: 400, cos: { detail: 'Escriu com a mínim una URL.' } };
-  if (urls.some((u) => !u.startsWith('https://'))) return { estat: 400, cos: { detail: 'Les URL han de començar per https://.' } };
-  return { estat: 200, cos: { ok: true, detall: { fitxers: urls.map((u) => ({ url: u, files: 40 + Math.floor(Math.random() * 60), columnes: 'data_hora;botiga;gtin;quantitat' })) } } };
+  const urls = (['vendes', 'estoc', 'cataleg'] as const).map((t) => [t, String(c.config[`url_${t}`] ?? '')] as const).filter(([, u]) => u);
+  if (!urls.length) return { estat: 400, cos: { detail: 'Cal com a mínim una URL (vendes, estoc o catàleg)' } };
+  if (urls.some(([, u]) => !u.startsWith('https://'))) return { estat: 400, cos: { detail: 'La URL ha de començar per https://' } };
+  const columnes = { vendes: ['data_hora', 'botiga', 'gtin', 'quantitat'], estoc: ['botiga', 'gtin', 'unitats'], cataleg: ['gtin', 'model', 'color', 'talla', 'categoria', 'preu'] };
+  return { estat: 200, cos: { ok: true, detall: { botiga: null, ubicacions: [], fitxers: Object.fromEntries(urls.map(([t]) => [t, { files: 40 + Math.floor(Math.random() * 60), columnes: columnes[t] }])) } } };
 }
 
 export function creaIntegracio(c: T.NovaIntegracio): T.Integracio {
-  const i = { id: seguentIntegracio++, botiga_id: c.botiga_id, proveidor: c.proveidor, config: c.config, te_secret: !!c.secret, actiu: true, abast: c.abast, interval_min: Math.max(15, c.interval_min || 60), darrera_sync: null, estat: 'mai' as const, missatge: null, registre: [] };
+  const i = { id: seguentIntegracio++, botiga_id: c.botiga_id, proveidor: c.proveidor, config: c.config, te_secret: !!c.secret, actiu: true, abast: c.abast ?? (c.proveidor === 'csv_url' ? (['vendes', 'estoc', 'cataleg'] as const).filter((t) => c.config[`url_${t}`]) : ['vendes', 'estoc']), interval_min: Math.max(15, c.interval_min || 60), darrera_sync: null, estat: 'mai' as const, missatge: null, registre: [] };
   integracionsMock.push(i);
   return publica(i);
 }

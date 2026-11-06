@@ -209,12 +209,12 @@ def envia_informe(con: sqlite3.Connection, cfg: Config, inf: dict, botiga_id: st
 
 
 def envia_lliurat(con: sqlite3.Connection, cfg: Config, lid: int, destinataris: list[str]) -> dict:
-    """Envia un lliurat i en desa l'estat (enviat o error). Torna a llançar ErrorCorreu."""
+    """Envia un lliurat i en desa l'estat (enviat o error). Torna a llançar ErrorCorreu o ErrorPdf."""
     f = lliurat(con, lid)
     inf = json.loads(f["dades_json"])
     try:
         enviats = envia_informe(con, cfg, inf, f["botiga_id"], destinataris, f["generat"])
-    except correu.ErrorCorreu as e:
+    except (correu.ErrorCorreu, informe_pdf.ErrorPdf) as e:
         con.execute("UPDATE informe_lliurat SET estat_enviament = 'error', error = ? WHERE id = ?", (str(e), lid))
         con.commit()
         raise
@@ -257,6 +257,12 @@ def executa_pendents(con: sqlite3.Connection, cfg: Config, ara: datetime | None 
         if destinataris and correu.configurat(cfg):
             try:
                 envia_lliurat(con, cfg, lid, destinataris)
-            except correu.ErrorCorreu as e:
+            except (correu.ErrorCorreu, informe_pdf.ErrorPdf) as e:   # ja queda marcat com a error
                 log.warning("Informe %s generat però no enviat: %s", lid, e)
+            except Exception as e:   # un error inesperat no ha d'aturar els altres informes que toquen
+                log.exception("Informe %s generat però no enviat", lid)
+                con.rollback()
+                con.execute("UPDATE informe_lliurat SET estat_enviament = 'error', error = ? WHERE id = ?",
+                            (f"Error inesperat ({type(e).__name__}): avisa l'equip de Hebra", lid))
+                con.commit()
     return fets

@@ -29,7 +29,7 @@ export const titolLliurat = (l: Pick<InformeLliurat, 'tipus' | 'des' | 'fins'>):
 
 export function EstatEnviament({ l }: { l: InformeLliurat }) {
   if (l.estat_enviament === 'enviat') return <span className="insignia insignia-bo" title={l.enviat_a.join(', ')}>✓ Enviat a {l.enviat_a.length === 1 ? l.enviat_a[0] : `${l.enviat_a.length} persones`}</span>;
-  if (l.estat_enviament === 'error') return <span className="insignia insignia-critic">✕ No s’ha pogut enviar</span>;
+  if (l.estat_enviament === 'error') return <span className="insignia insignia-critic" title={l.error ?? undefined}>✕ No s’ha pogut enviar{l.error ? <span className="sr-only">: {l.error}</span> : null}</span>;
   return <span className="insignia insignia-mostra">No enviat</span>;
 }
 

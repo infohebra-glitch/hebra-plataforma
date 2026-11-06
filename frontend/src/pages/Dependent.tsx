@@ -52,7 +52,8 @@ function useAra(intervalMs = 1000) {
 function Espera({ des }: { des: string }) {
   const ara = useAra();
   const s = Math.max(0, Math.round((ara - Date.parse(des)) / 1000));
-  const txt = s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`;
+  const txt = s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`
+    : s < 86400 ? `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, '0')} min` : `${Math.floor(s / 86400)} d`;
   return <span className={`espera${s > 90 ? ' llarga' : ''}`}>fa {txt}</span>;
 }
 
@@ -65,15 +66,15 @@ export function textAltres(a: AltraBotiga[]): string {
 }
 
 function TargetaPeticio({ p, nova, enCanvi }: { p: Peticio; nova: boolean; enCanvi: (p: Peticio, e: Exclude<EstatPeticio, 'pendent'>) => void }) {
-  const cabina = p.cabina.match(/C(\d+)$/)?.[1] ?? p.cabina;
+  const cabina = p.cabina ? p.cabina.match(/C(\d+)$/)?.[1] ?? p.cabina : null;
   if (p.tipus === 'assistencia') {
     return (
-      <li className={`peticio assistencia${nova ? ' nova' : ''}`} aria-label={`Cabina ${cabina}: vol que l’atenguin`}>
+      <li className={`peticio assistencia${nova ? ' nova' : ''}`} aria-label={`${cabina ? `Cabina ${cabina}` : 'Sense cabina'}: vol que l’atenguin`}>
         <div className="peticio-cap">
           <div>
             <span className="insignia insignia-assistencia">Assistència</span>
             <div className="que" style={{ marginTop: 6 }}>Vol que l’atenguin</div>
-            <div className="on"><b>Cabina {cabina}</b>{p.nom && <> · s’està provant {p.nom.toLowerCase()}</>}</div>
+            <div className="on"><b>{cabina ? `Cabina ${cabina}` : 'Cabina no indicada'}</b>{p.nom && <> · s’està provant {p.nom.toLowerCase()}</>}</div>
             <div className="petit muted">Demanat a les {hora(p.hora_peticio)} · <Espera des={p.hora_peticio} /></div>
             {p.estat === 'en_cami' && <span className="insignia insignia-neutra" style={{ marginTop: 6 }}>Hi vas</span>}
           </div>
@@ -88,11 +89,11 @@ function TargetaPeticio({ p, nova, enCanvi }: { p: Peticio; nova: boolean; enCan
   }
   const altres = !p.disponible && p.altres_botigues?.length ? textAltres(p.altres_botigues) : '';
   return (
-    <li className={`peticio${nova ? ' nova' : ''}`} aria-label={`Cabina ${cabina}: ${p.nom}, talla ${p.talla}`}>
+    <li className={`peticio${nova ? ' nova' : ''}`} aria-label={`${cabina ? `Cabina ${cabina}` : 'Sense cabina'}: ${p.nom}, talla ${p.talla}`}>
       <div className="peticio-cap">
         <div>
           <div className="que">{p.nom}</div>
-          <div className="on">{p.color} · <b>Cabina {cabina}</b></div>
+          <div className="on">{p.color} · <b>{cabina ? `Cabina ${cabina}` : 'Cabina no indicada'}</b></div>
           <div className="petit muted">Demanada a les {hora(p.hora_peticio)} · <Espera des={p.hora_peticio} /></div>
           {!p.disponible && <span className="insignia insignia-critic" style={{ marginTop: 6 }}>Sense estoc aquí</span>}
           {altres && <div className="altres-botigues">{altres}: ofereix-la al client.</div>}

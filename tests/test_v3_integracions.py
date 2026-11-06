@@ -389,13 +389,14 @@ def test_motor_crea_sincronitza_registre_i_pendents(con, fals, monkeypatch):
         motor.crea(con, CLAU, {"proveidor": "shopify", "botiga_id": "B", "config": {"domini": "marca", "token": "x"}})
     i = motor.crea(con, CLAU, {"proveidor": "shopify", "botiga_id": "B", "config": {"domini": "marca", "ubicacio": "55"},
                                "secret": "shpat_x"})
-    assert i["interval_min"] == 60 and i["estat"] == "mai" and i["te_secret"] and i["abast"] == ["cataleg", "vendes", "estoc"]
+    assert i["interval_min"] == 60 and i["estat"] == "mai" and i["te_secret"] and i["abast"] == ["vendes", "estoc"]
     assert "shpat_x" not in json.dumps(dict(con.execute("SELECT * FROM integracio").fetchone()))
 
     ara = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
     assert motor.pendents(con, ara) == [i["id"]]
     fet = motor.sincronitza_pendents(con, CLAU, ara)
-    assert fet[i["id"]] == {"cataleg": 3, "linies_venda": 2, "devolucions": 1, "estoc": 0}
+    # Per defecte no porta el catàleg (només enganxa l'id de variant a les que ja hi són).
+    assert fet[i["id"]] == {"cataleg": 0, "linies_venda": 2, "devolucions": 1, "estoc": 0}
     f = motor.obte(con, i["id"])
     assert f["estat"] == "ok" and f["darrera_sync"] == ara.isoformat() and "2 línies de venda" in f["missatge"]
     assert motor.pendents(con, ara + timedelta(minutes=59)) == []
@@ -436,6 +437,85 @@ def test_bucle_mante_les_botigues_antigues_per_variable_d_entorn(con, fals, monk
     motor.crea(con, CLAU, {"proveidor": "shopify", "botiga_id": "B", "config": {"domini": "marca", "ubicacio": "55"},
                            "secret": "shpat_nou", "abast": ["vendes"]})
     assert motor.botigues_antigues(con) == []
+
+
+def test_bucle_botigues_antigues_compta_l_intent_encara_que_falli(con, fals, monkeypatch):
+    """Revisió: si la sincronització antiga falla, no s'ha de tornar a provar cada minut sinó cada hora."""
+    _botiga(con)
+    con.execute("INSERT INTO parametre (botiga_id, clau, valor) VALUES ('B', 'shopify_domini', 'marca.myshopify.com'), "
+                "('B', 'shopify_ubicacio', '55')")
+    monkeypatch.setenv("HEBRA_SHOPIFY_TOKEN_B", "shpat_env")
+    fals.ruta("GET", f"{SB}/products.json", (401, {"errors": "Invalid"}))
+    ara = datetime(2026, 11, 6, 12, 0, tzinfo=timezone.utc)
+    assert "error" in motor.sincronitza_pendents(con, CLAU, ara)["shopify:B"]
+    n = len(fals.peticions)
+    assert motor.sincronitza_pendents(con, CLAU, ara + timedelta(minutes=1)) == {}
+    assert motor.sincronitza_pendents(con, CLAU, ara + timedelta(minutes=59)) == {}
+    assert len(fals.peticions) == n
+    assert "error" in motor.sincronitza_pendents(con, CLAU, ara + timedelta(minutes=60))["shopify:B"]
+
+
+def test_cataleg_no_trepitja_model_color_talla_ni_categoria(con, fals):
+    """Revisió: el catàleg del proveïdor crea els GTIN nous i només n'actualitza el preu als que ja hi són."""
+    _botiga(con)
+    con.execute("""INSERT INTO catalog_sku (gtin, model, color, talla, categoria, preu_eur, origen_json)
+                   VALUES ('08400000000017', 'CL-24-NAT', 'Natural', 'S', 'camisa', 59.0, '{"x": 1}')""")
+    con.commit()
+    _productes_shopify(fals)
+    r = Shopify({"domini": "marca"}, "t", None).aplica(con, ["cataleg"], None, None)
+    assert r["cataleg"] == 3
+    f = con.execute("SELECT * FROM catalog_sku WHERE gtin = '08400000000017'").fetchone()
+    assert (f["model"], f["color"], f["talla"], f["categoria"], f["origen_json"]) == \
+        ("CL-24-NAT", "Natural", "S", "camisa", '{"x": 1}')
+    assert f["preu_eur"] == 69.0 and f["variant_shopify"] == "11"   # el preu i l'id extern sí
+    nova = con.execute("SELECT * FROM catalog_sku WHERE gtin = '08400000000024'").fetchone()
+    assert (nova["model"], nova["talla"]) == ("7001", "L")          # la nova, sencera
+    # Per defecte, una integració nova de Shopify o Square no porta el catàleg.
+    i = motor.crea(con, CLAU, {"proveidor": "square", "botiga_id": "B", "config": {"ubicacio": "L1"}, "secret": "EAAA"})
+    assert i["abast"] == ["vendes", "estoc"]
+
+
+def test_prova_no_envia_el_secret_desat_a_un_desti_nou(con, fals):
+    """Revisió: `prova` (i `actualitza`) amb `id` no fa servir el secret desat si la config apunta a un altre lloc."""
+    _botiga(con)
+    fals.ruta("GET", f"{SB}/shop.json", (200, {"shop": {"name": "Marca"}}))
+    fals.ruta("GET", f"{SB}/locations.json", (200, {"locations": []}))
+    fals.ruta("GET", "/v.csv", (200, b"data_hora;gtin;quantitat\n"))
+    i = motor.crea(con, CLAU, {"proveidor": "shopify", "botiga_id": "B", "config": {"domini": "marca", "ubicacio": "55"},
+                               "secret": "shpat_desat"})
+    # Mateix domini (amb una altra opció canviada): fa servir el desat.
+    assert motor.prova(con, CLAU, None, {"domini": "marca.myshopify.com", "en_linia": True}, None, i["id"])["botiga"] == "Marca"
+    assert fals.peticions[-1]["h"]["x-shopify-access-token"] == "shpat_desat"
+    fals.peticions.clear()
+    with pytest.raises(ErrorIntegracio, match="torna a escriure el testimoni"):
+        motor.prova(con, CLAU, None, {"domini": "dolenta"}, None, i["id"])
+    assert fals.peticions == []
+    # Amb el secret a la petició, sí (és el que acaba d'escriure la persona).
+    motor.prova(con, CLAU, None, {"domini": "altra"}, "shpat_nou", i["id"])
+    assert fals.peticions[-1]["host"] == "altra.myshopify.com"
+    assert fals.peticions[-1]["h"]["x-shopify-access-token"] == "shpat_nou"
+    with pytest.raises(ErrorIntegracio, match="torna a escriure"):
+        motor.actualitza(con, CLAU, i["id"], {"config": {"domini": "dolenta", "ubicacio": "55"}})
+    assert motor.actualitza(con, CLAU, i["id"], {"config": {"domini": "dolenta", "ubicacio": "55"},
+                                                 "secret": "shpat_x"})["config"]["domini"] == "dolenta.myshopify.com"
+
+    # CSV: un altre servidor necessita la capçalera de nou; el mateix servidor amb un altre fitxer, no.
+    c = motor.crea(con, CLAU, {"proveidor": "csv_url", "botiga_id": "B", "secret": "Bearer desat",
+                               "config": {"url_vendes": "https://tpv.test/v.csv"}})
+    fals.peticions.clear()
+    motor.prova(con, CLAU, None, {"url_vendes": "https://tpv.test/v.csv?x=1"}, None, c["id"])
+    assert fals.peticions[-1]["h"]["authorization"] == "Bearer desat"
+    fals.peticions.clear()
+    with pytest.raises(ErrorIntegracio, match="adreces dels fitxers"):
+        motor.prova(con, CLAU, None, {"url_vendes": "https://dolent.test/v.csv"}, None, c["id"])
+    with pytest.raises(ErrorIntegracio, match="torna a escriure"):
+        motor.prova(con, CLAU, None, {"url_vendes": "https://tpv.test/v.csv",
+                                      "url_estoc": "https://dolent.test/e.csv"}, None, c["id"])
+    assert fals.peticions == []
+    # Square: canviar d'entorn també.
+    q = motor.crea(con, CLAU, {"proveidor": "square", "botiga_id": "B", "config": {"ubicacio": "L1"}, "secret": "EAAA"})
+    with pytest.raises(ErrorIntegracio, match="entorn de Square"):
+        motor.prova(con, CLAU, None, {"ubicacio": "L1", "entorn": "sandbox"}, None, q["id"])
 
 
 # ---------------------------------------------------------------- API
@@ -502,7 +582,7 @@ def test_api_integracions_rols_i_secret_mai_surt(entorn, fals):
     assert fals.peticions[-1]["h"]["x-shopify-access-token"] == TOKEN
 
     r = c.post(f"/api/v2/integracions/{i['id']}/sincronitza")
-    assert r.status_code == 200 and r.json() == {"resum": {"cataleg": 3, "linies_venda": 2, "devolucions": 1, "estoc": 0}}
+    assert r.status_code == 200 and r.json() == {"resum": {"cataleg": 0, "linies_venda": 2, "devolucions": 1, "estoc": 0}}
     reg = c.get(f"/api/v2/integracions/{i['id']}/registre").json()["registre"]
     assert len(reg) == 1 and reg[0]["estat"] == "ok" and reg[0]["resum"]["devolucions"] == 1 and reg[0]["fi"]
 

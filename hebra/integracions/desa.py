@@ -12,19 +12,30 @@ from .. import temps, vendes as vendes_mod
 
 
 def cataleg(con: sqlite3.Connection, variants: list[dict], crea: bool = True, camp_extern: str | None = None) -> int:
-    """Crea o actualitza variants. Amb `crea=False` només enganxa l'id extern a les que ja hi són."""
+    """Desa variants del catàleg d'un proveïdor. Torna quantes n'ha creat o actualitzat.
+
+    Amb `crea=True` (abast «cataleg»): els GTIN nous es creen sencers; dels que ja hi són només
+    s'actualitza el preu. El model, el color, la talla i la categoria d'una variant existent no es
+    toquen mai: hi pengen les dades per model (fitxa, contingut, origen, decisions...) i el model
+    del proveïdor (p. ex. l'id de producte de Shopify) no té per què coincidir amb el de la marca.
+    Amb `crea=False` només enganxa l'id extern a les que ja hi són.
+    """
     assert camp_extern in (None, "variant_shopify")
     n = 0
     for v in variants:
         if not v.get("gtin"):
             continue
         if crea:
-            con.execute(
-                """INSERT INTO catalog_sku (gtin, model, color, talla, categoria, preu_eur) VALUES (?, ?, ?, ?, ?, ?)
-                   ON CONFLICT(gtin) DO UPDATE SET model=excluded.model, color=excluded.color, talla=excluded.talla,
-                   categoria=excluded.categoria, preu_eur=excluded.preu_eur""",
-                (v["gtin"], v["model"], v.get("color") or "", v.get("talla") or "", v.get("categoria") or "altres",
-                 v.get("preu_eur")))
+            existeix = con.execute("SELECT 1 FROM catalog_sku WHERE gtin = ?", (v["gtin"],)).fetchone()
+            if existeix:
+                if v.get("preu_eur") is not None:
+                    con.execute("UPDATE catalog_sku SET preu_eur = ? WHERE gtin = ?", (v["preu_eur"], v["gtin"]))
+            else:
+                con.execute(
+                    """INSERT INTO catalog_sku (gtin, model, color, talla, categoria, preu_eur)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (v["gtin"], v["model"], v.get("color") or "", v.get("talla") or "", v.get("categoria") or "altres",
+                     v.get("preu_eur")))
             n += 1
         if camp_extern and v.get("id_extern"):
             c = con.execute(f"UPDATE catalog_sku SET {camp_extern} = ? WHERE gtin = ?", (str(v["id_extern"]), v["gtin"]))

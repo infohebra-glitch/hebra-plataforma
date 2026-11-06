@@ -239,12 +239,18 @@ def resultat_decisions(con: sqlite3.Connection, f: Filtre) -> list[dict]:
     return out
 
 
+def _dades_bloc(inf: dict, bid: str):
+    """Les dades d'un bloc que l'informe ja ha calculat (None si no hi és)."""
+    return next((b["dades"] for b in inf.get("blocs") or [] if b.get("id") == bid), None)
+
+
 def _mensual(con, f, k, inf) -> None:
     fa = base.anterior(f)
     ka = resum_mod.kpi(con, fa)
     vs = _vs(f)
-    e = estoc_mod.estoc(con, f)
-    v = valor_mod.valor(con, f)
+    # Els blocs «estoc» i «valor» (informes._mensual) ja porten estoc() i valor(): no es tornen a calcular.
+    e = _dades_bloc(inf, "estoc") or estoc_mod.estoc(con, f)
+    v = _dades_bloc(inf, "valor") or valor_mod.valor(con, f)
     recuperat = round(sum(p["valor_eur"] or 0 for p in v["palanques"]), 2)
     inf["xifres"] = [
         xifra("Proves", k["proves"], "enter", ka["proves"], vs),

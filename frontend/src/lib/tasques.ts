@@ -2,7 +2,7 @@
 import type { AccioSuggeriment, EstocParat, NovaTasca, TipusTasca } from '../api/types';
 
 export const NOMS_TIPUS_TASCA: Record<TipusTasca, string> = {
-  traspassar: 'Traspassar', moure_a_sala: 'Treure a la sala', promocio: 'Promoció', retornar: 'Retornar', recompte: 'Recompte', altre: 'Altre',
+  traspassar: 'Traspassar', moure_a_sala: 'Treure a la sala', promocio: 'Promoció', retornar: 'Retornar', revisar: 'Revisar', recompte: 'Recompte', altre: 'Altre',
 };
 export const nomTipusTasca = (t: string) => NOMS_TIPUS_TASCA[t as TipusTasca] ?? t;
 
@@ -12,7 +12,7 @@ export const NOMS_ACCIO: Record<AccioSuggeriment, string> = {
 
 export function tascaDeParat(p: EstocParat, botigaPerDefecte: string, nomDesti?: string): NovaTasca {
   const s = p.suggeriment;
-  const tipus: TipusTasca = !s || s.accio === 'revisar' ? 'altre' : s.accio;
+  const tipus: TipusTasca = s ? s.accio : 'altre';
   const u = p.unitats === 1 ? '1 unitat' : `${p.unitats} unitats`;
   const que = `${p.nom.toLowerCase()} (${p.talla})`;
   const titol = {
@@ -20,6 +20,7 @@ export function tascaDeParat(p: EstocParat, botigaPerDefecte: string, nomDesti?:
     moure_a_sala: `Treure a la sala ${que}`,
     promocio: `Posar en promoció ${que}`,
     retornar: `Retornar ${u} de ${que} al magatzem`,
+    revisar: `Revisar ${que}`,
     recompte: `Recomptar ${que}`,
     altre: `Revisar ${que}`,
   }[tipus];

@@ -10,7 +10,8 @@ import type { CabinaDirecte, ProvadorsDirecte } from '../api/types';
 
 export function resumDe(cabines: CabinaDirecte[]): ProvadorsDirecte['resum'] {
   return {
-    ocupades: cabines.filter((c) => c.estat === 'ocupada').length,
+    // Com el servidor (docs/API.md, B): «ocupades» compta també les de porta oberta (hi ha algú dins).
+    ocupades: cabines.filter((c) => c.estat === 'ocupada' || c.estat === 'porta_oberta').length,
     lliures: cabines.filter((c) => c.estat === 'lliure').length,
     sessions_avui: cabines.reduce((s, c) => s + c.avui.sessions, 0),
     proves_avui: cabines.reduce((s, c) => s + c.avui.proves, 0),

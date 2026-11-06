@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import __version__, api, auth, db, fitxa, fitxa_config, informes, passarella, proves, retencio, temps, textos, vendes
-from . import informes_programats
+from . import informes_programats, provadors
 from .integracions import motor as integracions_motor
 from .config import carrega
 
@@ -128,6 +128,27 @@ async def _bucle_informes() -> None:
             log.exception("Error generant els informes programats")
 
 
+def publica_cabines_pendents() -> int:
+    """Publica l'estat de les cabines que el throttle de 5 s havia deixat pendents (amb una connexió pròpia)."""
+    c = db.connecta(cfg.ruta_bd)
+    try:
+        return provadors.publica_pendents(c)
+    finally:
+        c.close()
+
+
+async def _bucle_cabines() -> None:
+    """Cada segon: si una cabina té un canvi pendent i ja ha passat la finestra, se'n publica l'estat (SSE)."""
+    while True:
+        await asyncio.sleep(1)
+        if not provadors.hi_ha_pendents():
+            continue
+        try:
+            await asyncio.to_thread(publica_cabines_pendents)
+        except Exception:
+            log.exception("Error publicant l'estat de les cabines")
+
+
 @asynccontextmanager
 async def _cicle_de_vida(_app):
     tasques = [asyncio.create_task(_bucle_retencio())] if cfg.retencio_dies > 0 else []
@@ -135,6 +156,7 @@ async def _cicle_de_vida(_app):
         tasques.append(asyncio.create_task(_bucle_processament()))
     tasques.append(asyncio.create_task(_bucle_integracions()))
     tasques.append(asyncio.create_task(_bucle_informes()))
+    tasques.append(asyncio.create_task(_bucle_cabines()))
     yield
     for t in tasques:
         t.cancel()

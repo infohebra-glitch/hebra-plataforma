@@ -277,6 +277,9 @@ def test_tasques_permisos_i_bus(entorn):
     assert bcn.post("/api/v2/tasques", json={"tipus": "moure_a_sala", "gtin": "99999"}).status_code == 400
     assert bcn.post("/api/v2/tasques", json={"tipus": "volar", "titol": "x"}).status_code == 400
     assert marca.post("/api/v2/tasques", json={"tipus": "altre", "titol": "x"}).status_code == 400  # sense botiga
+    # el tauler envia `detall: null` quan el suggeriment no té text
+    r = bcn.post("/api/v2/tasques", json={"tipus": "revisar", "titol": "Revisar", "detall": None, "gtin": gtin})
+    assert r.status_code == 200 and r.json()["detall"] in ("", None) and r.json()["tipus"] == "revisar"
     # rols: una botiga no crea ni veu ni toca tasques d'una altra
     assert gir.post("/api/v2/tasques", json={"botiga_id": "BCN-01", "tipus": "recompte"}).status_code == 403
     assert gir.get("/api/v2/tasques?botiga=BCN-01").status_code == 403
@@ -478,6 +481,63 @@ def test_bucle_genera_i_envia_el_que_toca(entorn, smtp):
     # sense SMTP es genera igual però no s'envia
     assert len(ip.executa_pendents(con, Config(), ara + timedelta(days=1))) == 1
     assert ip.lliurat(con, max(r[0] for r in con.execute("SELECT id FROM informe_lliurat")))["estat_enviament"] == "no_enviat"
+
+
+def _sense_weasyprint(monkeypatch):
+    import builtins
+    original = builtins.__import__
+
+    def importa(nom, *a, **k):
+        if nom == "weasyprint":
+            raise OSError("cannot load library 'libpango-1.0-0'")
+        return original(nom, *a, **k)
+    monkeypatch.setattr(builtins, "__import__", importa)
+
+
+def test_sense_weasyprint_error_clar_i_no_atura_els_altres(entorn, smtp, monkeypatch):
+    """Revisió: si el PDF no es pot fer (ImportError/OSError), el lliurat queda en error amb el motiu,
+    els altres informes que toquen es fan igualment i l'API respon 400 amb el motiu en català."""
+    app_mod, con = entorn
+    con.execute("DELETE FROM programacio_informe")
+    for b in ("BCN-01", "GIR-01"):
+        con.execute("""INSERT INTO programacio_informe (botiga_id, tipus, actiu, hora, destinataris, creada)
+                       VALUES (?, 'diari', 1, '08:00', '["a@marca.cat"]', '2026-11-01T00:00:00+01:00')""", (b,))
+    con.commit()
+    _sense_weasyprint(monkeypatch)
+    cfg = Config(smtp_host="smtp.prova.cat", smtp_remitent="i@marca.cat")
+    fets = ip.executa_pendents(con, cfg, datetime(2026, 11, 20, 8, 0, 30, tzinfo=MADRID))
+    assert len(fets) == 2 and not smtp.enviats
+    for lid in fets:
+        f = ip.lliurat(con, lid)
+        assert f["estat_enviament"] == "error" and "WeasyPrint" in f["error"]
+
+    c = _client(app_mod, "marca@hebra.cat")
+    r = c.get(f"/api/v2/informes/lliurats/{fets[0]}.pdf")
+    assert r.status_code == 400 and r.json()["detail"].startswith("No s'ha pogut generar el PDF")
+    assert c.get(f"/api/v2/informes/setmanal.pdf?{F_SIM}").status_code == 400
+    app_mod.app.state.cfg = cfg
+    try:
+        r = c.post(f"/api/v2/informes/lliurats/{fets[0]}/envia", json={"destinataris": ["a@marca.cat"]})
+        assert r.status_code == 400 and "WeasyPrint" in r.json()["detail"]
+    finally:
+        app_mod.app.state.cfg = app_mod.cfg
+
+
+def test_mensual_no_recalcula_estoc_ni_valor(entorn, monkeypatch):
+    """Revisió: l'informe mensual calcula estoc() i valor() una sola vegada."""
+    _, con = entorn
+    from hebra.analitica import informes as inf_mod, informes_grafics as ig
+    assert ig.estoc_mod is inf_mod.estoc_mod and ig.valor_mod is inf_mod.valor_mod  # el mateix mòdul
+    crides = {"estoc": 0, "valor": 0}
+    orig_e, orig_v = inf_mod.estoc_mod.estoc, inf_mod.valor_mod.valor
+    monkeypatch.setattr(inf_mod.estoc_mod, "estoc", lambda c, f: crides.__setitem__("estoc", crides["estoc"] + 1)
+                        or orig_e(c, f))
+    monkeypatch.setattr(inf_mod.valor_mod, "valor", lambda c, f: crides.__setitem__("valor", crides["valor"] + 1)
+                        or orig_v(c, f))
+    inf = A.informe(con, A.Filtre("BCN-01", date(2026, 11, 1), date(2026, 11, 30)), "mensual")
+    assert crides == {"estoc": 1, "valor": 1}
+    assert {g["id"] for g in inf["grafics"]} >= {"estoc_parat_categoria"}
+    assert any(x["etiqueta"] == "Estoc parat (valor)" for x in inf["xifres"])
 
 
 def test_simulador_programacions_lliurats_i_tasques(entorn):

@@ -20,7 +20,10 @@ export function EstatCabina({ estat }: { estat: CabinaDirecte['estat'] }) {
 /** Peces del mateix model en talles diferents dins la cabina: el client dubta de talla. */
 export function dubteDins(c: CabinaDirecte): string | null {
   const per = new Map<string, Set<string>>();
-  for (const p of c.peces) { const s = per.get(p.nom) ?? new Set(); s.add(p.talla); per.set(p.nom, s); }
+  for (const p of c.peces) {
+    if (!p.nom || !p.talla) continue; // EPC fora del catàleg
+    const s = per.get(p.nom) ?? new Set<string>(); s.add(p.talla); per.set(p.nom, s);
+  }
   const d = [...per.entries()].find(([, s]) => s.size > 1);
   return d ? `${d[0]} en ${[...d[1]].join(' i ')}` : null;
 }
@@ -42,7 +45,7 @@ export function TargetaCabina({ c, nova, ara }: { c: CabinaDirecte; nova?: boole
           <div className="etiqueta-mini">Peces dins {c.peces.length ? `(${c.peces.length})` : ''}</div>
           {c.peces.length ? (
             <ul className="peces-cabina">
-              {c.peces.map((p) => <li key={p.epc}><span>{p.nom}</span><span className="muted">{p.color}</span><b className="talla-xip">{p.talla}</b></li>)}
+              {c.peces.map((p) => <li key={p.epc}><span>{p.nom ?? 'Peça sense catàleg'}</span><span className="muted">{p.color ?? ''}</span><b className="talla-xip">{p.talla ?? '—'}</b></li>)}
             </ul>
           ) : <p className="petit muted" style={{ margin: '2px 0 0' }}>Cap peça llegida al darrer minut.</p>}
           {dubte && <p className="petit" style={{ margin: '6px 0 0' }}><span className="insignia insignia-alerta">Dubte de talla</span> {dubte}: potser cal ajudar-la.</p>}
