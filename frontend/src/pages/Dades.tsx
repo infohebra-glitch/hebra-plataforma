@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { operacio } from '../api/endpoints';
-import type { ResultatImport, ResultatShopify } from '../api/types';
-import { TitolPagina } from '../components/TitolPagina';
-import { useFiltre } from '../context/Filtre';
+import type { ResultatImport } from '../api/types';
+import { Connexions } from '../components/Connexions';
+import { Seccio, TitolPagina } from '../components/TitolPagina';
 import { useSessio } from '../context/Sessio';
 import { enter, plural } from '../lib/format';
 
@@ -52,38 +52,21 @@ function Importador({ t }: { t: (typeof TIPUS)[number] }) {
   );
 }
 
-function Shopify() {
-  const { filtre } = useFiltre();
-  const [r, setR] = useState<ResultatShopify | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [enviant, setEnviant] = useState(false);
-  const sincronitza = async () => {
-    setEnviant(true); setError(null); setR(null);
-    try { setR(await operacio.sincronitzaShopify(filtre.botiga)); } catch (e) { setError((e as Error).message); } finally { setEnviant(false); }
-  };
-  return (
-    <div className="targeta">
-      <h3>Shopify</h3>
-      <p className="muted" style={{ margin: 0 }}>Porta les comandes i l’estoc de la botiga en línia. {filtre.botiga ? `Botiga: ${filtre.botiga}.` : 'Totes les botigues.'}</p>
-      <div><button type="button" onClick={sincronitza} disabled={enviant}>{enviant ? 'Sincronitzant…' : 'Sincronitza ara'}</button></div>
-      <div role="status" aria-live="polite">
-        {r && <p className="missatge-ok">Fet: {plural(r.comandes, 'comanda', 'comandes')}, {plural(r.linies, 'línia', 'línies')} i {plural(r.estoc, 'registre', 'registres')} d’estoc.</p>}
-        {error && <p className="missatge-error" role="alert">{error}</p>}
-      </div>
-    </div>
-  );
-}
-
 export function Dades() {
-  const { usuari } = useSessio();
+  const { usuari, pot } = useSessio();
   const admin = usuari.rol === 'admin';
+  const marca = pot('admin', 'marca');
   return (
     <>
-      <TitolPagina titol="Importa dades" senseperiode>Fitxers CSV de vendes, estoc i catàleg. Separador coma o punt i coma, codificació UTF-8, amb capçalera a la primera fila.</TitolPagina>
-      <div className="reixa-3">
-        {TIPUS.filter((t) => !t.nomesAdmin || admin).map((t) => <Importador key={t.tipus} t={t} />)}
-      </div>
-      {admin && <div className="seccio"><h2 style={{ marginBottom: 12 }}>Sincronització</h2><div className="reixa-3"><Shopify /></div></div>}
+      <TitolPagina titol="Connexions i dades" senseperiode>
+        {marca ? 'D’on treu Hebra el catàleg, les vendes i l’estoc. Connecta la botiga en línia o el TPV i es sincronitza sol; si no, puja un CSV a mà.' : 'Puja aquí els fitxers CSV de vendes i d’estoc de la teva botiga.'}
+      </TitolPagina>
+      {marca && <Connexions />}
+      <Seccio titol="Pujada manual de CSV" subtitol="Separador coma o punt i coma, codificació UTF-8, amb capçalera a la primera fila. Serveix si el TPV no es pot connectar.">
+        <div className="reixa-3">
+          {TIPUS.filter((t) => !t.nomesAdmin || admin).map((t) => <Importador key={t.tipus} t={t} />)}
+        </div>
+      </Seccio>
     </>
   );
 }

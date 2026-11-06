@@ -31,7 +31,7 @@ let enNoAutenticat: () => void = () => {
 export function configuraTransport(t: Transport): void { transport = t; }
 export function configuraNoAutenticat(f: () => void): void { enNoAutenticat = f; }
 
-type Params = Record<string, string | number | boolean | null | undefined>;
+export type Params = Record<string, string | number | boolean | null | undefined>;
 
 export function construeixUrl(ruta: string, params?: Params): string {
   const q = new URLSearchParams();
@@ -81,11 +81,35 @@ export async function peticio<T>(metode: string, ruta: string, opcions: { params
   return (await r.json()) as T;
 }
 
+/**
+ * Descarrega un fitxer de l'API (PDF, CSV) passant pel transport, de manera que
+ * també funciona en mode demostració. Torna el Blob i el nom suggerit.
+ */
+export async function descarrega(ruta: string, params?: Params): Promise<Blob> {
+  let r: Response;
+  try {
+    r = await transport(construeixUrl(ruta, params), { method: 'GET', credentials: 'same-origin' });
+  } catch {
+    throw new ErrorApi(0, 'No hi ha connexió amb el servidor. Comprova la xarxa.');
+  }
+  if (r.status === 401) { enNoAutenticat(); throw new ErrorApi(401, 'Cal tornar a entrar.'); }
+  if (!r.ok) throw new ErrorApi(r.status, await llegeixError(r));
+  return r.blob();
+}
+
+/** Desa un Blob amb un nom (enllaç temporal). */
+export function desaBlob(b: Blob, nom: string): void {
+  const url = URL.createObjectURL(b);
+  const a = document.createElement('a');
+  a.href = url; a.download = nom; document.body.appendChild(a); a.click(); a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
 export const api = {
   get: <T>(ruta: string, params?: Params, signal?: AbortSignal) => peticio<T>('GET', ruta, { params, signal }),
   post: <T>(ruta: string, cos?: unknown, params?: Params) => peticio<T>('POST', ruta, { cos, params }),
   patch: <T>(ruta: string, cos: unknown) => peticio<T>('PATCH', ruta, { cos }),
-  put: <T>(ruta: string, cos: unknown) => peticio<T>('PUT', ruta, { cos }),
+  put: <T>(ruta: string, cos: unknown, params?: Params) => peticio<T>('PUT', ruta, { cos, params }),
   del: <T>(ruta: string) => peticio<T>('DELETE', ruta),
   puja: <T>(ruta: string, fitxer: File) => {
     const f = new FormData();

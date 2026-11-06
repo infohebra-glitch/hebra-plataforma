@@ -5,9 +5,10 @@
  */
 import { configuraTransport } from '../api/client';
 import { configuraFlux } from '../api/flux';
-import type { Abandonada } from '../api/types';
+import type { Abandonada, EsdevenimentFlux } from '../api/types';
 import { estat, novaPeticio } from './dades';
 import { respon } from './servidor';
+import { altresBotigues, avancaCabina, avisos } from './v3';
 
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -42,24 +43,44 @@ export function activaMock(): void {
     }
     if (typeof init.body === 'string') cos = JSON.parse(init.body);
     const r = respon(metode, u, cos);
+    if (r.cru !== undefined) return new Response(r.cru, { status: r.estat, headers: { 'Content-Type': r.tipus ?? 'text/plain' } });
     return new Response(JSON.stringify(r.cos), { status: r.estat, headers: { 'Content-Type': 'application/json' } });
   });
 
-  // Flux fals: una petició nova cada ~25 s i, de tant en tant, una peça abandonada.
+  // Flux fals, compartit per totes les pantalles obertes: una petició nova cada ~25 s
+  // (de tant en tant, una d'assistència o una peça abandonada) i una cabina que canvia cada ~20 s.
+  const oients = new Set<(e: EsdevenimentFlux) => void>();
+  const emet = (e: EsdevenimentFlux) => oients.forEach((f) => f(e));
+  let n = 0;
+  let rellotges: number[] = [];
+  const engega = () => {
+    rellotges = [
+      window.setInterval(() => {
+        n++;
+        if (n % 4 === 0) {
+          const a: Abandonada = { id: estat.seguentAbandonada++, epc: `3034F8A1C20000000000${String(n).padStart(4, '0')}`, model: 'SB-25-CRU', nom: 'Sobrecamisa de cotó', talla: 'M', cabina: 'BCN-01-C3', detectada: new Date().toISOString(), resolta: false };
+          estat.abandonades.unshift(a);
+          emet({ tipus: 'abandonada', dades: a });
+        } else {
+          const p = novaPeticio();
+          if (n % 3 === 0) { p.tipus = 'assistencia'; p.talla = ''; p.disponible = true; p.altres_botigues = []; }
+          else { p.tipus = 'talla'; p.altres_botigues = p.disponible ? [] : altresBotigues(p.model, p.talla); }
+          emet({ tipus: 'peticio', dades: p });
+        }
+      }, 25000),
+      window.setInterval(() => emet({ tipus: 'cabina', dades: avancaCabina() }), 20000),
+    ];
+  };
   configuraFlux(({ enEsdeveniment, enEstat }) => {
     enEstat?.('connectant');
     const obert = window.setTimeout(() => enEstat?.('connectat'), 400);
-    let n = 0;
-    const interval = window.setInterval(() => {
-      n++;
-      if (n % 4 === 0) {
-        const a: Abandonada = { id: estat.seguentAbandonada++, epc: `3034F8A1C20000000000${String(n).padStart(4, '0')}`, model: 'SB-25-CRU', nom: 'Sobrecamisa de cotó', talla: 'M', cabina: 'BCN-01-C3', detectada: new Date().toISOString(), resolta: false };
-        estat.abandonades.unshift(a);
-        enEsdeveniment({ tipus: 'abandonada', dades: a });
-      } else {
-        enEsdeveniment({ tipus: 'peticio', dades: novaPeticio() });
-      }
-    }, 25000);
-    return () => { window.clearTimeout(obert); window.clearInterval(interval); };
+    oients.add(enEsdeveniment);
+    if (oients.size === 1) engega();
+    return () => {
+      window.clearTimeout(obert);
+      oients.delete(enEsdeveniment);
+      if (!oients.size) { rellotges.forEach((r) => window.clearInterval(r)); rellotges = []; }
+    };
   });
+  avisos.tasca = (t) => window.setTimeout(() => emet({ tipus: 'tasca', dades: { ...t } }), 50);
 }

@@ -9,9 +9,11 @@ import {
   filtre, grupDia, sumaCompres, sumaProves, type Cella, type FiltreMock,
 } from './dades';
 import { isoData, dataLocal } from '../lib/format';
+import { llegeixCorreus } from '../lib/programacio';
+import * as V3 from './v3';
 
 type Cos = unknown;
-interface Resposta { estat: number; cos: Cos }
+export interface Resposta { estat: number; cos: Cos; cru?: string; tipus?: string }
 const ok = (cos: Cos): Resposta => ({ estat: 200, cos });
 const error = (estat: number, detail: string): Resposta => ({ estat, cos: { detail } });
 
@@ -159,6 +161,7 @@ function modelDetall(f: FiltreMock, codi: string): T.ModelDetall | null {
     provat_amb: m.provatAmb.map((x, i) => ({ model: x, nom: defModel(x)!.nom, sessions: Math.max(1, Math.round(proves * (0.16 - i * 0.04))) })),
     origen: ORIGENS[codi] ?? null,
     efecte_origen: ORIGENS[codi] ? experimentOrigen(f, codi) : null,
+    dubte_talla: V3.dubteTallaModel(f, codi),
   };
 }
 
@@ -246,7 +249,7 @@ function servei(f: FiltreMock): T.Servei {
   const sessions = r.kpi.sessions;
   const reparticio = [0.42, 0.3, 0.16, 0.08, 0.04];
   return {
-    peticions: pet, peticions_per_sessio: sessions ? arr(pet / sessions, 2) : null, mediana_s: r.kpi.temps_resposta_mediana_s, pct_sota_90s: r.kpi.pct_resposta_sota_90s,
+    peticions: pet, peticions_assistencia: Math.round(pet * 0.22), peticions_per_sessio: sessions ? arr(pet / sessions, 2) : null, mediana_s: r.kpi.temps_resposta_mediana_s, pct_sota_90s: r.kpi.pct_resposta_sota_90s,
     per_estat: { pendent: estat.peticions.filter((p) => p.estat === 'pendent').length, en_cami: estat.peticions.filter((p) => p.estat === 'en_cami').length, lliurada: Math.round(pet * 0.85), no_disponible: Math.round(pet * 0.11) },
     ocupacio: { durada_mitjana_s: 340, pct_temps_totes_plenes: 0.06, mapa },
     peces_per_sessio: reparticio.map((p, i) => ({ peces: i + 1, sessions: Math.round(sessions * p), pct_amb_compra: arr(0.22 + i * 0.09, 2) })),
@@ -266,6 +269,12 @@ function estoc(f: FiltreMock): T.Estoc {
     })).filter((m) => (m.cobertura_setmanes ?? 0) > 1),
     precisio: { recomptes: 3, error_mitja_pct: 0.04 },
   };
+}
+
+function estocV3(f: FiltreMock): T.Estoc {
+  const e = estoc(f);
+  const p = V3.parat(f);
+  return { ...e, parat: p.parat, resum_parat: p.resum_parat };
 }
 
 function fitxaNfc(f: FiltreMock): T.FitxaNfc {
@@ -355,7 +364,7 @@ function informe(f: FiltreMock, tipus: T.TipusInforme): T.Informe | null {
   };
   const titols: Record<T.TipusInforme, string> = { diari: 'Resum diari', setmanal: 'Informe setmanal', mensual: 'Informe mensual d’accions', temporada: 'Informe de fi de temporada', pilot: 'Informe final del pilot', mango: 'Pilot de Mango' };
   if (!blocsPer[tipus]) return null;
-  return { tipus, titol: titols[tipus], periode: r.periode, blocs: blocsPer[tipus], accio: r.accio, avisos };
+  return { tipus, titol: titols[tipus], periode: r.periode, blocs: blocsPer[tipus], accio: r.accio, avisos, ...V3.graficsInforme(f, tipus) };
 }
 
 // ── Encaminador ──────────────────────────────────────────────────────────
@@ -379,6 +388,8 @@ export function respon(metode: string, url: URL, cos: unknown): Resposta {
   const fq = new URLSearchParams(q);
   if (u.rol === 'botiga') fq.set('botiga', u.botiga_id ?? 'BCN-01');
   const f = filtre(fq);
+  const v3 = responV3(metode, ruta, q, f, u, cos);
+  if (v3) return v3;
   const model = ruta.match(/^\/models\/(.+)$/);
   const informeM = ruta.match(/^\/informes\/(\w+)$/);
   const peticioM = ruta.match(/^\/peticions\/(\d+)$/);
@@ -393,7 +404,7 @@ export function respon(metode: string, url: URL, cos: unknown): Resposta {
       case '/demanda-perduda': return ok(demandaPerduda(f));
       case '/motius': return ok(motius(f));
       case '/servei': return ok(servei(f));
-      case '/estoc': return ok(estoc(f));
+      case '/estoc': return ok(estocV3(f));
       case '/fitxa-nfc': return ok(fitxaNfc(f));
       case '/experiments': return ok({ experiments: [experimentOrigen(f), EXPERIMENT_ACABAT] });
       case '/alertes': return ok(alertes());
@@ -453,6 +464,138 @@ export function respon(metode: string, url: URL, cos: unknown): Resposta {
     return ok({ comandes: 23, linies: 31, estoc: 214 });
   }
   return error(404, `Ruta desconeguda al mode demostració: ${metode} ${ruta}`);
+}
+
+// ── Rutes de la v0.3 ─────────────────────────────────────────────────────
+const MARCA_ROLS = ['admin', 'marca'];
+function responV3(metode: string, ruta: string, q: URLSearchParams, f: FiltreMock, u: T.Usuari, cos: unknown): Resposta | null {
+  const marca = MARCA_ROLS.includes(u.rol);
+  const nomesMarca = () => error(403, 'Només la marca pot fer això.');
+  const botigaPropia = u.rol === 'botiga' ? u.botiga_id : null;
+  const botigaQ = botigaPropia ?? q.get('botiga') ?? null;
+  let m: RegExpMatchArray | null;
+
+  // Provadors, sessions, tasques
+  if (metode === 'GET' && ruta === '/provadors/directe') return ok(V3.provadorsDirecte(botigaQ ? [botigaQ] : BOTIGUES.map((b) => b.id)));
+  if (metode === 'GET' && ruta === '/sessions') return ok(V3.sessions(f));
+  if (metode === 'GET' && ruta === '/estoc/parat.csv') return { estat: 200, cos: null, cru: V3.paratCsv(f, q.get('categoria')), tipus: 'text/csv; charset=utf-8' };
+  if (metode === 'GET' && ruta === '/tasques') {
+    return ok({ tasques: V3.tasquesMock.filter((t) => (!botigaQ || t.botiga_id === botigaQ) && (!q.get('estat') || t.estat === q.get('estat'))) });
+  }
+  if (metode === 'POST' && ruta === '/tasques') {
+    const c = cos as T.NovaTasca;
+    if (!c?.titol?.trim()) return error(400, 'La tasca necessita un títol.');
+    if (botigaPropia && c.botiga_id !== botigaPropia) return error(403, 'Només pots crear tasques de la teva botiga.');
+    return ok(V3.creaTasca(c));
+  }
+  if (metode === 'PATCH' && (m = ruta.match(/^\/tasques\/(\d+)$/))) {
+    const t = V3.tasquesMock.find((x) => x.id === Number(m![1]));
+    if (!t) return error(404, 'Aquesta tasca no existeix.');
+    t.estat = (cos as { estat: T.EstatTasca }).estat;
+    t.feta = t.estat === 'feta' ? new Date().toISOString() : null;
+    V3.avisos.tasca(t);
+    return ok(t);
+  }
+
+  // Fitxa NFC
+  if (ruta.startsWith('/fitxa/') && !marca) return nomesMarca();
+  if (ruta === '/fitxa/config') {
+    const b = q.get('botiga');
+    if (metode === 'PUT') {
+      const c = cos as T.ConfigFitxaParcial;
+      const err = V3.validaConfig(c);
+      if (err) return error(400, err);
+      if (b) {
+        if (c && Object.keys(c).length) V3.configBotigues[b] = c; else delete V3.configBotigues[b];
+      } else Object.assign(V3.CONFIG_GENERAL, structuredClone(c));
+    }
+    if (metode === 'GET' || metode === 'PUT') return ok({ general: V3.CONFIG_GENERAL, botiga: b ? V3.configBotigues[b] ?? null : null, efectiva: V3.configEfectiva(b) });
+  }
+  if (metode === 'GET' && ruta === '/fitxa/models') return ok({ models: V3.modelsFitxa() });
+  if ((m = ruta.match(/^\/fitxa\/models\/([^/]+)$/)) && metode === 'GET') {
+    const codi = decodeURIComponent(m[1]);
+    if (!defModel(codi)) return error(404, 'Aquest model no existeix al catàleg.');
+    return ok({ model: codi, contingut: V3.continguts[codi] ?? {}, origen: V3.ORIGEN_FITXA(codi) });
+  }
+  if ((m = ruta.match(/^\/fitxa\/models\/([^/]+)\/([a-z]{2})$/)) && metode === 'PUT') {
+    const codi = decodeURIComponent(m[1]);
+    (V3.continguts[codi] ??= {})[m[2]] = cos as T.ContingutModel;
+    return ok({ ok: true });
+  }
+  if (metode === 'GET' && ruta === '/fitxa/previsualitza') return { estat: 200, cos: null, cru: '<!doctype html><meta charset="utf-8"><p>Vista prèvia (demo)</p>', tipus: 'text/html' };
+
+  // Informes
+  if (ruta === '/informes/programacio') {
+    if (metode === 'GET') return ok({ programacions: V3.programacionsMock.filter((p) => !botigaPropia || p.botiga_id === botigaPropia).map(V3.ambPropera) });
+    if (metode === 'POST') {
+      if (!marca) return nomesMarca();
+      const c = cos as T.NovaProgramacio;
+      if (!c.destinataris?.length) return error(400, 'Posa com a mínim un destinatari.');
+      return ok(V3.creaProgramacio(c));
+    }
+  }
+  if ((m = ruta.match(/^\/informes\/programacio\/(\d+)$/))) {
+    if (!marca) return nomesMarca();
+    const i = V3.programacionsMock.findIndex((x) => x.id === Number(m![1]));
+    if (i < 0) return error(404, 'Aquesta programació no existeix.');
+    if (metode === 'PATCH') { Object.assign(V3.programacionsMock[i], cos); return ok(V3.ambPropera(V3.programacionsMock[i])); }
+    if (metode === 'DELETE') { V3.programacionsMock.splice(i, 1); return ok({ ok: true }); }
+  }
+  if (ruta === '/informes/lliurats' && metode === 'GET') {
+    return ok({ lliurats: V3.lliuratsMock.filter((l) => (!botigaPropia || l.botiga_id === botigaPropia) && (!q.get('tipus') || l.tipus === q.get('tipus')) && (!q.get('botiga') || botigaPropia || !l.botiga_id || l.botiga_id === q.get('botiga'))).map(({ programacio_id: _p, ...l }) => l) });
+  }
+  if (ruta === '/informes/lliurats' && metode === 'POST') {
+    if (!marca) return nomesMarca();
+    const c = cos as { tipus: T.TipusInforme; botiga?: string | null; des: string; fins: string };
+    const { programacio_id: _p, ...l } = V3.afegeixLliurat(c.tipus, c.botiga ?? null, c.des, c.fins, new Date().toISOString(), null, []);
+    return ok(l);
+  }
+  if ((m = ruta.match(/^\/informes\/lliurats\/(\d+)(\.pdf)?$/)) && metode === 'GET') {
+    const l = V3.lliuratsMock.find((x) => x.id === Number(m![1]));
+    if (!l || (botigaPropia && l.botiga_id !== botigaPropia)) return error(404, 'Aquest informe no existeix.');
+    const inf = informe({ botigues: l.botiga_id ? [l.botiga_id] : BOTIGUES.map((b) => b.id), des: l.des, fins: l.fins }, l.tipus)!;
+    if (m[2]) return { estat: 200, cos: null, cru: V3.pdfDemo(inf.titol), tipus: 'application/pdf' };
+    return ok({ ...inf, periode: { des: l.des, fins: l.fins, dies: dies(l.des, l.fins).length } });
+  }
+  if ((m = ruta.match(/^\/informes\/(\w+)\.pdf$/)) && metode === 'GET') {
+    const inf = informe(f, m[1] as T.TipusInforme);
+    return inf ? { estat: 200, cos: null, cru: V3.pdfDemo(inf.titol), tipus: 'application/pdf' } : error(404, 'Aquest tipus d’informe no existeix.');
+  }
+  if ((m = ruta.match(/^\/informes\/(?:lliurats\/(\d+)|(\w+))\/envia$/)) && metode === 'POST') {
+    const d = (cos as { destinataris?: string[] })?.destinataris ?? [];
+    const { dolents, correus } = llegeixCorreus(d.join(' '));
+    if (!correus.length) return error(400, 'Posa com a mínim un correu.');
+    if (dolents.length) return error(400, `Aquest correu no és vàlid: ${dolents[0]}`);
+    if (m[1]) {
+      const l = V3.lliuratsMock.find((x) => x.id === Number(m![1]));
+      if (l) { l.estat_enviament = 'enviat'; l.enviat_a = [...new Set([...l.enviat_a, ...correus])]; }
+    }
+    return ok({ ok: true });
+  }
+
+  // Integracions
+  if (ruta.startsWith('/integracions')) {
+    if (!marca) return nomesMarca();
+    if (ruta === '/integracions' && metode === 'GET') return ok({ integracions: V3.integracionsMock.map(V3.publica) });
+    if (ruta === '/integracions' && metode === 'POST') return ok(V3.creaIntegracio(cos as T.NovaIntegracio));
+    if (ruta === '/integracions/prova' && metode === 'POST') return V3.provaIntegracio(cos as Parameters<typeof V3.provaIntegracio>[0]);
+    if ((m = ruta.match(/^\/integracions\/(\d+)(?:\/(sincronitza|registre))?$/))) {
+      const id = Number(m[1]);
+      const i = V3.integracionsMock.find((x) => x.id === id);
+      if (!i) return error(404, 'Aquesta connexió no existeix.');
+      if (m[2] === 'sincronitza' && metode === 'POST') return V3.sincronitza(id);
+      if (m[2] === 'registre' && metode === 'GET') return ok({ registre: i.registre.slice(0, 20) });
+      if (!m[2] && metode === 'PATCH') {
+        const c = cos as T.CanviIntegracio;
+        const { secret, ...resta } = c;
+        Object.assign(i, resta);
+        if (secret) i.te_secret = true;
+        return ok(V3.publica(i));
+      }
+      if (!m[2] && metode === 'DELETE') { V3.integracionsMock.splice(V3.integracionsMock.indexOf(i), 1); return ok({ ok: true }); }
+    }
+  }
+  return null;
 }
 
 export { BOTIGUES as BOTIGUES_MOCK, MODELS as MODELS_MOCK };

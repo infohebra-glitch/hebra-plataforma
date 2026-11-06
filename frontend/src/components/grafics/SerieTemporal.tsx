@@ -6,8 +6,9 @@
  */
 import { useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useAmplada } from '../../lib/useApi';
+import { sostre, ticks } from '../../lib/escala';
 
-export interface Serie { clau: string; nom: string; classe: 's1' | 's2'; valors: (number | null)[] }
+export interface Serie { clau: string; nom: string; classe: 's1' | 's2' | 's3'; valors: (number | null)[] }
 
 interface Props {
   titol: string;
@@ -24,13 +25,6 @@ interface Props {
   alcada?: number;
 }
 
-function sostre(n: number): number {
-  if (n <= 0) return 1;
-  const pot = 10 ** Math.floor(Math.log10(n));
-  const r = n / pot;
-  const pas = r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10;
-  return pas * pot;
-}
 
 export function SerieTemporal({ titol, x, etiquetaX, detallX = etiquetaX, series, formatY, formatValor, bandes, nomBanda, maxY, alcada = 240 }: Props) {
   const [ref, amplada] = useAmplada<HTMLDivElement>();
@@ -47,7 +41,7 @@ export function SerieTemporal({ titol, x, etiquetaX, detallX = etiquetaX, series
   const pas = n > 1 ? pw / (n - 1) : 0;
   const px = (i: number) => m.e + (n > 1 ? i * pas : pw / 2);
   const py = (v: number) => m.s + ph - (v / ymax) * ph;
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * ymax);
+  const ticksY = ticks(ymax);
   const cadaX = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(pw / 64))));
 
   const cami = (s: Serie) => {
@@ -91,7 +85,7 @@ export function SerieTemporal({ titol, x, etiquetaX, detallX = etiquetaX, series
             const x1 = Math.min(w - m.d, px(i) + (n > 1 ? pas / 2 : pw / 2));
             return <rect key={`b${i}`} className="banda" x={x0} y={m.s} width={Math.max(0, x1 - x0)} height={ph} />;
           })}
-          {ticks.map((t) => (
+          {ticksY.map((t) => (
             <g key={t}>
               <line className={t === 0 ? 'eix' : 'grid'} x1={m.e} x2={w - m.d} y1={py(t)} y2={py(t)} />
               <text x={m.e - 8} y={py(t)} dy="0.32em" textAnchor="end">{formatY(t)}</text>

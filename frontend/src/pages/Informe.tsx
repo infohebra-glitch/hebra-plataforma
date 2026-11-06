@@ -1,8 +1,14 @@
-/** Un informe com a document net d'una pàgina. «Desa en PDF» obre el diàleg d'impressió del navegador. */
-import { useEffect } from 'react';
+/** Un informe com a document: xifres, gràfics (els mateixos que al PDF del servidor), blocs i acció. */
+import { useEffect, useState } from 'react';
+import { desaBlob } from '../api/client';
+import { informes } from '../api/endpoints';
+import { DialegCorreu } from '../components/DialegCorreu';
+import { GraficInforme } from '../components/grafics/GraficInforme';
+import { formatUnitat } from '../lib/escala';
+import { EstatEnviament, titolLliurat } from './Informes';
 import { Link, useParams } from 'react-router-dom';
 import { analitica } from '../api/endpoints';
-import type { BlocInforme, Informe as TInforme, TipusInforme } from '../api/types';
+import type { BlocInforme, Informe as TInforme, TipusInforme, XifraInforme } from '../api/types';
 import { Buit, Consulta, Esquelet } from '../components/Estat';
 import { Icona, LogoHebra } from '../components/Icones';
 import { useFiltre } from '../context/Filtre';
@@ -70,10 +76,36 @@ function Bloc({ b }: { b: BlocInforme }) {
   );
 }
 
-function Document({ inf }: { inf: TInforme }) {
+function Xifres({ xifres }: { xifres: XifraInforme[] }) {
+  return (
+    <div className="xifres-informe">
+      {xifres.map((x) => {
+        // La variació de la conversió ve en punts; la resta, en % relatiu.
+        // Una variació que s'arrodoneix a 0 es mostra com a neutra («=»), sense signe.
+        const cru = x.variacio;
+        const v = cru === null || cru === undefined ? null : Math.round(cru * 100) / 100;
+        const txt = v === null ? null : v === 0 ? (x.unitat === 'pct' ? 'igual' : '= 0 %') : x.unitat === 'pct' ? punts(v) : `${v > 0 ? '+' : '−'}${pct(Math.abs(v))}`;
+        const millor = /temps|perduda/i.test(x.etiqueta) ? (v ?? 0) < 0 : (v ?? 0) > 0;
+        const sentit = !v ? 'neutre' : millor ? 'bo' : 'dolent';
+        // La fletxa diu cap on es mou la xifra; el color (i el text «millor/pitjor» per a lectors), si és bo o dolent.
+        const fletxa = !v ? '' : v > 0 ? '▲' : '▼';
+        return (
+          <div key={x.etiqueta} className="xifra">
+            <span className="xifra-etiqueta">{x.etiqueta}</span>
+            <b className="xifra-valor">{formatUnitat(x.valor, x.unitat)}</b>
+            {txt && <span className={`rajola-delta ${sentit}`}><span style={{ whiteSpace: 'nowrap' }}><span aria-hidden="true">{fletxa}</span>{txt}</span>{sentit !== 'neutre' && <span className="sr-only"> ({sentit === 'bo' ? 'millor' : 'pitjor'})</span>}<span className="petit muted" style={{ fontWeight: 400 }}> vs {x.vs ?? 'abans'}</span></span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Document({ inf, botigaId, generat }: { inf: TInforme; botigaId?: string | null; generat?: string }) {
   const { botigues } = useSessio();
   const { filtre } = useFiltre();
-  const botiga = filtre.botiga ? botigues.find((b) => b.id === filtre.botiga)?.nom ?? filtre.botiga : 'Totes les botigues';
+  const id = botigaId === undefined ? filtre.botiga : botigaId;
+  const botiga = id ? botigues.find((b) => b.id === id)?.nom ?? id : 'Totes les botigues';
   useEffect(() => { document.title = `${inf.titol} · ${diaCurt(inf.periode.des)}–${diaCurt(inf.periode.fins)} · Hebra`; }, [inf]);
   return (
     <article className="document">
@@ -84,8 +116,12 @@ function Document({ inf }: { inf: TInforme }) {
         </div>
         <div className="periode">
           <div><b>{botiga}</b></div>
-          <div>Del {diaLlarg(inf.periode.des)}</div>
-          <div>al {diaLlarg(inf.periode.fins)} ({inf.periode.dies} dies)</div>
+          {inf.periode.des === inf.periode.fins ? <div>{diaLlarg(inf.periode.des)}</div> : (
+            <>
+              <div>Del {diaLlarg(inf.periode.des)}</div>
+              <div>al {diaLlarg(inf.periode.fins)} ({inf.periode.dies} dies)</div>
+            </>
+          )}
         </div>
       </header>
       {inf.accio && (
@@ -94,18 +130,45 @@ function Document({ inf }: { inf: TInforme }) {
           {(inf.accio.responsable || inf.accio.data_limit) && <div className="petit muted">{[inf.accio.responsable, inf.accio.data_limit && `abans del ${diaCurt(inf.accio.data_limit)}`].filter(Boolean).join(' · ')}</div>}
         </div>
       )}
-      {inf.blocs.map((b) => <Bloc key={b.id} b={b} />)}
+      {inf.xifres && inf.xifres.length > 0 && <Xifres xifres={inf.xifres} />}
+      {inf.grafics && inf.grafics.length > 0 && <div className="grafics-informe">{inf.grafics.map((g) => <GraficInforme key={g.id} g={g} />)}</div>}
+      {inf.blocs.filter((b) => !(inf.xifres?.length && b.id === 'xifres')).map((b) => <Bloc key={b.id} b={b} />)}
       {inf.avisos.length > 0 && (
         <div className="avisos-doc"><b>Avisos sobre les dades</b><ul>{inf.avisos.map((a, i) => <li key={i}>{a}</li>)}</ul></div>
       )}
       <footer className="peu-doc">
         <span>Només proves de confiança alta i mitjana. Els imports en euros són estimacions.</span>
-        <span>Generat el {diaLlarg(new Date().toISOString())}</span>
+        <span>Generat el {diaLlarg(generat ?? new Date().toISOString())}</span>
       </footer>
     </article>
   );
 }
 
+function Barra({ molla, pdf, envia, inicials, titol, carregat }: { molla: string; pdf: () => Promise<Blob>; envia: (d: string[]) => Promise<unknown>; inicials?: string[]; titol: string; carregat: boolean }) {
+  const [correu, setCorreu] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [baixant, setBaixant] = useState(false);
+  const descarrega = async () => {
+    setError(null); setBaixant(true);
+    try { desaBlob(await pdf(), `${titol.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}.pdf`); } catch (e) { setError((e as Error).message); } finally { setBaixant(false); }
+  };
+  return (
+    <>
+      <div className="fila entre no-imprimir" style={{ marginBottom: 16 }}>
+        <nav className="molla" aria-label="Molla de pa" style={{ margin: 0 }}><Link to="/informes">Informes</Link> <span aria-hidden="true">›</span> {molla}</nav>
+        <div className="fila">
+          <button type="button" onClick={() => window.print()} disabled={!carregat}><Icona nom="imprimeix" />Imprimeix</button>
+          <button type="button" onClick={() => setCorreu(true)} disabled={!carregat}><Icona nom="correu" />Envia per correu</button>
+          <button type="button" className="boto-primari" onClick={descarrega} disabled={!carregat || baixant}><Icona nom="baixa" />{baixant ? 'Preparant…' : 'Descarrega PDF'}</button>
+        </div>
+      </div>
+      {error && <p className="missatge-error no-imprimir" role="alert">No s’ha pogut descarregar el PDF: {error}</p>}
+      <DialegCorreu obert={correu} titol={titol} inicial={inicials} enTanca={() => setCorreu(false)} envia={envia} />
+    </>
+  );
+}
+
+/** Informe calculat al moment amb el filtre de dalt (/informes/:tipus). */
 export function Informe() {
   const { tipus = 'setmanal' } = useParams();
   const { filtre, clau } = useFiltre();
@@ -114,12 +177,29 @@ export function Informe() {
   if (!def) return <Buit titol="Aquest informe no existeix" accio={<Link to="/informes">Torna als informes</Link>} />;
   return (
     <>
-      <div className="fila entre no-imprimir" style={{ marginBottom: 16 }}>
-        <nav className="molla" aria-label="Molla de pa" style={{ margin: 0 }}><Link to="/informes">Informes</Link> <span aria-hidden="true">›</span> {def.nom}</nav>
-        <button type="button" className="boto-primari" onClick={() => window.print()} disabled={!q.dades}><Icona nom="imprimeix" />Desa en PDF</button>
-      </div>
+      <Barra molla={def.nom} titol={def.nom} carregat={!!q.dades} pdf={() => informes.pdf(tipus as TipusInforme, filtre)} envia={(d) => informes.envia(tipus as TipusInforme, filtre, d)} />
       <Consulta q={q} esquelet={<div className="document"><Esquelet tipus="taula" files={10} /></div>}>
         {(inf) => <Document inf={inf} />}
+      </Consulta>
+    </>
+  );
+}
+
+/** Un informe lliurat (instantània guardada): /informes/lliurats/:id. */
+export function InformeLliurat() {
+  const { id = '' } = useParams();
+  const { filtre } = useFiltre();
+  const n = Number(id);
+  const q = useApi((s) => informes.lliurat(n, s), [n]);
+  const llista = useApi((s) => informes.lliurats(filtre.botiga, undefined, s), [filtre.botiga]);
+  const l = llista.dades?.lliurats.find((x) => x.id === n);
+  const titol = l ? titolLliurat(l) : q.dades?.titol ?? 'Informe';
+  return (
+    <>
+      <Barra molla={titol} titol={titol} carregat={!!q.dades} inicials={l?.enviat_a} pdf={() => informes.pdfLliurat(n)} envia={(d) => informes.enviaLliurat(n, d)} />
+      {l && <p className="no-imprimir petit" style={{ margin: '-6px 0 12px' }}><EstatEnviament l={l} /></p>}
+      <Consulta q={q} esquelet={<div className="document"><Esquelet tipus="taula" files={10} /></div>}>
+        {(inf) => <Document inf={inf} botigaId={l ? l.botiga_id : undefined} generat={l?.generat} />}
       </Consulta>
     </>
   );

@@ -77,3 +77,10 @@ Rutes: `/app/entra`, `/app` (resum), `/app/peces`, `/app/peces/:model`, `/app/ta
 
 `npm run build:demo` genera `dist-demo/hebra-demo.html`: el tauler amb dades d'exemple, sense backend,
 en un sol HTML que s'obre amb doble clic (rutes amb `#`). Serveix per ensenyar-lo i recollir correccions.
+
+## v0.3
+
+- Pantalles noves: `/sessions` (Tauler), `/provadors` (Provadors en directe, SSE `cabina`), `/fitxa` (Fitxa NFC, marca+), `/informes/lliurats/:id`; Estoc passa a «Estoc i tasques»; Importa dades passa a «Connexions i dades» (Shopify, Square, CSV per URL + CSV manual).
+- La web del dependent mostra la franja de cabines, les peticions d’assistència, la disponibilitat a altres botigues i les tasques («Feta»).
+- Tema: només Clar (per defecte) i Fosc, triat al menú d’usuari i desat a `localStorage` (`hebra-tema`). Els colors no segueixen `prefers-color-scheme`.
+- El mode mock (`npm run dev:mock`, `npm run build:demo`) cobreix totes les rutes v0.3, incloses descàrregues CSV/PDF, l’SSE de cabines (canvi cada ~20 s) i les tasques.

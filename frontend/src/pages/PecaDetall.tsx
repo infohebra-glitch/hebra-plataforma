@@ -4,6 +4,7 @@ import type { ModelDetall } from '../api/types';
 import { Buit, Consulta, Esquelet } from '../components/Estat';
 import { TargetaExperiment } from '../components/Experiment';
 import { MostraPetita } from '../components/Insignies';
+import { EXPLICACIO_DUBTE, TaulaParells, llegendaCompra } from '../components/DubteTalla';
 import { Rajola } from '../components/Rajola';
 import { Barres } from '../components/grafics/Barres';
 import { CorbaTalles } from '../components/grafics/CorbaTalles';
@@ -25,6 +26,27 @@ export function PecaDetall() {
         {(d) => <Detall d={d} />}
       </Consulta>
     </>
+  );
+}
+
+function BlocDubte({ d }: { d: ModelDetall }) {
+  const x = d.dubte_talla!;
+  return (
+    <Seccio titol="Dubte de talla" subtitol={EXPLICACIO_DUBTE}>
+      <div className="panell" style={{ padding: 0 }}>
+        {x.sessions ? (
+          <>
+            <p style={{ padding: '14px 14px 0', margin: 0 }}>
+              <b>{enter(x.sessions)} sessions</b>{x.sessions_model ? <> de {enter(x.sessions_model)}</> : null} ({pct(x.pct_sessions_model)}) s’han emportat aquesta peça en dues talles.
+              {x.talla_mes_comprada && <> Quan dubten, s’acaben quedant sobretot la <b>{x.talla_mes_comprada}</b>.</>}
+              {x.mostra_petita && <> <span className="insignia insignia-mostra">Mostra petita</span></>}
+            </p>
+            <div style={{ padding: '8px 14px 0' }}>{llegendaCompra()}</div>
+            <TaulaParells parells={x.parells_talla} />
+          </>
+        ) : <Buit titol="Sense dubte de talla">En aquest període ningú s’ha emportat aquesta peça en dues talles a la vegada.</Buit>}
+      </div>
+    </Seccio>
   );
 }
 
@@ -70,6 +92,8 @@ function Detall({ d }: { d: ModelDetall }) {
           </div>
         </div>
       </Seccio>
+
+      {d.dubte_talla && <BlocDubte d={d} />}
 
       <div className="reixa-2">
         <Seccio titol="Per què no se l’emporten" subtitol={<>{enter(k.respostes_motiu)} respostes a la fitxa NFC (taxa de resposta del {pct(k.taxa_resposta_motiu)}). Només responen alguns clients: és una pista, no un cens.</>}>

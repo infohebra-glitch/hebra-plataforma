@@ -6,7 +6,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { analitica, operacio } from '../api/endpoints';
 import { obreFlux, type EstatFlux } from '../api/flux';
-import type { Abandonada, Alerta, EstatPeticio, Peticio } from '../api/types';
+import { tasques as apiTasques } from '../api/endpoints';
+import type { Abandonada, Alerta, AltraBotiga, EstatPeticio, Peticio, Tasca } from '../api/types';
+import { FranjaCabines, useAra as useAraCabines } from '../components/Cabines';
+import { useCabines } from '../lib/useCabines';
+import { nomTipusTasca } from '../lib/tasques';
 import { ErrorEstat, Esquelet } from '../components/Estat';
 import { LogoHebra } from '../components/Icones';
 import { useFiltre } from '../context/Filtre';
@@ -52,8 +56,37 @@ function Espera({ des }: { des: string }) {
   return <span className={`espera${s > 90 ? ' llarga' : ''}`}>fa {txt}</span>;
 }
 
+/** «N'hi ha 2 a Girona i 1 a Madrid» */
+export function textAltres(a: AltraBotiga[]): string {
+  const nom = (x: AltraBotiga) => x.nom.split(' · ')[0] || x.nom;
+  const parts = a.filter((x) => x.unitats > 0).map((x) => `${x.unitats} a ${nom(x)}`);
+  if (!parts.length) return '';
+  return `N’hi ha ${parts.length > 1 ? `${parts.slice(0, -1).join(', ')} i ${parts[parts.length - 1]}` : parts[0]}`;
+}
+
 function TargetaPeticio({ p, nova, enCanvi }: { p: Peticio; nova: boolean; enCanvi: (p: Peticio, e: Exclude<EstatPeticio, 'pendent'>) => void }) {
   const cabina = p.cabina.match(/C(\d+)$/)?.[1] ?? p.cabina;
+  if (p.tipus === 'assistencia') {
+    return (
+      <li className={`peticio assistencia${nova ? ' nova' : ''}`} aria-label={`Cabina ${cabina}: vol que l’atenguin`}>
+        <div className="peticio-cap">
+          <div>
+            <span className="insignia insignia-assistencia">Assistència</span>
+            <div className="que" style={{ marginTop: 6 }}>Vol que l’atenguin</div>
+            <div className="on"><b>Cabina {cabina}</b>{p.nom && <> · s’està provant {p.nom.toLowerCase()}</>}</div>
+            <div className="petit muted">Demanat a les {hora(p.hora_peticio)} · <Espera des={p.hora_peticio} /></div>
+            {p.estat === 'en_cami' && <span className="insignia insignia-neutra" style={{ marginTop: 6 }}>Hi vas</span>}
+          </div>
+          <div className="talla-gran icona-ajuda" aria-hidden="true">?</div>
+        </div>
+        <div className="botons-grans dos">
+          <button type="button" className="boto-gran" aria-pressed={p.estat === 'en_cami'} onClick={() => enCanvi(p, 'en_cami')}>Hi vaig</button>
+          <button type="button" className="boto-gran lliurada" onClick={() => enCanvi(p, 'lliurada')}>Atesa</button>
+        </div>
+      </li>
+    );
+  }
+  const altres = !p.disponible && p.altres_botigues?.length ? textAltres(p.altres_botigues) : '';
   return (
     <li className={`peticio${nova ? ' nova' : ''}`} aria-label={`Cabina ${cabina}: ${p.nom}, talla ${p.talla}`}>
       <div className="peticio-cap">
@@ -61,7 +94,8 @@ function TargetaPeticio({ p, nova, enCanvi }: { p: Peticio; nova: boolean; enCan
           <div className="que">{p.nom}</div>
           <div className="on">{p.color} · <b>Cabina {cabina}</b></div>
           <div className="petit muted">Demanada a les {hora(p.hora_peticio)} · <Espera des={p.hora_peticio} /></div>
-          {!p.disponible && <span className="insignia insignia-critic" style={{ marginTop: 6 }}>Sense estoc al sistema</span>}
+          {!p.disponible && <span className="insignia insignia-critic" style={{ marginTop: 6 }}>Sense estoc aquí</span>}
+          {altres && <div className="altres-botigues">{altres}: ofereix-la al client.</div>}
           {p.estat === 'en_cami' && <span className="insignia insignia-neutra" style={{ marginTop: 6 }}>En camí</span>}
         </div>
         <div className="talla-gran" aria-label={`Talla ${p.talla}`}>{p.talla}</div>
@@ -85,6 +119,10 @@ export function Dependent() {
   const [avisError, setAvisError] = useState<string | null>(null);
   const [estatFlux, setEstatFlux] = useState<EstatFlux>('connectant');
   const [noves, setNoves] = useState<Set<number>>(new Set());
+  const [llistaTasques, setLlistaTasques] = useState<Tasca[] | null>(null);
+  const cabines = useCabines(botiga || undefined, { flux: false });
+  const araCab = useAraCabines(10000);
+  const aplicaCabina = cabines.aplica;
   const [so, setSo] = usePreferencia<'si' | 'no'>('hebra-so', 'si');
   const { prepara, avisa } = useAvis(so === 'si');
   const avisaRef = useRef(avisa);
@@ -98,8 +136,9 @@ export function Dependent() {
   const carrega = useCallback(async () => {
     try {
       const avui = isoData(new Date());
-      const [p, a, al] = await Promise.all([operacio.peticions(b), operacio.abandonades(b),
-        analitica.alertes({ botiga: b, des: avui, fins: avui })]);
+      const [p, a, al, t] = await Promise.all([operacio.peticions(b), operacio.abandonades(b),
+        analitica.alertes({ botiga: b, des: avui, fins: avui }), apiTasques.llista(b, 'pendent').catch(() => ({ tasques: [] as Tasca[] }))]);
+      setLlistaTasques(t.tasques.filter((x) => x.estat === 'pendent'));
       setPeticions(p.peticions.filter((x) => OBERTES.includes(x.estat)));
       setAbandonades(a.abandonades.filter((x) => !x.resolta));
       setEsgotades(al.alertes.filter((x) => x.tipus === 'talla_esgotada'));
@@ -128,13 +167,19 @@ export function Dependent() {
       } else if (ev.tipus === 'abandonada') {
         const a = ev.dades;
         setAbandonades((llista) => { const resta = (llista ?? []).filter((x) => x.id !== a.id); return a.resolta ? resta : [a, ...resta]; });
+      } else if (ev.tipus === 'cabina') {
+        aplicaCabina(ev.dades);
+      } else if (ev.tipus === 'tasca') {
+        const t = ev.dades;
+        if (b && t.botiga_id !== b) return;
+        setLlistaTasques((l) => { const resta = (l ?? []).filter((x) => x.id !== t.id); return t.estat === 'pendent' ? [t, ...resta] : resta; });
       } else if (ev.tipus === 'alerta' && ev.dades.tipus === 'talla_esgotada') {
         const al = ev.dades;
         avisaRef.current();
         setEsgotades((llista) => [al, ...llista.filter((x) => x.id !== al.id)]);
       }
     },
-  }), [b, carrega]);
+  }), [b, carrega, aplicaCabina]);
 
   const canvia = async (p: Peticio, estat: Exclude<EstatPeticio, 'pendent'>) => {
     prepara();
@@ -143,6 +188,12 @@ export function Dependent() {
     setPeticions((l) => (l ?? []).flatMap((x) => (x.id !== p.id ? [x] : estat === 'en_cami' ? [{ ...x, estat }] : [])));
     try { await operacio.canviaPeticio(p.id, estat); }
     catch (e) { setPeticions(abans); setAvisError(`No s’ha pogut desar: ${(e as Error).message}`); }
+  };
+  const fetaTasca = async (t: Tasca) => {
+    const abans = llistaTasques;
+    setLlistaTasques((l) => (l ?? []).filter((x) => x.id !== t.id));
+    try { await apiTasques.canvia(t.id, 'feta'); }
+    catch (e) { setLlistaTasques(abans); setAvisError(`No s’ha pogut desar: ${(e as Error).message}`); }
   };
   const recull = async (a: Abandonada) => {
     const abans = abandonades;
@@ -172,6 +223,7 @@ export function Dependent() {
           </>
         )}
       </div>
+      {cabines.dades && cabines.dades.cabines.length > 0 && <FranjaCabines cabines={cabines.dades.cabines} ara={araCab} />}
       {avisError && <p className="missatge-error" role="alert">{avisError}</p>}
       {error && !peticions && <ErrorEstat error={error} reintenta={carrega} />}
 
@@ -186,11 +238,27 @@ export function Dependent() {
       )}
 
       <section id="peticions" aria-labelledby="t-peticions">
-        <h1 id="t-peticions" style={{ fontSize: 22, margin: '8px 0 10px' }}>Talles demanades {peticions ? <span className="muted">({ordenades.length})</span> : null}</h1>
+        <h1 id="t-peticions" style={{ fontSize: 22, margin: '8px 0 10px' }}>Talles i ajuda demanades {peticions ? <span className="muted">({ordenades.length})</span> : null}</h1>
         {!peticions && !error && <Esquelet tipus="taula" files={3} />}
-        {peticions && !ordenades.length && <div className="panell buit"><h3>Cap petició pendent</h3><p>Quan un client demani una talla des de la cabina, apareixerà aquí{so === 'si' ? ' i sonarà un avís' : ''}.</p></div>}
+        {peticions && !ordenades.length && <div className="panell buit"><h3>Cap petició pendent</h3><p>Quan un client demani una talla o que l’atenguin des de la cabina, apareixerà aquí{so === 'si' ? ' i sonarà un avís' : ''}.</p></div>}
         <ul className="llista-targetes" aria-live="polite">
           {ordenades.map((p) => <TargetaPeticio key={p.id} p={p} nova={noves.has(p.id)} enCanvi={canvia} />)}
+        </ul>
+      </section>
+
+      <section aria-labelledby="t-tasques" style={{ marginTop: 24 }}>
+        <h2 id="t-tasques" style={{ fontSize: 19, marginBottom: 4 }}>Tasques {llistaTasques?.length ? <span className="muted">({llistaTasques.length})</span> : null}</h2>
+        <p className="petit muted">El que cal fer avui a la botiga. Marca-les quan estiguin fetes.</p>
+        {llistaTasques && !llistaTasques.length && <p className="muted">Cap tasca pendent.</p>}
+        <ul className="llista-targetes" aria-live="polite">
+          {(llistaTasques ?? []).map((t) => (
+            <li key={t.id} className="targeta">
+              <div className="targeta-cap">
+                <div style={{ minWidth: 0, flex: '1 1 200px' }}><b>{t.titol}</b><div className="petit muted">{nomTipusTasca(t.tipus)}{t.unitats ? ` · ${t.unitats} u.` : ''}</div>{t.detall && <div className="petit" style={{ marginTop: 4 }}>{t.detall}</div>}</div>
+                <button type="button" className="boto-gran" style={{ minWidth: 110 }} onClick={() => fetaTasca(t)}>Feta</button>
+              </div>
+            </li>
+          ))}
         </ul>
       </section>
 

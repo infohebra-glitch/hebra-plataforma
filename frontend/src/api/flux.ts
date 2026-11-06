@@ -17,7 +17,7 @@ export interface OpcionsFlux {
 
 export type ObreFlux = (o: OpcionsFlux) => () => void;
 
-const TIPUS = ['peticio', 'abandonada', 'alerta'] as const;
+const TIPUS = ['peticio', 'abandonada', 'alerta', 'cabina', 'tasca'] as const;
 
 const fluxReal: ObreFlux = ({ botiga, enEsdeveniment, enEstat }) => {
   let es: EventSource | null = null;

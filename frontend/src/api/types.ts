@@ -177,7 +177,13 @@ export interface ModelDetall {
   provat_amb: ProvatAmb[];
   origen: Origen | null;
   efecte_origen: Experiment | null;
+  /** v0.3 (C): el mateix model en dues talles a la mateixa sessió. */
+  dubte_talla?: DubteTallaModel | null;
 }
+
+export interface CompraParell { [talla: string]: number }
+export interface ParellTalla { model?: string; nom?: string; talles: string; sessions: number; comprada: CompraParell; mostra_petita?: boolean }
+export interface DubteTallaModel { sessions: number; sessions_model?: number; mostra_petita?: boolean; pct_sessions_model: Fraccio; talla_mes_comprada: string | null; parells_talla: ParellTalla[] }
 
 // ── GET /talles ──────────────────────────────────────────────────────────
 export interface CellaTalla { categoria: string; talla: string; proves: number; compres: number; conversio: Fraccio }
@@ -217,6 +223,8 @@ export interface CellaOcupacio { dia_setmana: number; hora: number; sessions: nu
 
 export interface Servei {
   peticions: number;
+  /** v0.3 (A.4) */
+  peticions_assistencia?: number;
   peticions_per_sessio: number | null;
   mediana_s: number | null;
   pct_sota_90s: Fraccio;
@@ -226,12 +234,23 @@ export interface Servei {
 }
 
 // ── GET /estoc ───────────────────────────────────────────────────────────
-export interface EstocParat { gtin: string; model: string; nom: string; talla: string; unitats: number; dies_sense_activitat: number }
+export type AccioSuggeriment = 'traspassar' | 'moure_a_sala' | 'promocio' | 'retornar' | 'revisar';
+export interface Suggeriment { accio: AccioSuggeriment; text: string; botiga_desti: string | null }
+export interface EstocParat {
+  gtin: string; model: string; nom: string; talla: string; unitats: number; dies_sense_activitat: number;
+  // v0.3 (D)
+  color?: string; categoria?: string; botiga_id?: string; valor_eur?: number; dies_parat?: number;
+  darrera_prova?: DataHora | null; darrera_venda?: DataHora | null;
+  proves_altres_botigues?: number; vendes_altres_botigues?: number;
+  suggeriment?: Suggeriment | null; tasca?: Tasca | null;
+}
+export interface ResumParat { unitats: number; valor_eur: number; per_categoria: { categoria: string; unitats: number; valor_eur: number }[] }
 export interface RiscRebaixa { model: string; nom: string; unitats: number; cobertura_setmanes: number | null; conversio: Fraccio; quartil_categoria: number | null }
 export interface Estoc {
   parat: EstocParat[];
   risc_rebaixa: RiscRebaixa[];
   precisio: { recomptes: number; error_mitja_pct: Fraccio } | null;
+  resum_parat?: ResumParat;
 }
 
 // ── GET /fitxa-nfc ───────────────────────────────────────────────────────
@@ -318,6 +337,13 @@ export interface BlocInforme {
   /** La forma depèn del bloc; el contracte no la fixa. */
   dades: unknown;
 }
+export type UnitatGrafic = 'pct' | 'enter' | 'eur' | 'segons';
+export type TipusGrafic = 'linia' | 'barres' | 'barres_apilades' | 'donut';
+export interface GraficInforme {
+  id: string; titol: string; tipus: TipusGrafic; unitat: UnitatGrafic;
+  eix_x: string[]; series: { nom: string; valors: (number | null)[] }[]; nota?: string | null;
+}
+export interface XifraInforme { etiqueta: string; valor: number | null; unitat: UnitatGrafic; variacio?: number | null; vs?: string | null }
 export interface Informe {
   tipus: TipusInforme;
   titol: string;
@@ -325,7 +351,25 @@ export interface Informe {
   blocs: BlocInforme[];
   accio: Accio | null;
   avisos: string[];
+  /** v0.3 (E.2) */
+  grafics?: GraficInforme[];
+  xifres?: XifraInforme[];
 }
+
+// ── Informes lliurats i programació (E.4) ────────────────────────────────
+export type EstatEnviament = 'no_enviat' | 'enviat' | 'error';
+export interface InformeLliurat {
+  id: number; tipus: TipusInforme; botiga_id: string | null; des: Data; fins: Data; generat: DataHora;
+  estat_enviament: EstatEnviament; enviat_a: string[];
+}
+export interface RespostaLliurats { lliurats: InformeLliurat[] }
+export interface Programacio {
+  id: number; botiga_id: string | null; tipus: TipusInforme; actiu: boolean;
+  dia_setmana: number | null; dia_mes: number | null; data: Data | null; hora: string;
+  destinataris: string[]; propera: DataHora | null;
+}
+export type NovaProgramacio = Omit<Programacio, 'id' | 'propera'>;
+export interface RespostaProgramacio { programacions: Programacio[] }
 
 // ── GET /peces/{epc}/historial ───────────────────────────────────────────
 export interface HistorialPeca {
@@ -341,6 +385,8 @@ export interface HistorialPeca {
 export interface Perdues { actiu: boolean; per_zona_hora: { cabina: string; hora: number; n: number }[]; total: number }
 
 // ── Operació ─────────────────────────────────────────────────────────────
+export type TipusPeticio = 'talla' | 'assistencia';
+export interface AltraBotiga { botiga_id: string; nom: string; unitats: number }
 export interface Peticio {
   id: number;
   model: string;
@@ -352,6 +398,10 @@ export interface Peticio {
   estat: EstatPeticio;
   disponible: boolean;
   segons_espera: number;
+  /** v0.3 (A.4): «assistencia» = el client demana que l'atenguin (talla buida). */
+  tipus?: TipusPeticio;
+  /** v0.3 (A.5): on n'hi ha, quan la talla demanada no hi és. */
+  altres_botigues?: AltraBotiga[];
 }
 export interface RespostaPeticions { peticions: Peticio[] }
 
@@ -391,8 +441,91 @@ export interface Parametres { botiga_id: string; valors: Record<string, string> 
 
 export interface ResultatShopify { comandes: number; linies: number; estoc: number }
 
+// ── Tasques de botiga (D.1) ──────────────────────────────────────────────
+export type TipusTasca = 'traspassar' | 'moure_a_sala' | 'promocio' | 'retornar' | 'recompte' | 'altre';
+export type EstatTasca = 'pendent' | 'feta' | 'descartada';
+export interface Tasca {
+  id: number; botiga_id: string; tipus: TipusTasca | string; titol: string; detall: string | null;
+  gtin: string | null; unitats: number | null; botiga_desti: string | null;
+  estat: EstatTasca; creada: DataHora; feta: DataHora | null;
+}
+export type NovaTasca = { botiga_id: string; tipus: TipusTasca; titol: string; detall?: string | null; gtin?: string | null; unitats?: number | null; botiga_desti?: string | null };
+export interface RespostaTasques { tasques: Tasca[] }
+
+// ── Provadors en directe (B.1) ───────────────────────────────────────────
+export type EstatCabinaDirecte = 'ocupada' | 'lliure' | 'porta_oberta' | 'sense_dades';
+export interface PecaCabina { epc: string; model: string; nom: string; talla: string; color: string; des_de: DataHora }
+export interface CabinaDirecte {
+  cabina_id: string; nom: string; botiga_id: string; estat: EstatCabinaDirecte; des_de: DataHora | null;
+  peces: PecaCabina[]; peticions_obertes: number;
+  avui: { sessions: number; proves: number; durada_mitjana_s: number | null };
+}
+export interface ProvadorsDirecte {
+  generat: DataHora; cabines: CabinaDirecte[];
+  resum: { ocupades: number; lliures: number; sessions_avui: number; proves_avui: number };
+}
+
+// ── Sessions (C) ─────────────────────────────────────────────────────────
+export interface Sessions {
+  kpi: { sessions: number; peces_per_sessio_mitjana: number | null; peces_per_sessio_mediana: number | null; durada_mitjana_s: number | null; pct_sessions_amb_compra: Fraccio };
+  per_nombre_peces: { peces: string; sessions: number; amb_compra: number; conversio_sessio: Fraccio; unitats_comprades: number; mostra_petita?: boolean }[];
+  provades_juntes: { model_a: string; nom_a: string; model_b: string; nom_b: string; sessions: number; lift: number | null; conversio_conjunta: Fraccio; mostra_petita?: boolean }[];
+  mateix_model_diferent_talla: {
+    sessions: number; pct_sessions: Fraccio;
+    parells_talla: ParellTalla[];
+    per_model: { model: string; nom: string; sessions_dubte: number; pct_sessions_model: Fraccio; talla_mes_comprada: string | null; mostra_petita?: boolean }[];
+  };
+  per_durada: { tram: string; sessions: number; conversio_sessio: Fraccio; mostra_petita?: boolean }[];
+  per_hora: { hora: number; sessions: number; conversio_sessio: Fraccio; mostra_petita?: boolean }[];
+}
+
+// ── Fitxa NFC configurable (A) ───────────────────────────────────────────
+export type SeccioFitxa = 'talles' | 'composicio' | 'origen' | 'cura' | 'combina' | 'faq';
+export type MotiuFitxa = 'talla' | 'preu' | 'tall' | 'qualitat' | 'color' | 'nomes_mirava' | 'altre';
+export type MostraEstoc = 'no' | 'disponibilitat' | 'unitats';
+export interface ConfigFitxa {
+  seccions: { ordre: SeccioFitxa[]; visibles: Record<SeccioFitxa, boolean> };
+  accions: { demana_talla: boolean; demana_assistencia: boolean; per_que_no: boolean; mostra_estoc: MostraEstoc };
+  idiomes: string[];
+  textos: { benvinguda?: Record<string, string>; peu?: Record<string, string> };
+  'aparença': { color_principal: string; logo_data_url: string | null; nom_marca: string };
+  motius: MotiuFitxa[];
+}
+/** Configuració d'una botiga: només els camps que sobreescriu. */
+export interface ConfigFitxaParcial {
+  seccions?: Partial<ConfigFitxa['seccions']>;
+  accions?: Partial<ConfigFitxa['accions']>;
+  idiomes?: string[];
+  textos?: ConfigFitxa['textos'];
+  'aparença'?: Partial<ConfigFitxa['aparença']>;
+  motius?: MotiuFitxa[];
+}
+export interface RespostaConfigFitxa { general: ConfigFitxa; botiga: ConfigFitxaParcial | null; efectiva: ConfigFitxa }
+export interface ModelFitxa { model: string; nom: string; categoria: string; idiomes_amb_contingut: string[]; te_origen: boolean }
+export interface ContingutModel {
+  nom?: string; descripcio?: string; ajust?: string; cura?: string[]; guia_talles?: string;
+  faq?: { q: string; a: string }[]; combina?: string[];
+}
+export interface DetallModelFitxa { model: string; contingut: Record<string, ContingutModel>; origen: Record<string, unknown> | null }
+
+// ── Integracions (F) ─────────────────────────────────────────────────────
+export type Proveidor = 'shopify' | 'square' | 'csv_url';
+export type AbastSync = 'cataleg' | 'vendes' | 'estoc';
+export interface Integracio {
+  id: number; botiga_id: string | null; proveidor: Proveidor; config: Record<string, unknown>; te_secret: boolean;
+  actiu: boolean; abast: AbastSync[]; interval_min: number; darrera_sync: DataHora | null;
+  estat: 'ok' | 'error' | 'mai'; missatge: string | null;
+}
+export interface NovaIntegracio { botiga_id: string | null; proveidor: Proveidor; config: Record<string, unknown>; secret?: string | null; abast: AbastSync[]; interval_min: number }
+export interface CanviIntegracio { config?: Record<string, unknown>; secret?: string; actiu?: boolean; abast?: AbastSync[]; interval_min?: number; botiga_id?: string | null }
+export interface ResultatProvaIntegracio { ok: boolean; detall: { botiga?: string; ubicacions?: { id: string; nom: string }[]; [k: string]: unknown } }
+export interface ResumSync { cataleg: number; linies_venda: number; devolucions: number; estoc: number }
+export interface RegistreSync { inici: DataHora; fi: DataHora | null; estat: string; resum: Partial<ResumSync> | null; error: string | null }
+
 /** Esdeveniments del flux SSE GET /flux. */
 export type EsdevenimentFlux =
   | { tipus: 'peticio'; dades: Peticio }
   | { tipus: 'abandonada'; dades: Abandonada }
-  | { tipus: 'alerta'; dades: Alerta };
+  | { tipus: 'alerta'; dades: Alerta }
+  | { tipus: 'cabina'; dades: CabinaDirecte }
+  | { tipus: 'tasca'; dades: Tasca };

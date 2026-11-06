@@ -2,16 +2,13 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { esMock } from './lib/mode';
+import { aplicaTema, llegeixTema } from './lib/tema';
 import './styles/tokens.css';
 import './styles/app.css';
 import './styles/informe.css';
 
-// Tema desat (clar/fosc) abans del primer pintat, per evitar un parpelleig.
-try {
-  const t = localStorage.getItem('hebra-tema');
-  if (t === 'clar') document.documentElement.dataset.theme = 'light';
-  if (t === 'fosc') document.documentElement.dataset.theme = 'dark';
-} catch { /* sense emmagatzematge */ }
+// Tema desat (Clar per defecte, o Fosc) abans del primer pintat, per evitar un parpelleig.
+aplicaTema(llegeixTema());
 
 async function inicia() {
   if (esMock()) {

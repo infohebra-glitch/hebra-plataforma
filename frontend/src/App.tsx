@@ -21,6 +21,10 @@ const Decisions = lazy(() => import('./pages/Decisions').then((m) => ({ default:
 const Valor = lazy(() => import('./pages/Valor').then((m) => ({ default: m.Valor })));
 const Informes = lazy(() => import('./pages/Informes').then((m) => ({ default: m.Informes })));
 const Informe = lazy(() => import('./pages/Informe').then((m) => ({ default: m.Informe })));
+const InformeLliurat = lazy(() => import('./pages/Informe').then((m) => ({ default: m.InformeLliurat })));
+const Sessions = lazy(() => import('./pages/Sessions').then((m) => ({ default: m.Sessions })));
+const Provadors = lazy(() => import('./pages/Provadors').then((m) => ({ default: m.Provadors })));
+const FitxaNfc = lazy(() => import('./pages/FitxaNfc').then((m) => ({ default: m.FitxaNfc })));
 const Dades = lazy(() => import('./pages/Dades').then((m) => ({ default: m.Dades })));
 const Dependent = lazy(() => import('./pages/Dependent').then((m) => ({ default: m.Dependent })));
 
@@ -59,7 +63,11 @@ export function App() {
           <Route path="decisions" element={<NomesPer rols={MARCA}><Suspense fallback={espera}><Decisions /></Suspense></NomesPer>} />
           <Route path="valor" element={<NomesPer rols={MARCA}><Suspense fallback={espera}><Valor /></Suspense></NomesPer>} />
           <Route path="informes" element={<Suspense fallback={espera}><Informes /></Suspense>} />
+          <Route path="informes/lliurats/:id" element={<Suspense fallback={espera}><InformeLliurat /></Suspense>} />
           <Route path="informes/:tipus" element={<Suspense fallback={espera}><Informe /></Suspense>} />
+          <Route path="sessions" element={<Suspense fallback={espera}><Sessions /></Suspense>} />
+          <Route path="provadors" element={<Suspense fallback={espera}><Provadors /></Suspense>} />
+          <Route path="fitxa" element={<NomesPer rols={MARCA}><Suspense fallback={espera}><FitxaNfc /></Suspense></NomesPer>} />
           <Route path="dades" element={<Suspense fallback={espera}><Dades /></Suspense>} />
           <Route path="*" element={<NoTrobada />} />
         </Route>

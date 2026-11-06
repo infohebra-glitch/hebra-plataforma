@@ -9,7 +9,7 @@ import { useFiltre } from '../context/Filtre';
 import { useSessio } from '../context/Sessio';
 import { NOMS_PERIODE, type TipusPeriode } from '../lib/periode';
 import { esMock } from '../lib/mode';
-import { usePreferencia } from '../lib/useApi';
+import { aplicaTema, desaTema, llegeixTema, type Tema } from '../lib/tema';
 import { Icona, LogoHebra } from './Icones';
 
 interface Enllac { a: string; nom: string; icona: string; rols?: Rol[]; grup: string }
@@ -19,15 +19,18 @@ export const ENLLACOS: Enllac[] = [
   { a: '/', nom: 'Resum', icona: 'resum', grup: 'Tauler' },
   { a: '/peces', nom: 'Peces', icona: 'peces', grup: 'Tauler' },
   { a: '/talles', nom: 'Talles', icona: 'talles', grup: 'Tauler' },
+  { a: '/sessions', nom: 'Sessions', icona: 'sessions', grup: 'Tauler' },
   { a: '/per-que', nom: 'Per què no compren', icona: 'perque', grup: 'Tauler' },
   { a: '/origen', nom: 'Origen i proves', icona: 'origen', grup: 'Tauler', rols: MARCA },
+  { a: '/provadors', nom: 'Provadors en directe', icona: 'provadors', grup: 'Botiga' },
   { a: '/servei', nom: 'Servei', icona: 'servei', grup: 'Botiga' },
-  { a: '/estoc', nom: 'Estoc', icona: 'estoc', grup: 'Botiga' },
+  { a: '/estoc', nom: 'Estoc i tasques', icona: 'estoc', grup: 'Botiga' },
   { a: '/dependent', nom: 'Web del dependent', icona: 'dependent', grup: 'Botiga' },
   { a: '/decisions', nom: 'Decisions', icona: 'decisions', grup: 'Gestió', rols: MARCA },
   { a: '/valor', nom: 'Valor estimat', icona: 'valor', grup: 'Gestió', rols: MARCA },
   { a: '/informes', nom: 'Informes', icona: 'informes', grup: 'Gestió' },
-  { a: '/dades', nom: 'Importa dades', icona: 'dades', grup: 'Gestió' },
+  { a: '/fitxa', nom: 'Fitxa NFC', icona: 'fitxa', grup: 'Gestió', rols: MARCA },
+  { a: '/dades', nom: 'Connexions i dades', icona: 'dades', grup: 'Gestió' },
 ];
 
 function useEnllacos() {
@@ -83,19 +86,13 @@ function SelectorFiltres() {
 
 const ROLS: Record<Rol, string> = { admin: 'Administració', marca: 'Marca', botiga: 'Botiga' };
 
-export function aplicaTema(t: string) {
-  const r = document.documentElement;
-  if (t === 'clar') r.dataset.theme = 'light';
-  else if (t === 'fosc') r.dataset.theme = 'dark';
-  else delete r.dataset.theme;
-}
 
 function MenuUsuari() {
   const { usuari, surt } = useSessio();
   const [obert, setObert] = useState(false);
-  const [tema, setTema] = usePreferencia<'sistema' | 'clar' | 'fosc'>('hebra-tema', 'sistema');
+  const [tema, setTemaEstat] = useState<Tema>(() => llegeixTema());
+  const setTema = (t: Tema) => { setTemaEstat(t); desaTema(t); aplicaTema(t); };
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { aplicaTema(tema); }, [tema]);
   useEffect(() => {
     if (!obert) return;
     const fora = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setObert(false); };
@@ -113,11 +110,14 @@ function MenuUsuari() {
       {obert && (
         <div className="menu-usuari-panell">
           <div><b>{usuari.nom}</b><div className="petit muted">{usuari.correu} · {ROLS[usuari.rol]}</div></div>
-          <label className="camp"><span>Aparença</span>
-            <select value={tema} onChange={(e) => setTema(e.target.value as 'sistema' | 'clar' | 'fosc')}>
-              <option value="sistema">La del sistema</option><option value="clar">Clara</option><option value="fosc">Fosca</option>
-            </select>
-          </label>
+          <fieldset className="tria-tema">
+            <legend>Tema</legend>
+            <div className="segmentat">
+              {(['clar', 'fosc'] as const).map((t) => (
+                <label key={t}><input type="radio" name="tema" value={t} checked={tema === t} onChange={() => setTema(t)} />{t === 'clar' ? 'Clar' : 'Fosc'}</label>
+              ))}
+            </div>
+          </fieldset>
           {esMock() && <p className="petit avis" style={{ margin: 0 }}>Mode demostració: les dades són inventades.</p>}
           <button type="button" onClick={surt}><Icona nom="surt" />Surt</button>
         </div>
@@ -131,7 +131,7 @@ export function Shell() {
   const loc = useLocation();
   const enllacos = useEnllacos();
   const { usuari } = useSessio();
-  const inferior = usuari.rol === 'botiga' ? ['/', '/servei', '/estoc', '/dependent'] : ['/', '/peces', '/origen', '/informes'];
+  const inferior = usuari.rol === 'botiga' ? ['/', '/provadors', '/estoc', '/dependent'] : ['/', '/peces', '/provadors', '/informes'];
 
   // En canviar de pàgina, el focus va al títol (lectors de pantalla) i tanquem el calaix.
   const primera = useRef(true);
