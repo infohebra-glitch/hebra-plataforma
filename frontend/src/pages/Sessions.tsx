@@ -11,6 +11,24 @@ import { useFiltre } from '../context/Filtre';
 import { liftEnParaules } from '../lib/escala';
 import { decimal, enter, pct, segons } from '../lib/format';
 import { useApi } from '../lib/useApi';
+import { useState } from 'react';
+
+/** Primer els parells amb prou sessions per dir-ne res (≥ 3); la resta, a demanda. */
+function ParellsTalla({ parells }: { parells: TSessions['mateix_model_diferent_talla']['parells_talla'] }) {
+  const [tots, setTots] = useState(false);
+  const rellevants = parells.filter((p) => p.sessions >= 3);
+  const visibles = tots || !rellevants.length ? parells : rellevants;
+  return (
+    <>
+      <TaulaParells parells={visibles} ambModel />
+      {visibles.length < parells.length && (
+        <p className="petit" style={{ padding: '0 14px 12px' }}>
+          <button type="button" className="enllac" onClick={() => setTots(true)}>Mostra també els {parells.length - visibles.length} parells amb menys de 3 sessions</button>
+        </p>
+      )}
+    </>
+  );
+}
 
 const Petita = ({ si }: { si?: boolean }) => (si ? <span className="insignia insignia-mostra" title="Menys de 10 sessions: el percentatge pot canviar molt">Mostra petita</span> : null);
 
@@ -90,7 +108,7 @@ function Cos({ d }: { d: TSessions }) {
           <div className="panell" style={{ padding: 0 }}>
             <h3 style={{ padding: '14px 14px 0' }}>Quina talla guanya</h3>
             <div style={{ padding: '6px 14px 0' }}>{llegendaCompra()}</div>
-            {dubte.parells_talla.length ? <TaulaParells parells={dubte.parells_talla} ambModel /> : <Buit titol="Cap dubte de talla">Ningú s’ha emportat la mateixa peça en dues talles.</Buit>}
+            {dubte.parells_talla.length ? <ParellsTalla parells={dubte.parells_talla} /> : <Buit titol="Cap dubte de talla">Ningú s’ha emportat la mateixa peça en dues talles.</Buit>}
           </div>
         </div>
       </Seccio>

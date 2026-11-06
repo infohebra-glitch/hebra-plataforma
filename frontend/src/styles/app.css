@@ -494,3 +494,4 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .targeta.integracio.error { border-left-color: var(--critical); }
 .form-integracio { background: var(--surface-2); }
 .registre { border-top: 1px solid var(--line-2); padding-top: 8px; }
+.enllac { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }

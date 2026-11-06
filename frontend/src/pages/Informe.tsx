@@ -15,6 +15,7 @@ import { useFiltre } from '../context/Filtre';
 import { useSessio } from '../context/Sessio';
 import { ESTATS_DECISIO, INFORMES, motiu, seccio } from '../lib/etiquetes';
 import { diaCurt, diaLlarg, enter, eur, pct, punts, segons } from '../lib/format';
+import { esDemo } from '../lib/mode';
 import { useApi } from '../lib/useApi';
 
 const NOMS: Record<string, string> = {
@@ -33,6 +34,8 @@ function valorCamp(k: string, v: unknown): string {
     if (/conversio|^pct|taxa/.test(k)) return pct(v);
     if (/_eur$|^preu/.test(k)) return eur(v);
     if (/_s$/.test(k)) return segons(v);
+    // Ràtios (p. ex. peticions per sessió): amb decimals, no arrodonides a 0.
+    if (!Number.isInteger(v)) return v.toLocaleString('ca-ES', { maximumFractionDigits: 2 });
     return enter(v);
   }
   if (typeof v === 'string') {
@@ -50,7 +53,8 @@ const esNumeric = (k: string, files: Record<string, unknown>[]) => files.every((
 function DadesBloc({ dades }: { dades: unknown }) {
   if (Array.isArray(dades) && dades.length && typeof dades[0] === 'object' && dades[0] !== null) {
     const files = dades as Record<string, unknown>[];
-    const claus = Object.keys(files[0]);
+    // Si hi ha el nom del model, el codi sobra; i el «text» llarg ja surt a sobre de la taula.
+    const claus = Object.keys(files[0]).filter((k) => !(k === 'model' && 'nom' in files[0]) && k !== 'text');
     return (
       <div className="taula-wrap"><table>
         <thead><tr>{claus.map((k) => <th key={k} scope="col" className={esNumeric(k, files) ? 'n' : undefined}>{nomCamp(k)}</th>)}</tr></thead>
@@ -59,7 +63,8 @@ function DadesBloc({ dades }: { dades: unknown }) {
     );
   }
   if (dades && typeof dades === 'object' && !Array.isArray(dades)) {
-    const e = Object.entries(dades as Record<string, unknown>).filter(([, v]) => typeof v !== 'object' || v === null);
+    // Només xifres curtes: els textos llargs ja són al paràgraf del bloc.
+    const e = Object.entries(dades as Record<string, unknown>).filter(([k, v]) => (typeof v !== 'object' || v === null) && k !== 'text' && !(typeof v === 'string' && v.length > 40));
     if (!e.length) return null;
     return <div className="xifres-doc">{e.map(([k, v]) => <div key={k}><b>{valorCamp(k, v)}</b>{nomCamp(k)}</div>)}</div>;
   }
@@ -157,7 +162,7 @@ function Barra({ molla, pdf, envia, inicials, titol, carregat }: { molla: string
       <div className="fila entre no-imprimir" style={{ marginBottom: 16 }}>
         <nav className="molla" aria-label="Molla de pa" style={{ margin: 0 }}><Link to="/informes">Informes</Link> <span aria-hidden="true">›</span> {molla}</nav>
         <div className="fila">
-          <button type="button" onClick={() => window.print()} disabled={!carregat}><Icona nom="imprimeix" />Imprimeix</button>
+          {!esDemo() && <button type="button" onClick={() => window.print()} disabled={!carregat}><Icona nom="imprimeix" />Imprimeix</button>}
           <button type="button" onClick={() => setCorreu(true)} disabled={!carregat}><Icona nom="correu" />Envia per correu</button>
           <button type="button" className="boto-primari" onClick={descarrega} disabled={!carregat || baixant}><Icona nom="baixa" />{baixant ? 'Preparant…' : 'Descarrega PDF'}</button>
         </div>
