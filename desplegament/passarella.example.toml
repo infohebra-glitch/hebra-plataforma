@@ -1,0 +1,39 @@
+# Configuració de la passarel·la d'una botiga. Copieu-lo a /etc/hebra/passarella.toml.
+
+finestra_s = 10                      # segons per finestra de lectures agregades
+cua = "/var/lib/hebra/cua.db"        # cua local (7 dies si cau la xarxa)
+
+[plataforma]
+url = "https://plataforma.hebra.example"   # URL del servidor de Hebra
+clau = "LA-MATEIXA-QUE-HEBRA_CLAU_PASSARELLA"
+
+[lector]
+nom = "R700-1"                       # les antenes es diran "R700-1:1", "R700-1:2"...
+url = "https://192.168.1.50"         # IP del lector a la xarxa de la botiga
+usuari = "root"
+contrasenya = "CANVIEU-LA"
+verifica_tls = false                 # certificat autosignat del lector
+ports = [1, 2, 3]                    # un port d'antena per cabina
+potencia_cdbm = 1500                 # 15 dBm. Calibrar: prou per llegir la cabina, no la del costat
+prefixos_epc = []                    # p. ex. ["3034257BF4"] per llegir només les etiquetes de la marca
+# Si el firmware fa servir uns altres camins (vegeu el Swagger del lector):
+# cami_preset  = "/api/v1/profiles/inventory/presets/{id}"
+# cami_inici   = "/api/v1/profiles/inventory/presets/{id}/start"
+# cami_aturada = "/api/v1/profiles/stop"
+# cami_flux    = "/api/v1/data/stream"
+
+# Una entrada per cabina. Pins en numeració BCM.
+[[cabines]]
+cabina = "BCN-01-C1"
+pin_porta = 17
+pin_presencia = 27
+
+[[cabines]]
+cabina = "BCN-01-C2"
+pin_porta = 22
+pin_presencia = 23
+
+[[cabines]]
+cabina = "BCN-01-C3"
+pin_porta = 24
+pin_presencia = 25

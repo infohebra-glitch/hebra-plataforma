@@ -1,0 +1,16 @@
+# Servei systemd de la passarel·la (Raspberry Pi). Vegeu docs/INSTAL-LACIO.md.
+[Unit]
+Description=Hebra - passarel·la de botiga (lector RFID i sensors de cabina)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=hebra
+Group=gpio
+WorkingDirectory=/opt/hebra-plataforma
+ExecStart=/usr/bin/python3 -m hebra_passarella /etc/hebra/passarella.toml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

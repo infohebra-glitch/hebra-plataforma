@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titol %}Hebra · Plataforma{% endblock %}
+{% block cos %}
+<a class="marca" href="/">Hebra</a>
+<h1>Plataforma (MVP)</h1>
+<p class="muted">Mesura del provador amb RFID UHF i fitxa NFC de la peça. Dades de prova inventades.</p>
+<div class="panell">
+  <h3>Client</h3>
+  {% if token %}<p><a href="/p/{{ token }}?b={{ botiga }}">Fitxa NFC d'una peça d'exemple</a> — el que s'obre quan el client toca l'etiqueta.</p>
+  {% else %}<p class="muted">Encara no hi ha cap peça. Executa <code>python -m hebra.simulador</code>.</p>{% endif %}
+</div>
+<div class="panell">
+  <h3>Botiga</h3>
+  <ul>
+    <li><a href="/botiga/peticions{% if botiga %}?b={{ botiga }}{% endif %}">Peticions de talla</a> (web del dependent)</li>
+    <li><a href="/botiga/vendes">Pujar vendes en CSV</a></li>
+    {% if botiga %}<li><a href="/botiga/informe?b={{ botiga }}">Informe setmanal</a></li>{% endif %}
+  </ul>
+</div>
+<div class="panell">
+  <h3>Passarel·la</h3>
+  <p><a href="/api/docs">Documentació de l'API</a> · <a href="/salut">Estat</a></p>
+</div>
+{% endblock %}

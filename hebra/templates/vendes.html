@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titol %}Vendes · Hebra{% endblock %}
+{% block cos %}
+<a class="marca" href="/">Hebra</a>
+<h1>Pujar vendes (CSV)</h1>
+<p class="muted">Columnes: <code>data_hora, botiga, gtin, quantitat, import, tiquet</code>. La data pot anar sense hora; llavors l'atribució és per dia. El tiquet es desa xifrat.</p>
+<form method="post" enctype="multipart/form-data" class="panell fila">
+  <input type="file" name="fitxer" accept=".csv,text/csv" required>
+  <button class="primari">Importa</button>
+</form>
+{% if resultat %}
+<div class="panell">
+  <p><b>{{ resultat.importades }}</b> línies importades.
+  {% for b, n in resultat.atribuides.items() %}{{ b }}: {{ n }} vendes atribuïdes a proves. {% endfor %}</p>
+  {% if resultat.errors %}<p class="alerta">Errors:</p><ul>{% for e in resultat.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+</div>
+{% endif %}
+{% endblock %}
