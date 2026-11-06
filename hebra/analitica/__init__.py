@@ -23,3 +23,25 @@ class Filtre:
     def fi_exclusiu_iso(self) -> str:
         from datetime import timedelta
         return (self.fins + timedelta(days=1)).isoformat()
+
+
+# Les funcions públiques (una per ruta de docs/API.md). S'importen després de
+# definir `Filtre` perquè els submòduls el fan servir.
+from .temps_real import alertes  # noqa: E402
+from .base import parametre  # noqa: E402
+from .inventari import estoc  # noqa: E402
+from .experimentacio import experiments  # noqa: E402
+from .informes import informe  # noqa: E402
+from .per_model import model_detall, models  # noqa: E402
+from .nfc import fitxa_nfc, motius  # noqa: E402
+from .peces import historial_peca, perdues  # noqa: E402
+from .tauler import resum  # noqa: E402
+from .cabina import servei  # noqa: E402
+from .per_talla import demanda_perduda, talles  # noqa: E402
+from .palanques import valor  # noqa: E402
+
+__all__ = [
+    "Filtre", "parametre",
+    "resum", "models", "model_detall", "talles", "demanda_perduda", "motius", "servei", "estoc",
+    "fitxa_nfc", "experiments", "alertes", "valor", "informe", "historial_peca", "perdues",
+]

@@ -6,6 +6,11 @@
   python -m hebra.admin etiquetes etiquetes.csv --botiga BCN-01 --url https://plataforma... --sortida nfc.csv
   python -m hebra.admin control --botiga BCN-01 --inici 2026-11-23 --setmanes 6
   python -m hebra.admin processa --botiga BCN-01
+  python -m hebra.admin usuari --correu anna@marca.cat --nom Anna --rol marca          # demana la contrasenya
+  python -m hebra.admin usuari --correu bcn@marca.cat --nom "Botiga BCN" --rol botiga --botiga BCN-01
+  python -m hebra.admin estoc estoc.csv              # botiga,gtin,unitats
+  python -m hebra.admin shopify --botiga BCN-01      # sincronitza comandes i estoc (només lectura)
+  python -m hebra.admin retencio                     # esborra lectures i sensors més antics que HEBRA_RETENCIO_DIES
 
 Formats CSV (capçalera obligatòria, separador coma o punt i coma):
   cataleg.csv:   gtin,model,color,talla,categoria,preu
@@ -14,20 +19,25 @@ Formats CSV (capçalera obligatòria, separador coma o punt i coma):
 
 import argparse
 import csv
+import getpass
 import io
 import json
 import secrets
 import sqlite3
+import sys
 from datetime import date
 from pathlib import Path
 
-from . import cataleg, control, db, proves, vendes
+from . import alertes, auth, cataleg, control, db, estoc, proves, retencio, shopify, vendes
 from . import epc as epc_mod
 from .config import carrega
 
 
 def _llegeix_csv(ruta: str) -> list[dict]:
-    text = Path(ruta).read_text(encoding="utf-8-sig")
+    return _llegeix_text_csv(Path(ruta).read_text(encoding="utf-8-sig"))
+
+
+def _llegeix_text_csv(text: str) -> list[dict]:
     sep = ";" if text[:2048].count(";") > text[:2048].count(",") else ","
     return [{k.strip().lower(): (v or "").strip() for k, v in fila.items()}
             for fila in csv.DictReader(io.StringIO(text), delimiter=sep)]
@@ -54,8 +64,14 @@ def botiga(con: sqlite3.Connection, ruta: str) -> str:
 
 
 def cataleg_csv(con: sqlite3.Connection, ruta: str) -> str:
+    n, errors = importa_cataleg(con, Path(ruta).read_text(encoding="utf-8-sig"))
+    return f"{n} variants importades" + (f"; errors: {errors[:10]}" if errors else "")
+
+
+def importa_cataleg(con: sqlite3.Connection, text: str) -> tuple[int, list[str]]:
+    """Importa variants del catàleg (gtin,model,color,talla,categoria,preu). Retorna (importades, errors)."""
     n, errors = 0, []
-    for i, f in enumerate(_llegeix_csv(ruta), start=2):
+    for i, f in enumerate(_llegeix_text_csv(text), start=2):
         try:
             gtin = f["gtin"].zfill(14)
             if not gtin.isdigit() or epc_mod.digit_control(gtin[:13]) != gtin[13]:
@@ -75,7 +91,7 @@ def cataleg_csv(con: sqlite3.Connection, ruta: str) -> str:
                      WHERE k2.model = catalog_sku.model AND k2.origen_json IS NOT NULL LIMIT 1)
                    WHERE origen_json IS NULL""")
     con.commit()
-    return f"{n} variants importades" + (f"; errors: {errors[:10]}" if errors else "")
+    return n, errors
 
 
 def etiquetes(con: sqlite3.Connection, ruta: str, botiga_id: str, url: str, sortida: str) -> str:
@@ -122,6 +138,15 @@ def main() -> None:
     c.add_argument("--inici", required=True, help="primer dia de mesura (AAAA-MM-DD)")
     c.add_argument("--setmanes", type=int, default=6)
     sub.add_parser("processa").add_argument("--botiga", required=True)
+    u = sub.add_parser("usuari", help="crea un usuari del tauler")
+    u.add_argument("--correu", required=True)
+    u.add_argument("--nom", required=True)
+    u.add_argument("--rol", required=True, choices=auth.ROLS)
+    u.add_argument("--botiga", help="obligatori per al rol botiga")
+    u.add_argument("--contrasenya", help="si no s'indica, es demana (no queda a l'historial)")
+    sub.add_parser("estoc").add_argument("fitxer")
+    sub.add_parser("shopify").add_argument("--botiga", required=True)
+    sub.add_parser("retencio")
     args = ap.parse_args()
 
     cfg = carrega()
@@ -141,8 +166,32 @@ def main() -> None:
         print(f"{len(a)} dies assignats: {sum(g == 'amb' for g in a.values())} amb origen, "
               f"{sum(g == 'sense' for g in a.values())} sense")
     elif args.ordre == "processa":
-        print(f"{proves.processa_botiga(con, args.botiga, cfg.regla)} proves, "
-              f"{vendes.atribueix(con, args.botiga)} vendes atribuïdes")
+        n_proves = proves.processa_botiga(con, args.botiga, cfg.regla)
+        n_atrib = vendes.atribueix(con, args.botiga)
+        n_aband = sum(alertes.detecta_abandonades(con, c["id"], tot=True) for c in con.execute(
+            "SELECT id FROM cabina WHERE botiga_id = ?", (args.botiga,)).fetchall())
+        print(f"{n_proves} proves, {n_atrib} vendes atribuïdes, {n_aband} peces abandonades noves")
+    elif args.ordre == "usuari":
+        contrasenya = args.contrasenya
+        if not contrasenya:
+            contrasenya = getpass.getpass("Contrasenya: ")
+            if contrasenya != getpass.getpass("Repeteix-la: "):
+                sys.exit("Les contrasenyes no coincideixen")
+        try:
+            uid = auth.crea_usuari(con, args.correu, args.nom, args.rol, contrasenya, args.botiga)
+        except ValueError as e:
+            sys.exit(str(e))
+        print(f"Usuari {uid} creat: {args.correu} ({args.rol})")
+    elif args.ordre == "estoc":
+        n, errors = estoc.importa_csv(con, Path(args.fitxer).read_text(encoding="utf-8-sig"))
+        print(f"{n} files d'estoc importades" + (f"; errors: {errors[:10]}" if errors else ""))
+    elif args.ordre == "shopify":
+        try:
+            print(shopify.sincronitza(con, args.botiga))
+        except shopify.ErrorShopify as e:
+            sys.exit(str(e))
+    elif args.ordre == "retencio":
+        print(retencio.neteja(con, cfg.retencio_dies))
 
 
 if __name__ == "__main__":

@@ -54,3 +54,10 @@ td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 .etiqueta { display: inline-block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; }
 .barra { height: 8px; background: var(--accent-soft); border-radius: 4px; overflow: hidden; min-width: 60px; }
 .barra span { display: block; height: 100%; background: var(--accent); }
+details.panell > summary { cursor: pointer; list-style: none; }
+details.panell > summary::-webkit-details-marker { display: none; }
+details.panell > summary h2 { display: inline-block; margin: 0; }
+details.panell > summary::after { content: "+"; float: right; font-size: 21px; color: var(--muted); }
+details.panell[open] > summary::after { content: "−"; }
+details.panell[open] > summary { margin-bottom: 10px; }
+.estat-en_cami { color: var(--accent); font-weight: 600; }

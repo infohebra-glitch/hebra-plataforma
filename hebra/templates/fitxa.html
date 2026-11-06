@@ -2,7 +2,8 @@
 {% block titol %}{{ p.nom }}{% endblock %}
 {% block amplada %}estret{% endblock %}
 {% block cos %}
-{# Fitxa NFC. Sense JavaScript ni galetes: cada acció és un formulari que porta la sessió tècnica (s) en un camp ocult. #}
+{# Fitxa NFC. Sense galetes: cada acció és un formulari que porta la sessió tècnica (s) en un camp ocult.
+   Funciona sense JavaScript; l'únic script (en línia, autoritzat per hash a la CSP) avisa quan s'obre una secció plegable. #}
 {% macro ocults() %}<input type="hidden" name="s" value="{{ s }}"><input type="hidden" name="b" value="{{ b }}"><input type="hidden" name="lang" value="{{ lang }}">{% endmacro %}
 <div class="fila entre">
   <span class="marca">Hebra</span>
@@ -18,8 +19,8 @@
 {% if ok == 'talla' %}<p class="avis" role="status">{{ t.peticio_ok }}</p>{% endif %}
 {% if ok == 'motiu' %}<p class="avis" role="status">{{ t.motiu_ok }}</p>{% endif %}
 
-<section class="panell">
-  <h2>{{ t.talles }}</h2>
+<details class="panell" data-seccio="talles" {{ 'open' if ok == 'talla' }}>
+  <summary><h2>{{ t.talles }}</h2></summary>
   {% if p.ajust %}<p class="petit muted">{{ p.ajust }}</p>{% endif %}
   <form method="post" action="/p/{{ p.token }}/talla">
     {{ ocults() }}
@@ -39,7 +40,7 @@
       <button class="primari" {{ 'disabled' if not b }}>{{ t.envia }}</button>
     </div>
   </form>
-</section>
+</details>
 
 <section class="panell">
   <h2>{{ t.composicio }}</h2>
@@ -66,10 +67,17 @@
 </section>
 {% endif %}
 
-<section class="panell">
-  <h2>{{ t.cura }}</h2>
+<details class="panell" data-seccio="cura">
+  <summary><h2>{{ t.cura }}</h2></summary>
   <ul>{% for c in p.cura %}<li>{{ c }}</li>{% endfor %}</ul>
+</details>
+
+{% if p.combina %}
+<section class="panell">
+  <h2>{{ p.titol_combina }}</h2>
+  <ul>{% for nom in p.combina %}<li>{{ nom }}</li>{% endfor %}</ul>
 </section>
+{% endif %}
 
 {% if ok != 'motiu' %}
 <section class="panell">
@@ -83,11 +91,13 @@
 {% endif %}
 
 {% if p.faq %}
-<section class="panell">
-  <h2>{{ t.preguntes }}</h2>
+<details class="panell" data-seccio="preguntes">
+  <summary><h2>{{ t.preguntes }}</h2></summary>
   {% for f in p.faq %}<details><summary>{{ f.q }}</summary><p>{{ f.a }}</p></details>{% endfor %}
-</section>
+</details>
 {% endif %}
 
 <p class="petit muted">{{ t.privacitat }}</p>
+<form id="seccions" method="post" action="/p/{{ p.token }}/seccio" hidden>{{ ocults() }}</form>
+<script>{{ script|safe }}</script>
 {% endblock %}

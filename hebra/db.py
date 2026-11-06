@@ -37,3 +37,18 @@ def transaccio(con: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
     except Exception:
         con.rollback()
         raise
+
+
+def parametre(con: sqlite3.Connection, botiga_id: str | None, clau: str, defecte: str | None = None) -> str | None:
+    """Valor d'un paràmetre: primer el de la botiga, després el general ('*'), i si no, `defecte`."""
+    fila = con.execute(
+        """SELECT valor FROM parametre WHERE clau = ? AND botiga_id IN (?, '*')
+           ORDER BY botiga_id = '*' LIMIT 1""", (clau, botiga_id or "*")).fetchone()
+    return fila["valor"] if fila else defecte
+
+
+def desa_parametre(con: sqlite3.Connection, botiga_id: str, clau: str, valor: str) -> None:
+    con.execute("""INSERT INTO parametre (botiga_id, clau, valor) VALUES (?, ?, ?)
+                   ON CONFLICT(botiga_id, clau) DO UPDATE SET valor = excluded.valor""",
+                (botiga_id, clau, str(valor)))
+    con.commit()

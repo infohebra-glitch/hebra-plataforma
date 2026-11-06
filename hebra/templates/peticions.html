@@ -3,7 +3,7 @@
 {% block cos %}
 <a class="marca" href="/">Hebra</a>
 <div class="fila entre"><h1>Peticions de talla</h1><a class="boto" href="">Actualitza</a></div>
-<p class="muted">El client la demana des de la fitxa NFC. Porta-la a la cabina i marca-la com a lliurada.</p>
+<p class="muted">El client la demana des de la fitxa NFC. Marca-la «en camí» quan la vagis a buscar i «lliurada» quan sigui a la cabina.</p>
 {% for f in files %}
 <div class="panell fila entre">
   <div>
@@ -12,9 +12,11 @@
     <span class="petit muted">{{ f.hora_peticio[11:16] }} · {{ f.hora_peticio[:10] }}
       {% if f.disponible == 0 %}· <span class="alerta">segons l'estoc, no n'hi ha</span>{% endif %}</span>
   </div>
-  {% if f.estat == 'pendent' %}
+  {% if f.estat in ('pendent', 'en_cami') %}
   <form method="post" action="/botiga/peticions/{{ f.id }}" class="fila">
     <input type="hidden" name="b" value="{{ b }}">
+    {% if f.estat == 'pendent' %}<button name="estat" value="en_cami">En camí</button>
+    {% else %}<span class="estat-en_cami">En camí</span>{% endif %}
     <button class="primari" name="estat" value="lliurada">Lliurada</button>
     <button name="estat" value="no_disponible">No n'hi ha</button>
   </form>

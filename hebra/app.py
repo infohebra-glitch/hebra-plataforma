@@ -1,11 +1,13 @@
 """Aplicació web de Hebra (FastAPI).
 
-Tres públics, tres zones:
+Zones:
   * /p/{token}       Fitxa NFC per al client (pública, sense galetes).
-  * /botiga/...      Web del dependent, vendes i informe (contrasenya de botiga).
+  * /app/...         Tauler de la marca i web del dependent (frontend/dist, si està compilat).
+  * /api/v2/...      API del tauler (galeta de sessió `hebra_sessio`; contracte a docs/API.md).
+  * /botiga/...      Pàgines antigues del dependent, vendes i informe (HTTP Basic de botiga).
   * /api/v1/...      Entrada de la passarel·la (clau a la capçalera X-Hebra-Clau).
 
-Arrencada:  uvicorn hebra.app:app --reload
+Arrencada:  uvicorn hebra.app:app --reload   (un sol procés: les alertes en directe són en memòria)
 """
 
 import asyncio
@@ -16,12 +18,13 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import __version__, db, fitxa, informes, passarella, proves, temps, textos, vendes
+from . import __version__, api, auth, db, fitxa, informes, passarella, proves, retencio, temps, textos, vendes
 from .config import carrega
 
 ARREL = Path(__file__).parent
@@ -30,6 +33,12 @@ con = db.connecta(cfg.ruta_bd)
 db.inicialitza(con)
 
 log = logging.getLogger("hebra")
+
+# Capçaleres de seguretat. La CSP només permet recursos propis i l'script en línia de la fitxa (pel seu hash).
+CSP = ("default-src 'self'; script-src 'self' '" + fitxa.HASH_SCRIPT + "'; style-src 'self' 'unsafe-inline'; "
+       "img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; "
+       "form-action 'self'; frame-ancestors 'none'")
+SENSE_CSP = ("/api/docs", "/openapi.json")  # la documentació interactiva carrega Swagger UI d'un CDN
 
 
 def processa_tot() -> None:
@@ -52,19 +61,91 @@ async def _bucle_processament() -> None:
             log.exception("Error recalculant les proves")
 
 
+def neteja_dades() -> dict:
+    c = db.connecta(cfg.ruta_bd)
+    try:
+        return retencio.neteja(c, cfg.retencio_dies)
+    finally:
+        c.close()
+
+
+async def _bucle_retencio() -> None:
+    """Un cop en arrencar i després cada 24 h: esborra lectures i sensors més antics que HEBRA_RETENCIO_DIES."""
+    while True:
+        try:
+            n = await asyncio.to_thread(neteja_dades)
+            log.info("Retenció de dades: %s", n)
+        except Exception:
+            log.exception("Error esborrant dades antigues")
+        await asyncio.sleep(24 * 3600)
+
+
 @asynccontextmanager
 async def _cicle_de_vida(_app):
-    tasca = asyncio.create_task(_bucle_processament()) if cfg.processa_cada_min > 0 else None
+    tasques = [asyncio.create_task(_bucle_retencio())] if cfg.retencio_dies > 0 else []
+    if cfg.processa_cada_min > 0:
+        tasques.append(asyncio.create_task(_bucle_processament()))
     yield
-    if tasca:
-        tasca.cancel()
+    for t in tasques:
+        t.cancel()
 
 
+class CapcaleresSeguretat:
+    """Middleware ASGI (no fa de tap amb el flux SSE): afegeix les capçaleres de seguretat a cada resposta."""
+
+    def __init__(self, app, segura: bool):
+        self.app, self.segura = app, segura
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        amb_csp = not scope["path"].startswith(SENSE_CSP)
+
+        async def envia(missatge):
+            if missatge["type"] == "http.response.start":
+                h = list(missatge.get("headers", []))
+                h += [(b"x-content-type-options", b"nosniff"), (b"referrer-policy", b"no-referrer"),
+                      (b"x-frame-options", b"DENY"),
+                      (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), interest-cohort=()")]
+                if amb_csp:
+                    h.append((b"content-security-policy", CSP.encode()))
+                if self.segura:
+                    h.append((b"strict-transport-security", b"max-age=31536000"))
+                missatge = dict(missatge, headers=h)
+            await send(missatge)
+
+        await self.app(scope, receive, envia)
+
+
+# Sense CORS: el tauler se serveix des del mateix origen (/app) i l'API no accepta altres orígens.
 app = FastAPI(title="Hebra", version=__version__, docs_url="/api/docs", redoc_url=None, lifespan=_cicle_de_vida)
+app.add_middleware(CapcaleresSeguretat, segura=cfg.galeta_segura)
 app.mount("/static", StaticFiles(directory=ARREL / "static"), name="static")
+app.state.con = con
+app.state.cfg = cfg
+app.state.limit_sessio = auth.LimitIntents(maxim=10, finestra_s=15 * 60)
+app.state.limit_fitxa = auth.CubellTestimonis(capacitat=30, ritme=0.5)
+app.include_router(api.router)
 plantilles = Jinja2Templates(directory=ARREL / "templates")
 plantilles.env.globals["pais"] = textos.pais
 seguretat = HTTPBasic()
+
+
+@app.exception_handler(RequestValidationError)
+async def _error_validacio(request: Request, exc: RequestValidationError):
+    """A /api/v2 els errors de dades són 400 amb un missatge en català (docs/API.md)."""
+    if not request.url.path.startswith("/api/v2"):
+        from fastapi.exception_handlers import request_validation_exception_handler
+        return await request_validation_exception_handler(request, exc)
+    camps = sorted({".".join(str(x) for x in e.get("loc", [])[1:]) or "cos" for e in exc.errors()})
+    return JSONResponse({"detail": f"Dades no vàlides: {', '.join(camps)}"}, status_code=400)
+
+
+def limit_fitxa(request: Request) -> None:
+    """Límit de peticions per IP als formularis públics de la fitxa NFC."""
+    ip = request.client.host if request.client else "?"
+    if not request.app.state.limit_fitxa.permet(ip):
+        raise HTTPException(429, "Massa peticions. Espera un moment.")
 
 
 def usuari_botiga(cred: HTTPBasicCredentials = Depends(seguretat)) -> str:
@@ -92,8 +173,15 @@ def salut() -> dict:
     return {"estat": "ok", "versio": __version__}
 
 
+def _dist() -> Path | None:
+    d = Path(cfg.frontend_dist)
+    return d if (d / "index.html").is_file() else None
+
+
 @app.get("/", response_class=HTMLResponse)
 def inici(request: Request):
+    if _dist():
+        return RedirectResponse("/app/", status_code=307)
     exemple = con.execute("SELECT nfc_token FROM etiqueta ORDER BY rowid LIMIT 1").fetchone()
     botiga = con.execute("SELECT id FROM botiga ORDER BY id LIMIT 1").fetchone()
     return plantilles.TemplateResponse(request, "inici.html", {
@@ -120,7 +208,7 @@ def fitxa_peca(request: Request, token: str, b: str | None = None, lang: str | N
         fitxa.registra(con, s, b, peca["gtin"], "obre_fitxa", idioma)
     return plantilles.TemplateResponse(request, "fitxa.html", {
         "p": fitxa.dades_fitxa(con, peca, b, idioma), "t": textos.TEXTOS[idioma], "lang": idioma,
-        "idiomes": fitxa.IDIOMES, "b": b or "", "s": s, "ok": ok})
+        "idiomes": fitxa.IDIOMES, "b": b or "", "s": s, "ok": ok, "script": fitxa.SCRIPT_SECCIONS})
 
 
 def _torna(token: str, b: str, lang: str, s: str, ok: str) -> RedirectResponse:
@@ -128,14 +216,14 @@ def _torna(token: str, b: str, lang: str, s: str, ok: str) -> RedirectResponse:
     return RedirectResponse(f"/p/{token}?{urlencode({'b': b, 'lang': lang, 's': s, 'ok': ok})}", status_code=303)
 
 
-@app.post("/p/{token}/origen")
+@app.post("/p/{token}/origen", dependencies=[Depends(limit_fitxa)])
 def veu_origen(token: str, b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
     peca = fitxa.peca_per_token(con, token) or _404()
     fitxa.registra(con, s, b or None, peca["gtin"], "veu_origen", lang)
     return _torna(token, b, lang, s, "origen")
 
 
-@app.post("/p/{token}/motiu")
+@app.post("/p/{token}/motiu", dependencies=[Depends(limit_fitxa)])
 def motiu(token: str, motiu: str = Form(...), b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
     peca = fitxa.peca_per_token(con, token) or _404()
     try:
@@ -145,7 +233,7 @@ def motiu(token: str, motiu: str = Form(...), b: str = Form(""), lang: str = For
     return _torna(token, b, lang, s, "motiu")
 
 
-@app.post("/p/{token}/talla")
+@app.post("/p/{token}/talla", dependencies=[Depends(limit_fitxa)])
 def talla(token: str, gtin: str = Form(...), cabina: str = Form(""), b: str = Form(""),
           lang: str = Form("ca"), s: str = Form(...)):
     peca = fitxa.peca_per_token(con, token) or _404()
@@ -156,6 +244,17 @@ def talla(token: str, gtin: str = Form(...), cabina: str = Form(""), b: str = Fo
     except ValueError as e:
         raise HTTPException(400, str(e))
     return _torna(token, b, lang, s, "talla")
+
+
+@app.post("/p/{token}/seccio", status_code=204, dependencies=[Depends(limit_fitxa)])
+def seccio(token: str, seccio: str = Form(...), b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
+    """Balisa (navigator.sendBeacon) quan el client obre una secció plegable de la fitxa (insight 16)."""
+    peca = fitxa.peca_per_token(con, token) or _404()
+    try:
+        fitxa.registra(con, s[:40], b or None, peca["gtin"], "veu_seccio", lang, seccio)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return Response(status_code=204)
 
 
 def _404():
@@ -169,7 +268,7 @@ def _404():
 def peticions(request: Request, b: str | None = None, _: str = Depends(usuari_botiga)):
     files = con.execute(
         """SELECT pt.*, k.model, k.color FROM peticio_talla pt JOIN catalog_sku k ON k.gtin = pt.gtin_demanat
-           WHERE (? IS NULL OR pt.botiga_id = ?) ORDER BY pt.estat = 'pendent' DESC, pt.hora_peticio DESC LIMIT 50""",
+           WHERE (? IS NULL OR pt.botiga_id = ?) ORDER BY pt.estat IN ('pendent', 'en_cami') DESC, pt.hora_peticio DESC LIMIT 50""",
         (b, b)).fetchall()
     return plantilles.TemplateResponse(request, "peticions.html", {"files": files, "b": b or ""})
 
@@ -177,7 +276,7 @@ def peticions(request: Request, b: str | None = None, _: str = Depends(usuari_bo
 @app.post("/botiga/peticions/{pid}")
 def resol(pid: int, estat: str = Form(...), b: str = Form(""), _: str = Depends(usuari_botiga)):
     try:
-        fitxa.resol_peticio(con, pid, estat)
+        fitxa.resol_peticio(con, pid, estat)  # si la transició no és permesa (ja resolta), no fa res
     except ValueError:
         raise HTTPException(400, "Estat no vàlid")
     return RedirectResponse(f"/botiga/peticions?b={b}" if b else "/botiga/peticions", status_code=303)
@@ -209,8 +308,9 @@ def informe(request: Request, b: str, setmana: str | None = None, _: str = Depen
         dilluns = avui - timedelta(days=avui.weekday())
     dilluns -= timedelta(days=dilluns.weekday())
     dades = informes.setmanal(con, b, dilluns)
+    nivell = con.execute("SELECT nivell FROM botiga WHERE id = ?", (b,)).fetchone()
     return plantilles.TemplateResponse(request, "informe.html", {
-        "r": dades, "anterior": (dilluns - timedelta(days=7)).isoformat(),
+        "r": dades, "nivell": nivell["nivell"] if nivell else "cabina", "anterior": (dilluns - timedelta(days=7)).isoformat(),
         "seguent": (dilluns + timedelta(days=7)).isoformat()})
 
 
@@ -230,3 +330,25 @@ def processa(botiga: str) -> dict:
     n_proves = proves.processa_botiga(con, botiga, cfg.regla)
     n_atrib = vendes.atribueix(con, botiga)
     return {"proves": n_proves, "atribucions": n_atrib}
+
+
+# ---------------------------------------------------------------- Tauler (frontend compilat)
+
+
+@app.get("/app", include_in_schema=False)
+def app_sense_barra():
+    return RedirectResponse("/app/", status_code=307)
+
+
+@app.get("/app/{ruta:path}", include_in_schema=False)
+def tauler(ruta: str):
+    """Serveix frontend/dist. Qualsevol camí que no sigui un fitxer torna index.html (SPA)."""
+    dist = _dist()
+    if dist is None:
+        raise HTTPException(404, "El tauler no està compilat (cal `npm run build` a frontend/)")
+    arrel = dist.resolve()
+    fitxer = (arrel / ruta).resolve()
+    if ruta and fitxer.is_file() and fitxer.is_relative_to(arrel):
+        cau = "public, max-age=31536000, immutable" if "/assets/" in f"/{ruta}" else "no-cache"
+        return FileResponse(fitxer, headers={"Cache-Control": cau})
+    return FileResponse(arrel / "index.html", headers={"Cache-Control": "no-cache"})

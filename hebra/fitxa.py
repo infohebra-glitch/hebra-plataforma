@@ -5,20 +5,43 @@ Privacitat (Proposta MVP, secció de dades):
   * `sessio_nfc` és un id aleatori que es genera en obrir la pàgina i viatja en
     un camp ocult dels formularis; no s'emmagatzema al mòbil;
   * cap esdeveniment de la fitxa s'uneix amb una compra o amb una persona.
+
+La pàgina funciona sense JavaScript. Només hi ha un script en línia molt petit
+(`SCRIPT_SECCIONS`, autoritzat a la CSP pel seu hash) que, quan el client obre
+una secció plegable (talles, cura, preguntes), ho envia amb `navigator.sendBeacon`
+a la mateixa plataforma (`POST /p/{token}/seccio`). Sense galetes ni emmagatzematge.
 """
 
+import base64
+import hashlib
 import json
 import secrets
 import sqlite3
 
-from . import cataleg, control, temps
+from . import alertes, cataleg, control, estoc, temps
 
 IDIOMES = ("ca", "es", "fr", "en")
 # Si el contingut d'origen no té l'idioma, provem aquests en ordre.
 RESERVA = {"ca": ["ca", "es"], "es": ["es", "ca"], "fr": ["fr", "es", "ca"], "en": ["en", "es", "ca"]}
 
-TIPUS = {"obre_fitxa", "veu_origen", "demana_talla", "motiu_no_compra"}
+TIPUS = {"obre_fitxa", "veu_origen", "demana_talla", "motiu_no_compra", "veu_seccio"}
 MOTIUS_VALIDS = {"talla", "tall", "preu", "color", "qualitat", "altre"}
+SECCIONS = {"talles", "cura", "preguntes"}
+TITOL_COMBINA = {"ca": "Combina amb", "es": "Combina con", "fr": "À associer avec", "en": "Goes well with"}
+
+# Estats de la petició de talla i transicions permeses (pendent -> en_cami -> lliurada | no_disponible).
+TRANSICIONS = {"pendent": {"en_cami", "lliurada", "no_disponible"}, "en_cami": {"lliurada", "no_disponible"}}
+ESTATS_FINALS = {"lliurada", "no_disponible"}
+
+# Script de la fitxa: el text ha de ser exactament aquest perquè el hash de la CSP quadri.
+SCRIPT_SECCIONS = (
+    "(function(){var f=document.getElementById('seccions');if(!f||!navigator.sendBeacon)return;"
+    "var vist={};document.querySelectorAll('details[data-seccio]').forEach(function(d){"
+    "var salta=d.open;d.addEventListener('toggle',function(){if(salta){salta=false;return;}"
+    "var s=d.getAttribute('data-seccio');if(!d.open||vist[s])return;vist[s]=1;"
+    "var p=new URLSearchParams(new FormData(f));p.set('seccio',s);"
+    "navigator.sendBeacon(f.action,p);});});})();")
+HASH_SCRIPT = "sha256-" + base64.b64encode(hashlib.sha256(SCRIPT_SECCIONS.encode()).digest()).decode()
 
 
 def nova_sessio() -> str:
@@ -44,8 +67,14 @@ def peca_per_token(con: sqlite3.Connection, token: str) -> sqlite3.Row | None:
 def dades_fitxa(con: sqlite3.Connection, fila: sqlite3.Row, botiga_id: str | None, idioma: str) -> dict:
     origen = json.loads(fila["origen_json"] or "{}")
     variants = cataleg.variants_del_model(con, fila["model"], fila["color"])
-    estoc = origen.get("estoc", {})
+    estoc_origen = origen.get("estoc", {})
     avui = temps.ara()[:10]
+
+    def unitats(v: sqlite3.Row) -> int | None:
+        # Primer l'estoc real de la botiga (CSV o Shopify); si no en tenim, el del fitxer d'origen.
+        u = estoc.unitats(con, botiga_id, v["gtin"])
+        return estoc_origen.get(v["talla"]) if u is None else u
+
     return {
         "gtin": fila["gtin"],
         "token": fila["nfc_token"],
@@ -63,12 +92,27 @@ def dades_fitxa(con: sqlite3.Connection, fila: sqlite3.Row, botiga_id: str | Non
                     "actor": tr(e.get("actor", ""), idioma), "data": e.get("data")}
                    for e in origen.get("etapes", [])],
         "certificats": [{"nom": c["nom"], "abast": tr(c.get("abast", ""), idioma)} for c in origen.get("certificats", [])],
-        "talles": [{"gtin": v["gtin"], "talla": v["talla"], "estoc": estoc.get(v["talla"]),
+        "talles": [{"gtin": v["gtin"], "talla": v["talla"], "estoc": unitats(v),
                     "actual": v["gtin"] == fila["gtin"]} for v in variants],
         "faq": [{"q": tr(f["q"], idioma), "a": tr(f["a"], idioma)}
                 for f in origen.get("faq", []) + origen.get("faq_general", [])],
         "mostra_origen": control.mostra_origen(con, botiga_id, avui),
+        "combina": _combina(con, origen.get("combina") or [], idioma),
+        "titol_combina": TITOL_COMBINA.get(idioma, TITOL_COMBINA["ca"]),
     }
+
+
+def _combina(con: sqlite3.Connection, models: list, idioma: str) -> list[str]:
+    """Noms dels models que el fitxer d'origen suggereix combinar (només es mostren, sense enllaç)."""
+    noms = []
+    for m in models[:6]:
+        if not isinstance(m, str):
+            continue
+        fila = con.execute("SELECT origen_json FROM catalog_sku WHERE model = ? AND origen_json IS NOT NULL LIMIT 1",
+                           (m,)).fetchone()
+        nom = json.loads(fila["origen_json"]).get("nom") if fila else None
+        noms.append(tr(nom, idioma) if nom else m)
+    return noms
 
 
 def registra(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str | None, gtin: str,
@@ -77,6 +121,8 @@ def registra(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str | None, gt
         raise ValueError(f"tipus d'esdeveniment desconegut: {tipus}")
     if tipus == "motiu_no_compra" and valor not in MOTIUS_VALIDS:
         raise ValueError(f"motiu desconegut: {valor}")
+    if tipus == "veu_seccio" and valor not in SECCIONS:
+        raise ValueError(f"secció desconeguda: {valor}")
     ts = ts or temps.ara()
     grup = control.grup_del_dia(con, botiga_id, "origen", ts[:10]) if botiga_id else None
     con.execute(
@@ -93,22 +139,33 @@ def demana_talla(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str, gtin_
     if demanat is None:
         raise ValueError("talla desconeguda")
     origen = json.loads(demanat["origen_json"] or "{}")
-    estoc = origen.get("estoc", {}).get(demanat["talla"])
+    disponible = alertes.disponible(con, botiga_id, gtin_demanat, origen.get("estoc", {}).get(demanat["talla"]))
     ts = ts or temps.ara()
     registra(con, sessio_nfc, botiga_id, gtin_origen, "demana_talla", idioma, demanat["talla"], ts)
     cur = con.execute(
         """INSERT INTO peticio_talla (sessio_nfc, botiga_id, gtin_origen, gtin_demanat, talla_demanada,
                                       cabina, hora_peticio, disponible)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (sessio_nfc, botiga_id, gtin_origen, gtin_demanat, demanat["talla"], cabina, ts,
-         None if estoc is None else int(estoc > 0)))
+        (sessio_nfc, botiga_id, gtin_origen, gtin_demanat, demanat["talla"], cabina, ts, disponible))
     con.commit()
+    alertes.notifica_peticio(con, cur.lastrowid, nova=True)
     return cur.lastrowid
 
 
-def resol_peticio(con: sqlite3.Connection, peticio_id: int, estat: str, ts: str | None = None) -> None:
-    if estat not in ("lliurada", "no_disponible"):
+def resol_peticio(con: sqlite3.Connection, peticio_id: int, estat: str, ts: str | None = None) -> bool:
+    """Canvia l'estat d'una petició: pendent -> en_cami -> lliurada | no_disponible.
+
+    Retorna True si ha canviat; False si la petició no existeix o la transició no és
+    permesa (p. ex. ja estava lliurada). `hora_resolta` es posa en arribar a un estat final.
+    """
+    if estat not in ("en_cami", *ESTATS_FINALS):
         raise ValueError(estat)
-    con.execute("UPDATE peticio_talla SET estat = ?, hora_resolta = ? WHERE id = ? AND estat = 'pendent'",
-                (estat, ts or temps.ara(), peticio_id))
+    origens = [e for e, destins in TRANSICIONS.items() if estat in destins]
+    cur = con.execute(
+        f"""UPDATE peticio_talla SET estat = ?, hora_resolta = ? WHERE id = ?
+            AND estat IN ({",".join("?" * len(origens))})""",
+        (estat, (ts or temps.ara()) if estat in ESTATS_FINALS else None, peticio_id, *origens))
     con.commit()
+    if cur.rowcount:
+        alertes.notifica_peticio(con, peticio_id, nova=False)
+    return bool(cur.rowcount)

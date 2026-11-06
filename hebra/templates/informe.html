@@ -9,6 +9,7 @@
   <a class="boto" href="?b={{ r.botiga_id }}&setmana={{ seguent }}">Següent →</a></div>
 </div>
 <p class="muted">{{ r.botiga_id }} · del {{ r.inici }} al {{ r.fi }} · només proves de confiança alta i mitjana</p>
+{% if nivell == 'basic' %}<p class="avis">Botiga de nivell Bàsic (sense sensors a les cabines): les sessions són <b>entrades a zona</b> calculades només amb les lectures, no sessions de cabina.</p>{% endif %}
 
 <div class="panell"><h3>Acció de la setmana</h3>
   <p>{{ r.accio or "Cap acció clara aquesta setmana: no hi ha cap model molt per sota de la mitjana ni demanda perduda." }}</p></div>

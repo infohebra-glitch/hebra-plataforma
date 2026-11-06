@@ -10,14 +10,22 @@ Què simula:
   * lectures agregades cada 10 s, amb "passos" curts i lectures creuades a la cabina veïna;
   * vendes en CSV amb una conversió diferent per model (el vestit "es prova i no es ven");
   * grup de control de l'origen per dies, amb un efecte petit i inventat;
-  * esdeveniments de la fitxa NFC i peticions de talla.
+  * esdeveniments de la fitxa NFC (també les seccions vistes) i peticions de talla,
+    algunes encara obertes l'últim dia i una talla esgotada demanada 3 cops;
+  * per al tauler: estoc per GTIN (amb talles a zero i una faldilla que ningú no prova),
+    l'experiment d'origen, el pilot amb criteris d'èxit, recomptes d'estoc,
+    decisions, peces abandonades i els paràmetres per defecte.
+
+El que s'ha afegit per al tauler fa servir un generador aleatori propi, de manera
+que les proves i vendes simulades són les mateixes que abans.
 
 Ús:  python -m hebra.simulador --setmanes 2 --inici 2026-11-16
 """
 
 import argparse
-import io
 import csv
+import io
+import json
 import random
 import sqlite3
 from datetime import date, datetime, timedelta
@@ -35,6 +43,13 @@ ORIGEN_PROVA = Path(__file__).resolve().parent.parent / "dades" / "origen-prova.
 # Probabilitat de compra després d'una prova, per categoria (inventat).
 CONVERSIO_BASE = {"camisa": 0.34, "jersei": 0.30, "vestit": 0.10, "texans": 0.27}
 EFECTE_ORIGEN = 0.06   # punts de conversió que suma ensenyar l'origen (inventat)
+# Talla que no quadra (insight 6): els texans en 38 es venen molt menys (inventat).
+FACTOR_TALLA = {("TX-26-IND", "38"): 0.35}
+SECCIONS_FITXA = ("talles", "cura", "preguntes")
+# Variants que ningú no prova: estoc parat (insight 14). No tenen etiqueta.
+EXTRES = [("08400000990017", "S", 6), ("08400000990024", "M", 4)]
+MODEL_EXTRA = ("FL-25-GRS", "Gris", "faldilla", 65.0)
+ESTOC_VESTIT = 90   # la marca n'ha comprat massa: risc de rebaixa (insight 15)
 PROB_MOTIU = {"vestit": ["talla", "talla", "tall", "preu"], "default": ["preu", "color", "talla", "qualitat", "altre"]}
 
 
@@ -81,8 +96,11 @@ def _lectures(epc: str, antena: str, inici: datetime, fi: datetime, rssi: float,
 
 def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int = 7) -> dict:
     rng = random.Random(llavor)
+    rng2 = random.Random(llavor * 1000 + 1)  # només per a les dades del tauler
     prepara_botiga(con)
     peces = _peces_fisiques(con)
+    darrer_dia = max(inici + timedelta(days=d) for d in range(setmanes * 7)
+                     if (inici + timedelta(days=d)).weekday() != 6)
     control.desa_assignacio(con, BOTIGA, "origen", control.sorteja(BOTIGA, "origen", inici, setmanes))
 
     lot = {"lectures": [], "sensors": []}
@@ -128,6 +146,9 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
                         if grup == "amb" and rng.random() < 0.5:
                             fitxa.registra(con, sessio_nfc, BOTIGA, k["gtin"], "veu_origen", "ca",
                                            ts=(entra + timedelta(seconds=60)).isoformat())
+                        if rng2.random() < 0.6:
+                            _veu_seccio(con, sessio_nfc, k["gtin"], rng2.choice(SECCIONS_FITXA), grup,
+                                        (entra + timedelta(seconds=70)).isoformat())
                         if rng.random() < 0.12:
                             germanes = [v for v in cataleg.variants_del_model(con, k["model"], k["color"]) if v["gtin"] != k["gtin"]]
                             if germanes:
@@ -136,10 +157,15 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
                                                          "ca", cabina, ts=ts_p.isoformat())
                                 fila = con.execute("SELECT disponible FROM peticio_talla WHERE id = ?", (pid,)).fetchone()
                                 estat = "lliurada" if fila["disponible"] != 0 else "no_disponible"
-                                fitxa.resol_peticio(con, pid, estat, (ts_p + timedelta(seconds=rng.randint(40, 150))).isoformat())
+                                ts_r = (ts_p + timedelta(seconds=rng.randint(40, 150))).isoformat()
+                                if dia == darrer_dia and estat == "lliurada" and rng2.random() < 0.5:
+                                    _deixa_oberta(con, pid, rng2.choice(["pendent", "en_cami"]))
+                                else:
+                                    fitxa.resol_peticio(con, pid, estat, ts_r)
 
                     # Compra?
                     p = CONVERSIO_BASE.get(k["categoria"], 0.25) + (EFECTE_ORIGEN if grup == "amb" and toca else 0)
+                    p *= FACTOR_TALLA.get((k["model"], k["talla"]), 1)
                     if rng.random() < p:
                         hora = fi + timedelta(minutes=rng.randint(2, 15))
                         files_venda.append([hora.isoformat(), BOTIGA, k["gtin"], 1, k["preu_eur"], f"T{rng.randint(10**5, 10**6)}"])
@@ -161,13 +187,135 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
     w.writerows(files_venda)
     vendes.importa_csv(con, sortida.getvalue())
 
+    _talla_esgotada(con, darrer_dia)
+    _dades_tauler(con, inici, setmanes, darrer_dia, rng2)
+
     regla = carrega().regla
     resum["proves_detectades"] = proves.processa_botiga(con, BOTIGA, regla)
     resum["vendes_atribuides"] = vendes.atribueix(con, BOTIGA)
+    resum["peces_abandonades"] = _abandonades(con, darrer_dia, rng2)
     resum["lectures"] = res.lectures
     resum["linies_venda"] = len(files_venda)
     resum["csv_vendes"] = sortida.getvalue()
     return resum
+
+
+# ---------------------------------------------------------------- Dades per al tauler
+
+
+def _veu_seccio(con: sqlite3.Connection, sessio_nfc: str, gtin: str, seccio: str, grup: str | None, ts: str) -> None:
+    """La fitxa NFC registra quina secció obre el client (talles, cura, preguntes). Insert directe:
+    no depèn de la versió de fitxa.TIPUS."""
+    con.execute("""INSERT INTO esdeveniment_nfc (sessio_nfc, ts, botiga_id, gtin, tipus, valor, idioma, grup)
+                   VALUES (?, ?, ?, ?, 'veu_seccio', ?, 'ca', ?)""", (sessio_nfc, ts, BOTIGA, gtin, seccio, grup))
+
+
+def _deixa_oberta(con: sqlite3.Connection, peticio_id: int, estat: str) -> None:
+    con.execute("UPDATE peticio_talla SET estat = ?, hora_resolta = NULL WHERE id = ?", (estat, peticio_id))
+    con.commit()
+
+
+def _talla_esgotada(con: sqlite3.Connection, dia: date) -> None:
+    """Tres clients demanen la camisa de lli en L (sense estoc) el darrer dia: alerta de talla esgotada."""
+    m = con.execute("SELECT gtin FROM catalog_sku WHERE model = 'CL-24-NAT' AND talla = 'M'").fetchone()
+    l_ = con.execute("SELECT gtin FROM catalog_sku WHERE model = 'CL-24-NAT' AND talla = 'L'").fetchone()
+    if not m or not l_:
+        return
+    for i, (h, mi) in enumerate([(17, 5), (17, 40), (18, 15)]):
+        ts = datetime(dia.year, dia.month, dia.day, h, mi, tzinfo=ZONA)
+        pid = fitxa.demana_talla(con, fitxa.nova_sessio(), BOTIGA, m["gtin"], l_["gtin"], "ca", CABINES[i],
+                                 ts=ts.isoformat())
+        if i < 2:
+            fitxa.resol_peticio(con, pid, "no_disponible", (ts + timedelta(seconds=70)).isoformat())
+
+
+def _dades_tauler(con: sqlite3.Connection, inici: date, setmanes: int, darrer_dia: date, rng: random.Random) -> None:
+    """Estoc, faldilla sense proves, experiment, pilot, recomptes, decisions i paràmetres (idempotent)."""
+    fi = inici + timedelta(days=setmanes * 7 - 1)
+    model, color, categoria, preu = MODEL_EXTRA
+    for gtin, talla, _ in EXTRES:
+        con.execute("""INSERT OR IGNORE INTO catalog_sku (gtin, model, color, talla, categoria, preu_eur, origen_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""", (gtin, model, color, talla, categoria, preu,
+                                                      json.dumps({"nom": {"ca": "Faldilla de llana"}})))
+    # Una venda antiga de la faldilla: fa més de 21 dies que no es mou.
+    antiga = datetime.combine(inici - timedelta(days=35), datetime.min.time(), ZONA).replace(hour=12)
+    if not con.execute("SELECT 1 FROM venda_linia WHERE gtin = ? AND data = ?",
+                       (EXTRES[0][0], antiga.date().isoformat())).fetchone():
+        con.execute("""INSERT INTO venda_linia (botiga_id, ts, data, gtin, quantitat, import_eur)
+                       VALUES (?, ?, ?, ?, 1, ?)""", (BOTIGA, antiga.isoformat(), antiga.date().isoformat(), EXTRES[0][0], preu))
+
+    actualitzat = datetime.combine(darrer_dia, datetime.min.time(), ZONA).replace(hour=21).isoformat()
+    unitats: dict[str, int] = {g: u for g, _, u in EXTRES}
+    for k in con.execute("SELECT gtin, model, talla, origen_json FROM catalog_sku WHERE origen_json IS NOT NULL"):
+        if k["gtin"] in unitats:
+            continue
+        u = (json.loads(k["origen_json"]).get("estoc") or {}).get(k["talla"]) or 0
+        unitats[k["gtin"]] = ESTOC_VESTIT if k["model"] == "VV-26-VRD" and u else u
+    con.executemany("""INSERT INTO estoc (botiga_id, gtin, unitats, actualitzat, font) VALUES (?, ?, ?, ?, 'csv')
+                       ON CONFLICT(botiga_id, gtin) DO UPDATE SET unitats = excluded.unitats,
+                         actualitzat = excluded.actualitzat""",
+                    [(BOTIGA, g, u, actualitzat) for g, u in sorted(unitats.items())])
+
+    # Recompte manual contra RFID a l'inici (insight 23)
+    if not con.execute("SELECT 1 FROM recompte_estoc WHERE botiga_id = ?", (BOTIGA,)).fetchone():
+        for g in sorted(unitats, key=lambda g: (-unitats[g], g))[:6]:
+            manual = unitats[g]
+            con.execute("INSERT INTO recompte_estoc (botiga_id, data, gtin, manual, rfid) VALUES (?, ?, ?, ?, ?)",
+                        (BOTIGA, inici.isoformat(), g, manual, max(0, manual - rng.choice([0, 0, 0, 1, 2]))))
+
+    exp_id = f"origen-{inici:%Y-%m}"
+    con.execute("""INSERT OR IGNORE INTO experiment (id, botiga_id, variable, hipotesi, unitat, inici, fi, proves_minimes, estat)
+                   VALUES (?, ?, 'origen', ?, 'dia', ?, ?, 30, 'actiu')""",
+                (exp_id, BOTIGA, "Ensenyar l'origen a la fitxa NFC fa que es compri més després de provar.",
+                 inici.isoformat(), fi.isoformat()))
+    criteris = [
+        {"id": "c1", "descripcio": "Proves de confiança alta o mitjana", "metrica": "pct_proves_valides",
+         "objectiu": 0.85, "comparador": ">="},
+        {"id": "c2", "descripcio": "Mediana de resposta a les peticions de talla", "metrica": "temps_resposta_mediana_s",
+         "objectiu": 120, "comparador": "<="},
+        {"id": "c3", "descripcio": "Clients que responen el motiu de no compra", "metrica": "taxa_resposta_motiu",
+         "objectiu": 0.10, "comparador": ">="},
+        {"id": "c4", "descripcio": "Error de l'estoc RFID contra el recompte manual", "metrica": "error_estoc_pct",
+         "objectiu": 0.05, "comparador": "<="},
+    ]
+    con.execute("""INSERT OR IGNORE INTO pilot (botiga_id, inici, fi, criteris_json, taxa_error_observacio)
+                   VALUES (?, ?, ?, ?, 0.04)""",
+                (BOTIGA, (inici - timedelta(days=7)).isoformat(), (inici + timedelta(days=41)).isoformat(),
+                 json.dumps(criteris, ensure_ascii=False)))
+
+    if not con.execute("SELECT 1 FROM decisio WHERE botiga_id = ?", (BOTIGA,)).fetchone():
+        dia1 = (inici + timedelta(days=4)).isoformat() + "T19:00:00+01:00"
+        dia2 = (inici + timedelta(days=8)).isoformat() + "T19:00:00+01:00"
+        con.executemany(
+            """INSERT INTO decisio (botiga_id, creada, titol, descripcio, insight, model, responsable, data_limit,
+                                   estat, experiment_id, resultat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [(BOTIGA, dia1, "Moure el vestit de viscosa a l'entrada", "Es prova molt i es ven poc.",
+              "molt_provat_poc_venut", "VV-26-VRD", "BOT", (inici + timedelta(days=7)).isoformat(), "feta", None,
+              "Fet el dia 5. Una setmana després la conversió no ha canviat: el problema sembla la talla."),
+             (BOTIGA, dia2, "Demanar la camisa de lli en L", "Peticions de la L sense estoc.",
+              "demanda_perduda", "CL-24-NAT", "PROD", (inici + timedelta(days=14)).isoformat(), "acceptada", None, None),
+             (BOTIGA, dia2, "Mantenir la prova de l'origen fins al final", "",
+              "experiment", None, "MKT", fi.isoformat(), "proposada", exp_id, None)])
+
+    for clau, valor in (("marge_peca", "40"), ("quota_mensual", "350"), ("dades_simulades", "1")):
+        con.execute("INSERT OR IGNORE INTO parametre (botiga_id, clau, valor) VALUES ('*', ?, ?)", (clau, valor))
+    con.commit()
+
+
+def _abandonades(con: sqlite3.Connection, darrer_dia: date, rng: random.Random) -> int:
+    """Unes quantes peces abandonades els darrers dies (insight 13); una ja resolta."""
+    candidates = con.execute(
+        """SELECT p.epc, s.cabina_id, s.fi FROM prova p JOIN sessio s ON s.id = p.sessio_id
+           WHERE p.confianca != 'ambigua' AND s.inici >= ? ORDER BY p.id""",
+        ((darrer_dia - timedelta(days=2)).isoformat(),)).fetchall()
+    tria = rng.sample(candidates, min(4, len(candidates)))
+    for i, c in enumerate(tria):
+        detectada = datetime.fromisoformat(c["fi"]) + timedelta(minutes=30)
+        resolta = (detectada + timedelta(minutes=20)).isoformat() if i == 0 else None
+        con.execute("""INSERT OR IGNORE INTO peca_abandonada (epc, cabina_id, detectada, resolta)
+                       VALUES (?, ?, ?, ?)""", (c["epc"], c["cabina_id"], detectada.isoformat(), resolta))
+    con.commit()
+    return len(tria)
 
 
 def main() -> None:
