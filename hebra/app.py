@@ -29,7 +29,7 @@ from .config import carrega
 
 ARREL = Path(__file__).parent
 cfg = carrega()
-con = db.connecta(cfg.ruta_bd)
+con = db.ConnexioPerFil(cfg.ruta_bd)  # una connexió per fil (vegeu db.ConnexioPerFil)
 db.inicialitza(con)
 
 log = logging.getLogger("hebra")

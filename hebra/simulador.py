@@ -94,23 +94,23 @@ def _lectures(epc: str, antena: str, inici: datetime, fi: datetime, rssi: float,
     return out
 
 
-def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int = 7) -> dict:
+def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int = 7,
+           fins: date | None = None) -> dict:
+    """Simula `setmanes` setmanes des d'`inici`. Amb `fins`, no genera cap dia posterior (res al futur)."""
     rng = random.Random(llavor)
     rng2 = random.Random(llavor * 1000 + 1)  # només per a les dades del tauler
     prepara_botiga(con)
     peces = _peces_fisiques(con)
-    darrer_dia = max(inici + timedelta(days=d) for d in range(setmanes * 7)
-                     if (inici + timedelta(days=d)).weekday() != 6)
+    dies = [inici + timedelta(days=d) for d in range(setmanes * 7)]
+    dies = [d for d in dies if d.weekday() != 6 and (fins is None or d <= fins)]  # diumenge tancat
+    darrer_dia = max(dies)
     control.desa_assignacio(con, BOTIGA, "origen", control.sorteja(BOTIGA, "origen", inici, setmanes))
 
     lot = {"lectures": [], "sensors": []}
     files_venda = []
     resum = {"sessions": 0, "peces_provades": 0}
 
-    for d in range(setmanes * 7):
-        dia = inici + timedelta(days=d)
-        if dia.weekday() == 6:
-            continue  # diumenge tancat
+    for dia in dies:
         grup = control.grup_del_dia(con, BOTIGA, "origen", dia.isoformat())
         for ci, cabina in enumerate(CABINES):
             antena = f"R700-1:{ci + 1}"
@@ -320,7 +320,7 @@ def _abandonades(con: sqlite3.Connection, darrer_dia: date, rng: random.Random) 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Omple la base de dades amb un pilot simulat.")
-    ap.add_argument("--inici", default="2026-11-16", help="dilluns d'inici (AAAA-MM-DD)")
+    ap.add_argument("--inici", help="dilluns d'inici (AAAA-MM-DD); per defecte, perquè l'última setmana simulada sigui l'actual")
     ap.add_argument("--setmanes", type=int, default=2)
     ap.add_argument("--csv", help="desa també el CSV de vendes generat en aquest fitxer")
     args = ap.parse_args()
@@ -328,7 +328,13 @@ def main() -> None:
     cfg = carrega()
     con = db.connecta(cfg.ruta_bd)
     db.inicialitza(con)
-    resum = simula(con, date.fromisoformat(args.inici), args.setmanes)
+    if args.inici:
+        inici = date.fromisoformat(args.inici)
+    else:  # acaba ahir: el tauler mostra dades de seguida i no hi ha res al futur
+        ahir = date.today() - timedelta(days=1)
+        inici = ahir - timedelta(days=ahir.weekday(), weeks=args.setmanes - 1)
+    resum = simula(con, inici, args.setmanes,
+                   fins=None if args.inici else date.today() - timedelta(days=1))
     if args.csv:
         Path(args.csv).write_text(resum["csv_vendes"], encoding="utf-8")
     resum.pop("csv_vendes")

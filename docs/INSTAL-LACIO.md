@@ -21,6 +21,9 @@ cd /opt/hebra-plataforma
 sudo -u hebra python3 -m venv .venv
 sudo -u hebra .venv/bin/pip install -r requirements.txt
 
+# Tauler web (cal Node.js 18+ només per compilar-lo; també es pot compilar en un altre ordinador i copiar frontend/dist)
+cd frontend && sudo -u hebra npm ci && sudo -u hebra npm run build && cd ..
+
 # Configuració (secrets fora del repositori)
 sudo mkdir -p /etc/hebra
 sudo cp .env.example /etc/hebra/plataforma.env
@@ -29,6 +32,9 @@ sudo nano /etc/hebra/plataforma.env
 #   HEBRA_CLAU_PASSARELLA=<genereu-la: python3 -c "import secrets; print(secrets.token_urlsafe(32))">
 #   HEBRA_CONTRASENYA_BOTIGA=<una de forta>
 #   HEBRA_SAL_TIQUET=<una altra de llarga>
+#   HEBRA_ENTORN=produccio
+#   HEBRA_SECRET=<python3 -c "import secrets; print(secrets.token_urlsafe(48))">
+#   HEBRA_COOKIE_SECURE=1
 sudo chmod 600 /etc/hebra/plataforma.env
 
 # Servei i HTTPS
@@ -38,7 +44,9 @@ sudo cp desplegament/Caddyfile /etc/caddy/Caddyfile   # canvieu-hi el domini
 sudo systemctl reload caddy
 ```
 
-Comprovació: `https://<domini>/salut` ha de respondre `{"estat":"ok",...}`.
+Comprovació: `https://<domini>/salut` ha de respondre `{"estat":"ok",...}`, i `https://<domini>/app/` ha de mostrar la pantalla d'entrada del tauler.
+
+El servei arrenca **un sol procés** `uvicorn`: les alertes en directe (peticions de talla a la web del dependent) viuen a la memòria del procés.
 
 La plataforma recalcula proves i atribucions cada 5 minuts (`HEBRA_PROCESSA_CADA_MIN`).
 
@@ -111,11 +119,21 @@ Al servidor, amb les variables de `/etc/hebra/plataforma.env` carregades (`set -
 
 # Grup de control de l'origen per a les 6 setmanes de mesura
 .venv/bin/python -m hebra.admin control --botiga BCN-01 --inici 2026-11-23 --setmanes 6
+
+# Usuaris del tauler: un per persona (la contrasenya es demana i no queda a l'historial)
+.venv/bin/python -m hebra.admin usuari --correu anna@marca.cat --nom Anna --rol marca
+.venv/bin/python -m hebra.admin usuari --correu bcn@marca.cat --nom "Botiga BCN" --rol botiga --botiga BCN-01
+
+# Estoc inicial (botiga,gtin,unitats) o, si la botiga fa servir Shopify, sincronització de només lectura
+.venv/bin/python -m hebra.admin estoc estoc.csv
+.venv/bin/python -m hebra.admin shopify --botiga BCN-01     # cal HEBRA_SHOPIFY_TOKEN_BCN_01
 ```
 
 `etiquetes-nfc.csv` és la llista que va a qui codifica les etiquetes (o a l'app del mòbil que les grava): cada EPC UHF amb la URL que ha de portar el seu xip NFC. Cada URL té un codi aleatori, i tornar a executar l'ordre no el canvia.
 
-Les **vendes** es pugen cada setmana a `https://<domini>/botiga/vendes` (CSV).
+Les **vendes** (i l'estoc i el catàleg) es pugen des del tauler, a **Importa dades** (`https://<domini>/app/dades`), en CSV. La pàgina antiga `/botiga/vendes` continua funcionant.
+
+El dependent obre `https://<domini>/app/dependent` al mòbil de la botiga (amb l'usuari de rol `botiga`) i hi rep les peticions de talla en directe.
 
 ## 4. Prova de laboratori (20 peces)
 

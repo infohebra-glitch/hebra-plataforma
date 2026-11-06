@@ -1,0 +1,57 @@
+/*
+ * Fitxes de disseny de Hebra. Colors de la marca: Verd Traça #214F46,
+ * Lli cru #EFE9DD, Coure mat #B07A5E, Grafit #2A2D2B (hebra/static/estil.css).
+ *
+ * Gràfics: --serie-1 (verd) i --serie-2 (coure) són els colors de la marca
+ * ajustats perquè passin el validador de paleta (daltonisme, contrast) sobre
+ * la superfície clara i la fosca. No es fan servir mai per a text.
+ */
+:root {
+  color-scheme: light;
+  --traca: #214F46; --lli: #EFE9DD; --coure: #B07A5E; --grafit: #2A2D2B;
+
+  --bg: #F6F3EC; --surface: #FFFFFF; --surface-2: #FBF9F4;
+  --fg: #2A2D2B; --fg-2: #4b504c; --muted: #646a63; --line: #DCD6C9; --line-2: #ebe6db;
+  --accent: #214F46; --accent-fg: #FFFFFF; --accent-soft: #E3ECE8; --accent-hover: #183c35;
+  --warn: #8a4f31; --warn-soft: #f6e8df; --good: #2E6B4F; --good-soft: #e1eee6;
+  --critical: #b3302f; --critical-soft: #f8e3e1;
+
+  --serie-1: #00765a; --serie-2: #cc7440; --serie-neutra: #b9b2a3;
+  --c4-text: #2A2D2B; --c5-text: #FFFFFF;
+  --grid: #ece7dd; --eix: #c9c2b3; --banda-origen: rgba(176, 122, 94, 0.10);
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --radi: 12px; --radi-petit: 8px;
+  --ombra: 0 1px 2px rgba(42, 45, 43, 0.06), 0 2px 8px rgba(42, 45, 43, 0.04);
+  --gutter: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #1d201f; --surface: #252927; --surface-2: #2a2e2c;
+    --fg: #ECE7DC; --fg-2: #cfcabf; --muted: #A6ACA4; --line: #3a403c; --line-2: #313633;
+    --accent: #8FC2B2; --accent-fg: #14211d; --accent-soft: #24372f; --accent-hover: #a9d3c5;
+    --warn: #E0AB8E; --warn-soft: #3b2c23; --good: #8FC2B2; --good-soft: #22352d;
+    --critical: #ec8b85; --critical-soft: #3d2423;
+    --serie-1: #2f9a7c; --serie-2: #d0703f; --serie-neutra: #5d625e;
+    --c4-text: #FFFFFF; --c5-text: #14211d;
+    --grid: #303532; --eix: #4a504c; --banda-origen: rgba(208, 112, 63, 0.08);
+    --ombra: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1d201f; --surface: #252927; --surface-2: #2a2e2c;
+  --fg: #ECE7DC; --fg-2: #cfcabf; --muted: #A6ACA4; --line: #3a403c; --line-2: #313633;
+  --accent: #8FC2B2; --accent-fg: #14211d; --accent-soft: #24372f; --accent-hover: #a9d3c5;
+  --warn: #E0AB8E; --warn-soft: #3b2c23; --good: #8FC2B2; --good-soft: #22352d;
+  --critical: #ec8b85; --critical-soft: #3d2423;
+  --serie-1: #2f9a7c; --serie-2: #d0703f; --serie-neutra: #5d625e;
+  --c4-text: #FFFFFF; --c5-text: #14211d;
+  --grid: #303532; --eix: #4a504c; --banda-origen: rgba(208, 112, 63, 0.08);
+  --ombra: none;
+}

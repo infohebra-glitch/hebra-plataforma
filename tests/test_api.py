@@ -164,6 +164,7 @@ def test_rutes_analitica_reben_el_filtre(entorn, monkeypatch):
 
     # Per defecte: els darrers 7 dies amb dades.
     con.execute("INSERT INTO sessio (cabina_id, inici, fi) VALUES ('BCN-01-C1', '2026-11-20T10:00:00+01:00', '2026-11-20T10:05:00+01:00')")
+    con.commit()  # cada fil té la seva connexió: cal confirmar perquè l'API ho vegi
     c.get("/api/v2/resum")
     f = rebuts[-1][1]
     assert (f.des.isoformat(), f.fins.isoformat()) == ("2026-11-14", "2026-11-20")
@@ -443,3 +444,16 @@ def test_cli_usuari(tmp_path, monkeypatch, capsys):
                                       "--rol", "botiga", "--contrasenya", "una-contrasenya-llarga"])
     with pytest.raises(SystemExit, match="necessita una botiga"):
         admin.main()
+
+
+def test_peticions_simultanies_no_es_trepitgen(entorn):
+    """Regressió: amb una sola connexió compartida, peticions en paral·lel donaven 401/403/500 aleatoris."""
+    from concurrent.futures import ThreadPoolExecutor
+    app_mod, con = entorn
+    con.commit()
+    admin, botiga = _client(app_mod, "admin@hebra.cat"), _client(app_mod, "bcn@hebra.cat")
+    crides = [(admin, "/api/v2/decisions"), (botiga, "/api/v2/abandonades?obertes=1"),
+              (admin, "/api/v2/jo"), (botiga, "/api/v2/peticions")] * 25
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        codis = list(ex.map(lambda cr: cr[0].get(cr[1]).status_code, crides))
+    assert set(codis) == {200}, codis

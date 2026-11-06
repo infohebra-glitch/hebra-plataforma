@@ -192,7 +192,7 @@ def origen_resum(origen: dict | None) -> dict | None:
     return {
         "etapes": [{"etapa": e.get("etapa"), "pais": e.get("pais"), "regio": ca(e.get("regio", ""))}
                    for e in origen.get("etapes", [])],
-        "composicio": [{"material": ca(c.get("material")), "pct": c.get("pct"), "pais": c.get("pais")}
+        "composicio": [{"material": ca(c.get("material")), "pct": (c["pct"] / 100 if c.get("pct") is not None else None), "pais": c.get("pais")}
                        for c in origen.get("composicio", [])],
     }
 

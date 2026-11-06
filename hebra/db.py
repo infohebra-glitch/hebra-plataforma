@@ -7,6 +7,7 @@ marcador de paràmetres) i el tipus AUTOINCREMENT de schema.sql.
 """
 
 import sqlite3
+import threading
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -21,6 +22,28 @@ def connecta(ruta: str) -> sqlite3.Connection:
     # WAL: la web pot llegir mentre el càlcul periòdic de proves escriu.
     con.execute("PRAGMA journal_mode = WAL")
     return con
+
+
+class ConnexioPerFil:
+    """Una connexió SQLite per fil, amb la mateixa interfície que `sqlite3.Connection`.
+
+    FastAPI executa els endpoints síncrons en un grup de fils. Una sola connexió
+    compartida entre fils fa que dues peticions simultànies es trepitgin els cursors
+    (respostes d'un altre usuari, 401/403/500 aleatoris). Amb WAL, cada fil té la seva.
+    """
+
+    def __init__(self, ruta: str):
+        self.ruta = ruta
+        self._local = threading.local()
+
+    def connexio(self) -> sqlite3.Connection:
+        con = getattr(self._local, "con", None)
+        if con is None:
+            con = self._local.con = connecta(self.ruta)
+        return con
+
+    def __getattr__(self, nom: str):
+        return getattr(self.connexio(), nom)
 
 
 def inicialitza(con: sqlite3.Connection) -> None:
