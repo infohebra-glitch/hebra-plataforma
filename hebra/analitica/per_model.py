@@ -111,8 +111,10 @@ def model_detall(con: sqlite3.Connection, f: Filtre, model: str) -> dict | None:
 
     `canvis_de_talla` d'una talla: peticions de talla fetes amb aquesta talla a la mà (gtin_origen).
     `provat_amb`: altres models provats a la mateixa sessió de cabina (sessions diferents).
+    `dubte_talla` (v0.3): sessions on s'ha provat en dues talles o més (hebra/analitica/sessions.py).
     """
     from . import experimentacio as experiments  # evita la importació circular
+    from .sessions import dubte_talla_model
 
     info = base.info_models(con).get(model)
     if info is None:
@@ -178,6 +180,7 @@ def model_detall(con: sqlite3.Connection, f: Filtre, model: str) -> dict | None:
                        for m, s in sorted(amb.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:5]],
         "origen": origen_resum(info["origen"]),
         "efecte_origen": experiments.efecte_origen(con, f, model),
+        "dubte_talla": dubte_talla_model(con, f, model),
     }
 
 

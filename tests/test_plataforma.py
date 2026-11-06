@@ -239,7 +239,7 @@ def test_shopify_sincronitza(con, shopify_fals, monkeypatch):
     _ShopifyFals.peticions = []
     assert shopify.sincronitza(con, "B")["linies"] == 0
     q = next(q for p, q, _ in _ShopifyFals.peticions if p.endswith("orders.json"))
-    assert "created_at_min" in q
+    assert "updated_at_min" in q  # per data d'actualització: així arriben les devolucions de comandes antigues
     assert con.execute("SELECT COUNT(*) FROM venda_linia").fetchone()[0] == 2
 
 

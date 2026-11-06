@@ -13,7 +13,8 @@ TEXTOS = {
         "per_que": "Per què no te l'emportes?", "per_que_ajuda": "Una resposta, anònima. Ens ajuda a fer roba millor.",
         "motiu_ok": "Gràcies. Ho tindrem en compte.",
         "motius": {"talla": "La talla", "tall": "El tall", "preu": "El preu", "color": "El color",
-                   "qualitat": "La qualitat", "altre": "Una altra cosa"},
+                   "qualitat": "La qualitat", "nomes_mirava": "Només mirava", "altre": "Una altra cosa"},
+        "assistencia": "Vull que m'atenguin", "assistencia_ajuda": "Algú de la botiga vindrà a la cabina.", "assistencia_ok": "Ara ve algú a la cabina.", "guia_talles": "Guia de talles", "unitats": "unitats", "combina": "Combina amb",
         "preguntes": "Preguntes", "certificats": "Certificats", "privacitat":
         "Aquesta pàgina no fa servir galetes ni guarda cap dada teva.",
         "etapes": {"cultiu": "Cultiu", "filatura": "Filatura", "teixit": "Teixit", "tintura": "Tintura",
@@ -28,7 +29,8 @@ TEXTOS = {
         "per_que": "¿Por qué no te la llevas?", "per_que_ajuda": "Una respuesta, anónima. Nos ayuda a hacer mejor ropa.",
         "motiu_ok": "Gracias. Lo tendremos en cuenta.",
         "motius": {"talla": "La talla", "tall": "El corte", "preu": "El precio", "color": "El color",
-                   "qualitat": "La calidad", "altre": "Otra cosa"},
+                   "qualitat": "La calidad", "nomes_mirava": "Solo miraba", "altre": "Otra cosa"},
+        "assistencia": "Quiero que me atiendan", "assistencia_ajuda": "Alguien de la tienda vendrá al probador.", "assistencia_ok": "Ahora viene alguien al probador.", "guia_talles": "Guía de tallas", "unitats": "unidades", "combina": "Combina con",
         "preguntes": "Preguntas", "certificats": "Certificados", "privacitat":
         "Esta página no usa cookies ni guarda ningún dato tuyo.",
         "etapes": {"cultiu": "Cultivo", "filatura": "Hilatura", "teixit": "Tejido", "tintura": "Tintura",
@@ -43,7 +45,8 @@ TEXTOS = {
         "per_que": "Pourquoi ne le prenez-vous pas ?", "per_que_ajuda": "Une réponse, anonyme. Elle nous aide à faire de meilleurs vêtements.",
         "motiu_ok": "Merci. Nous en tiendrons compte.",
         "motius": {"talla": "La taille", "tall": "La coupe", "preu": "Le prix", "color": "La couleur",
-                   "qualitat": "La qualité", "altre": "Autre chose"},
+                   "qualitat": "La qualité", "nomes_mirava": "Je regardais seulement", "altre": "Autre chose"},
+        "assistencia": "Je voudrais être conseillé", "assistencia_ajuda": "Quelqu'un du magasin viendra à la cabine.", "assistencia_ok": "Quelqu'un arrive à la cabine.", "guia_talles": "Guide des tailles", "unitats": "unités", "combina": "À associer avec",
         "preguntes": "Questions", "certificats": "Certificats", "privacitat":
         "Cette page n'utilise pas de cookies et n'enregistre aucune donnée vous concernant.",
         "etapes": {"cultiu": "Culture", "filatura": "Filature", "teixit": "Tissage", "tintura": "Teinture",
@@ -58,7 +61,8 @@ TEXTOS = {
         "per_que": "Why aren't you taking it?", "per_que_ajuda": "One anonymous answer. It helps us make better clothes.",
         "motiu_ok": "Thank you. We'll take it into account.",
         "motius": {"talla": "The size", "tall": "The fit", "preu": "The price", "color": "The colour",
-                   "qualitat": "The quality", "altre": "Something else"},
+                   "qualitat": "The quality", "nomes_mirava": "Just looking", "altre": "Something else"},
+        "assistencia": "I'd like some help", "assistencia_ajuda": "Someone from the shop will come to your fitting room.", "assistencia_ok": "Someone is on their way to your fitting room.", "guia_talles": "Size guide", "unitats": "units", "combina": "Goes well with",
         "preguntes": "Questions", "certificats": "Certificates", "privacitat":
         "This page uses no cookies and stores no data about you.",
         "etapes": {"cultiu": "Growing", "filatura": "Spinning", "teixit": "Weaving", "tintura": "Dyeing",

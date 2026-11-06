@@ -16,13 +16,16 @@ Format del lot (JSON) que espera el núvol:
         {"cabina": "BCN-01-C1", "ts": "2026-11-16T12:00:00+01:00", "tipus": "porta_tancada"}
       ]
     }
+
+Després de desar el lot es publica l'estat en directe de les cabines afectades
+(esdeveniment SSE `cabina`, hebra/provadors.py).
 """
 
 import sqlite3
 from dataclasses import dataclass
 
 from . import epc as epc_mod
-from . import temps
+from . import provadors, temps
 
 TIPUS_SENSOR = {"porta_tancada", "porta_oberta", "presencia_si", "presencia_no"}
 
@@ -36,8 +39,11 @@ class Resultat:
 
 def desa_lot(con: sqlite3.Connection, lot: dict) -> Resultat:
     res = Resultat(errors=[])
-    antenes = {f["id"]: f["zona_horaria"] for f in con.execute(
-        "SELECT a.id, b.zona_horaria FROM antena a JOIN cabina c ON c.id = a.cabina_id JOIN botiga b ON b.id = c.botiga_id")}
+    antenes, cabina_antena = {}, {}
+    for f in con.execute("""SELECT a.id, a.cabina_id, b.zona_horaria FROM antena a JOIN cabina c ON c.id = a.cabina_id
+                            JOIN botiga b ON b.id = c.botiga_id"""):
+        antenes[f["id"]], cabina_antena[f["id"]] = f["zona_horaria"], f["cabina_id"]
+    afectades: set[str] = set()
     cabines = {f["id"]: f["zona_horaria"] for f in con.execute(
         "SELECT c.id, b.zona_horaria FROM cabina c JOIN botiga b ON b.id = c.botiga_id")}
 
@@ -50,6 +56,7 @@ def desa_lot(con: sqlite3.Connection, lot: dict) -> Resultat:
                 (epc_mod.normalitza(l["epc"]), l["antena"], temps.local(l["inici"], zona),
                  temps.local(l["fi"], zona), int(l["n"]), float(l["rssi_max"]), float(l["rssi_mitja"])))
             res.lectures += 1
+            afectades.add(cabina_antena[l["antena"]])
         except (KeyError, ValueError, TypeError) as e:
             res.errors.append(f"lectura {i}: {e!r}")
 
@@ -60,7 +67,10 @@ def desa_lot(con: sqlite3.Connection, lot: dict) -> Resultat:
             con.execute("INSERT INTO sensor_event (cabina_id, ts, tipus) VALUES (?, ?, ?)",
                         (s["cabina"], temps.local(s["ts"], cabines[s["cabina"]]), s["tipus"]))
             res.sensors += 1
+            afectades.add(s["cabina"])
         except (KeyError, ValueError, TypeError) as e:
             res.errors.append(f"sensor {i}: {e!r}")
     con.commit()
+    if afectades:
+        provadors.notifica_lot(con, afectades)
     return res

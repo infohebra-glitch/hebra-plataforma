@@ -14,6 +14,8 @@ Qualsevol servidor Linux petit serveix (previst: Hetzner CX23, Debian o Ubuntu).
 
 ```bash
 sudo apt install -y python3-venv git caddy
+# Dependències de WeasyPrint (els informes en PDF)
+sudo apt install -y libpango-1.0-0 libpangoft2-1.0-0
 sudo useradd --system --no-create-home hebra
 sudo git clone https://github.com/infohebra-glitch/hebra-plataforma.git /opt/hebra-plataforma
 sudo chown -R hebra /opt/hebra-plataforma
@@ -35,6 +37,13 @@ sudo nano /etc/hebra/plataforma.env
 #   HEBRA_ENTORN=produccio
 #   HEBRA_SECRET=<python3 -c "import secrets; print(secrets.token_urlsafe(48))">
 #   HEBRA_COOKIE_SECURE=1
+#   Correu dels informes programats (opcional; sense HEBRA_SMTP_HOST es generen però no s'envien).
+#   Només a l'equip de la marca, mai a clients:
+#   HEBRA_SMTP_HOST=smtp.el-vostre-proveidor.cat
+#   HEBRA_SMTP_PORT=587               (STARTTLS)
+#   HEBRA_SMTP_USUARI=informes@marca.cat
+#   HEBRA_SMTP_CONTRASENYA=<la del compte>
+#   HEBRA_SMTP_REMITENT=Hebra <informes@marca.cat>
 sudo chmod 600 /etc/hebra/plataforma.env
 
 # Servei i HTTPS
@@ -134,6 +143,44 @@ Al servidor, amb les variables de `/etc/hebra/plataforma.env` carregades (`set -
 Les **vendes** (i l'estoc i el catàleg) es pugen des del tauler, a **Importa dades** (`https://<domini>/app/dades`), en CSV. La pàgina antiga `/botiga/vendes` continua funcionant.
 
 El dependent obre `https://<domini>/app/dependent` al mòbil de la botiga (amb l'usuari de rol `botiga`) i hi rep les peticions de talla en directe.
+
+## 3.1 Connectar el TPV i la botiga en línia
+
+Al tauler, **Connexions i dades** (usuari de rol marca o admin). Cada connexió és de només lectura: Hebra no escriu mai res a Shopify, Square ni al TPV. El testimoni es desa xifrat amb una clau que surt de `HEBRA_SECRET` (si canvieu `HEBRA_SECRET`, caldrà tornar a enganxar els testimonis) i no es torna a ensenyar mai. Cada connexió es sincronitza sola cada 60 minuts (es pot posar entre 15 minuts i una setmana) i té el botó **Sincronitza ara** i el **registre** de les darreres sincronitzacions.
+
+Què es porta: el **catàleg** (variants amb el codi de barres com a GTIN, model, talla, color, categoria i preu), les **vendes** de la ubicació de la botiga amb les **devolucions** com a línies negatives (cada vegada es tornen a mirar els 2 darrers dies, per agafar devolucions; res no es duplica) i l'**estoc** de la ubicació. Les variants sense codi de barres no s'importen: cal que cada talla i color tingui el seu EAN/GTIN.
+
+### Shopify (app personalitzada amb testimoni `shpat_...`)
+
+1. A l'administració de Shopify, amb el compte propietari o un usuari amb permís per desenvolupar apps: **Configuració → Apps i canals de venda → Desenvolupa apps** (si és el primer cop, **Permet el desenvolupament d'apps personalitzades**).
+2. **Crea una app**, amb nom «Hebra» i el vostre correu com a desenvolupador.
+3. **Configura els àmbits de l'Admin API** i marca només aquests quatre, tots de lectura: `read_products`, `read_orders`, `read_inventory`, `read_locations`. Desa.
+4. **Instal·la l'app** i, a **Credencials de l'API**, **Mostra el testimoni d'accés de l'Admin API una vegada**. Copieu-lo (comença per `shpat_`): Shopify només l'ensenya una vegada. No feu servir la clau ni el secret de l'API: el que cal és el testimoni.
+5. Al tauler, a la targeta **Shopify**: domini intern de la botiga (el que acaba en `.myshopify.com`, a **Configuració → Dominis**), el testimoni i **Prova la connexió**. Si va bé, surt el nom de la botiga i les ubicacions: trieu la de la botiga física. Marqueu si voleu comptar també les comandes en línia (sense ubicació) per a aquesta botiga.
+6. Si la talla i el color tenen un altre nom a les opcions dels productes (p. ex. «Mida»), poseu-lo als camps d'opcions. El model és l'id del producte de Shopify o, si ho preferiu, el SKU base (el SKU sense la talla i el color del final: `CAM01-BLAU-M` → `CAM01`).
+
+Notes: Shopify només deixa llegir les comandes dels darrers 60 dies sense el permís `read_all_orders`; Hebra només en demana 30 la primera vegada. L'API té una versió fixada (`2026-10`, a `hebra/integracions/shopify.py`) que cal revisar cada any. Si al vostre Shopify ja no surt **Desenvolupa apps** (Shopify està passant la creació d'apps personalitzades al Dev Dashboard), parleu amb l'equip de Hebra abans de continuar: les apps noves fan servir testimonis que caduquen i aquesta versió encara no els renova.
+
+Compatibilitat: la configuració antiga (paràmetres `shopify_domini` i `shopify_ubicacio` i la variable `HEBRA_SHOPIFY_TOKEN_<BOTIGA>`, amb `python -m hebra.admin shopify --botiga BCN-01`) continua funcionant cada hora mentre la botiga no tingui una connexió Shopify activa al tauler.
+
+### Square (testimoni d'accés)
+
+1. Entreu a <https://developer.squareup.com> amb el compte de Square del comerç i, a **Apps**, creeu una aplicació («Hebra»).
+2. A l'aplicació, **Credentials**, canvieu a **Production** i copieu l'**Access token** (el testimoni personal del compte; per provar, el de **Sandbox** amb l'entorn «sandbox»). Ha de poder llegir: `MERCHANT_PROFILE_READ`, `ITEMS_READ`, `ORDERS_READ` i `INVENTORY_READ` (el testimoni personal els té tots).
+3. Al tauler, a la targeta **Square**: el testimoni i **Prova la connexió**; trieu la ubicació (location) de la botiga.
+4. El GTIN surt del camp **UPC** de la variant (o del SKU, si són només xifres). La talla i el color, de les opcions de l'article («Talla», «Color») o del nom de la variant («M, Blau»).
+
+El testimoni personal dona accés de lectura i escriptura a tot el compte de Square: guardeu-lo només al tauler de Hebra i, si es perd, renoveu-lo a la mateixa pàgina (**Replace**) i torneu-lo a enganxar.
+
+### CSV per URL (TPV que exporten un fitxer: Ágora, Revo, Lightspeed...)
+
+Si el TPV pot publicar o enviar cada hora un fitxer a una adreça HTTPS (o el seu proveïdor el deixa en una URL), a la targeta **CSV per URL** poseu una URL per a les vendes, una per a l'estoc i una per al catàleg (cada una opcional) i, si el servidor la demana, la capçalera d'autorització (p. ex. `Bearer abc...`; el nom de la capçalera es pot canviar, p. ex. `X-Api-Key`). Els formats són els mateixos que la pujada manual:
+
+* vendes: `data_hora,gtin,quantitat,import,tiquet` (+ `botiga` si la connexió és de tota la marca; quantitat negativa = devolució);
+* estoc: `gtin,unitats` (+ `botiga`);
+* catàleg: `gtin,model,color,talla,categoria,preu`.
+
+Separador coma o punt i coma, UTF-8 o Windows-1252. El fitxer de vendes pot portar sempre els darrers dies: les línies que ja hi són no es tornen a importar.
 
 ## 4. Prova de laboratori (20 peces)
 

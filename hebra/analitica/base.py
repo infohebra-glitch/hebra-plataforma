@@ -29,6 +29,12 @@ DEFECTES = {
     "setmanes_cobertura": 8,    # insight 15
     "minuts_abandonada": 30,    # insight 13
     "senyals_perdua": 0,        # insight 25: només si val 1
+    # Suggeriments de l'estoc parat (v0.3, D; vegeu inventari.suggereix)
+    "parat_min_proves_traspas": 3,      # proves a una altra botiga per proposar un traspàs
+    "parat_min_vendes_traspas": 1,      # o unitats venudes a una altra botiga
+    "parat_dies_retornar": 60,          # dies parat (i quiet a tot arreu) per proposar retornar-lo
+    "parat_conversio_baixa": 0.15,      # conversió històrica a la botiga per sota de la qual es «revisa»
+    "parat_min_proves_conversio": 5,    # proves històriques mínimes per jutjar la conversió
 }
 
 MOTIUS = {
@@ -37,6 +43,7 @@ MOTIUS = {
     "preu": "Preu",
     "color": "Color",
     "qualitat": "Qualitat o teixit",
+    "nomes_mirava": "Només mirava",
     "altre": "Altre",
 }
 
@@ -258,16 +265,20 @@ def vendes(con: sqlite3.Connection, f: Filtre) -> list[sqlite3.Row]:
              AND (:b IS NULL OR v.botiga_id = :b)""", params(f)).fetchall()
 
 
-def peticions(con: sqlite3.Connection, f: Filtre) -> list[sqlite3.Row]:
-    """Peticions de talla del període, amb el SKU demanat i el nom de la cabina."""
+def peticions(con: sqlite3.Connection, f: Filtre, amb_assistencia: bool = False) -> list[sqlite3.Row]:
+    """Peticions de talla del període, amb el SKU demanat i el nom de la cabina.
+
+    Les peticions d'assistència (v0.3, `tipus = 'assistencia'`) només hi són amb
+    `amb_assistencia=True` (el servei les compta; la demanda perduda i les talles, no).
+    """
     return con.execute(
         """SELECT pt.*, k.model, k.color, cab.nom AS cabina_nom
            FROM peticio_talla pt
            LEFT JOIN catalog_sku k ON k.gtin = pt.gtin_demanat
            LEFT JOIN cabina cab ON cab.id = pt.cabina
            WHERE pt.hora_peticio >= :des AND pt.hora_peticio < :fins
-             AND (:b IS NULL OR pt.botiga_id = :b)
-           ORDER BY pt.hora_peticio, pt.id""", params(f)).fetchall()
+             AND (:b IS NULL OR pt.botiga_id = :b) AND (:assist OR pt.tipus = 'talla')
+           ORDER BY pt.hora_peticio, pt.id""", params(f) | {"assist": int(amb_assistencia)}).fetchall()
 
 
 def es_perduda(p: sqlite3.Row) -> bool:

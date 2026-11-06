@@ -55,6 +55,12 @@ class Config:
     # Carpeta del tauler compilat (frontend/dist). Si no existeix, no se serveix /app.
     frontend_dist: str = field(default_factory=lambda: os.environ.get(
         "HEBRA_FRONTEND_DIST", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist")))
+    # Correu per enviar els informes a l'equip de la marca (hebra/correu.py). Sense host, no s'envia res.
+    smtp_host: str = field(default_factory=lambda: os.environ.get("HEBRA_SMTP_HOST", ""))
+    smtp_port: int = field(default_factory=lambda: _int("HEBRA_SMTP_PORT", 587))
+    smtp_usuari: str = field(default_factory=lambda: os.environ.get("HEBRA_SMTP_USUARI", ""))
+    smtp_contrasenya: str = field(default_factory=lambda: os.environ.get("HEBRA_SMTP_CONTRASENYA", ""))
+    smtp_remitent: str = field(default_factory=lambda: os.environ.get("HEBRA_SMTP_REMITENT", ""))
 
 
 SECRET_DEV = "hebra-dev-secret-no-el-facis-servir-en-produccio"

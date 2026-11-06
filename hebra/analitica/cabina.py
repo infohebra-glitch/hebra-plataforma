@@ -90,12 +90,13 @@ def temps_resposta(peticions: list) -> tuple[float | None, float | None]:
 
 def servei(con: sqlite3.Connection, f: Filtre) -> dict:
     """`GET /servei`."""
-    pet = base.peticions(con, f)
+    pet = base.peticions(con, f, amb_assistencia=True)  # v0.3: el servei compta talla i assistència
     sess = base.sessions(con, f)
     mediana, sota = temps_resposta(pet)
     estats = Counter(p["estat"] for p in pet)
     return {
         "peticions": len(pet),
+        "peticions_assistencia": sum(1 for p in pet if p["tipus"] == "assistencia"),
         "peticions_per_sessio": base.frac(len(pet), len(sess), 2),
         "mediana_s": mediana,
         "pct_sota_90s": sota,

@@ -1,54 +1,75 @@
 {% extends "base.html" %}
 {% block titol %}{{ p.nom }}{% endblock %}
 {% block amplada %}estret{% endblock %}
+{% block cap %}{# Color de la marca (validat #RRGGBB). Només en mode clar: en fosc es mantenen els colors de contrast. #}
+<style>@media (prefers-color-scheme: light) { :root { --accent: {{ ap.color_principal }}; --traza: {{ ap.color_principal }}; } }</style>
+{% endblock %}
 {% block cos %}
 {# Fitxa NFC. Sense galetes: cada acció és un formulari que porta la sessió tècnica (s) en un camp ocult.
-   Funciona sense JavaScript; l'únic script (en línia, autoritzat per hash a la CSP) avisa quan s'obre una secció plegable. #}
+   Funciona sense JavaScript; l'únic script (en línia, autoritzat per hash a la CSP) avisa quan s'obre una secció plegable.
+   La configuració de la marca (hebra/fitxa_config.py) decideix l'ordre i la visibilitat de les seccions i els botons.
+   A la previsualització del tauler (`previsualitza`) no hi ha script ni formularis actius: no es registra res. #}
+{% set inactiu = 'disabled' if previsualitza else '' %}
 {% macro ocults() %}<input type="hidden" name="s" value="{{ s }}"><input type="hidden" name="b" value="{{ b }}"><input type="hidden" name="lang" value="{{ lang }}">{% endmacro %}
+{% macro url_idioma(i) %}{% if previsualitza %}/api/v2/fitxa/previsualitza?model={{ previsualitza.model|urlencode }}&botiga={{ previsualitza.botiga|urlencode }}&idioma={{ i }}{% else %}/p/{{ p.token }}?b={{ b|urlencode }}&lang={{ i }}&s={{ s|urlencode }}{% endif %}{% endmacro %}
+{% macro estoc_talla(v) %}{% if accions.mostra_estoc == 'unitats' and v.estoc is not none %} · {{ v.estoc }} {{ t.unitats }}{% elif accions.mostra_estoc != 'no' and v.estoc == 0 %} ({{ t.no_disponible }}){% endif %}{% endmacro %}
+
+{% macro form_talla() %}
+  <h3>{{ t.demana }}</h3>
+  <p class="petit muted">{{ t.demana_ajuda }}</p>
+  <form method="post" action="/p/{{ p.token }}/talla">
+    {{ ocults() }}
+    <div class="fila">
+      <select name="gtin" aria-label="{{ t.talles }}" {{ inactiu }}>
+        {% for v in p.talles if not v.actual %}<option value="{{ v.gtin }}">{{ v.talla }}{{ estoc_talla(v) }}</option>{% endfor %}
+      </select>
+      <input type="text" name="cabina" placeholder="{{ t.cabina }}" size="10" maxlength="20" aria-label="{{ t.cabina }}" {{ inactiu }}>
+      <button class="primari" {{ 'disabled' if not b or previsualitza }}>{{ t.envia }}</button>
+    </div>
+  </form>
+{% endmacro %}
+
+{% if previsualitza %}<p class="avis petit" role="note">Previsualització: no es registra cap esdeveniment.{% if p.origen_amagat_per_control and cfg.seccions.visibles.origen %} Avui la botiga és al grup «sense origen» (grup de control): el client no veu l'origen.{% endif %}</p>{% endif %}
+
 <div class="fila entre">
-  <span class="marca">Hebra</span>
+  {% if ap.logo_data_url %}<img src="{{ ap.logo_data_url }}" alt="{{ ap.nom_marca }}" height="28">{% else %}<span class="marca">{{ ap.nom_marca }}</span>{% endif %}
+  {% if idiomes|length > 1 %}
   <nav class="idiomes" aria-label="Idioma">
-    {% for i in idiomes %}<a href="/p/{{ p.token }}?b={{ b }}&lang={{ i }}&s={{ s }}" class="{{ 'actiu' if i == lang }}" hreflang="{{ i }}">{{ i|upper }}</a>{% endfor %}
+    {% for i in idiomes %}<a href="{{ url_idioma(i) }}" class="{{ 'actiu' if i == lang }}" hreflang="{{ i }}">{{ i|upper }}</a>{% endfor %}
   </nav>
+  {% endif %}
 </div>
 
 <h1>{{ p.nom }}</h1>
 <p class="muted">{{ p.color }} · {{ p.talla }}{% if p.preu %} · {{ '%.0f'|format(p.preu) }} €{% endif %}</p>
+{% if benvinguda %}<p>{{ benvinguda }}</p>{% endif %}
 <p>{{ p.descripcio }}</p>
 
 {% if ok == 'talla' %}<p class="avis" role="status">{{ t.peticio_ok }}</p>{% endif %}
+{% if ok == 'assistencia' %}<p class="avis" role="status">{{ t.assistencia_ok }}</p>{% endif %}
 {% if ok == 'motiu' %}<p class="avis" role="status">{{ t.motiu_ok }}</p>{% endif %}
 
+{% for seccio in seccions %}
+{% if seccio == 'talles' %}
 <details class="panell" data-seccio="talles" {{ 'open' if ok == 'talla' }}>
   <summary><h2>{{ t.talles }}</h2></summary>
   {% if p.ajust %}<p class="petit muted">{{ p.ajust }}</p>{% endif %}
-  <form method="post" action="/p/{{ p.token }}/talla">
-    {{ ocults() }}
-    <div class="fila" aria-label="{{ t.talles }}">
-      {% for v in p.talles %}<span class="boto talla {{ 'actual' if v.actual }} {{ 'esgotada' if v.estoc == 0 }}">{{ v.talla }}</span>{% endfor %}
-    </div>
-    <p class="petit muted">
-      {% for v in p.talles %}{% if v.actual %}{{ v.talla }}: {{ t.teva }}. {% elif v.estoc == 0 %}{{ v.talla }}: {{ t.no_disponible }}. {% endif %}{% endfor %}
-    </p>
-    <h3>{{ t.demana }}</h3>
-    <p class="petit muted">{{ t.demana_ajuda }}</p>
-    <div class="fila">
-      <select name="gtin" aria-label="{{ t.talles }}">
-        {% for v in p.talles if not v.actual %}<option value="{{ v.gtin }}">{{ v.talla }}{% if v.estoc == 0 %} ({{ t.no_disponible }}){% endif %}</option>{% endfor %}
-      </select>
-      <input type="text" name="cabina" placeholder="{{ t.cabina }}" size="10" maxlength="20" aria-label="{{ t.cabina }}">
-      <button class="primari" {{ 'disabled' if not b }}>{{ t.envia }}</button>
-    </div>
-  </form>
+  <div class="fila" aria-label="{{ t.talles }}">
+    {% for v in p.talles %}<span class="boto talla {{ 'actual' if v.actual }} {{ 'esgotada' if v.estoc == 0 and accions.mostra_estoc != 'no' }}">{{ v.talla }}</span>{% endfor %}
+  </div>
+  <p class="petit muted">
+    {% for v in p.talles %}{% if v.actual %}{{ v.talla }}: {{ t.teva }}. {% elif accions.mostra_estoc == 'unitats' and v.estoc is not none %}{{ v.talla }}: {{ v.estoc }} {{ t.unitats }}. {% elif accions.mostra_estoc != 'no' and v.estoc == 0 %}{{ v.talla }}: {{ t.no_disponible }}. {% endif %}{% endfor %}
+  </p>
+  {% if p.guia_talles %}<h3>{{ t.guia_talles }}</h3><p class="petit">{{ p.guia_talles }}</p>{% endif %}
+  {% if accions.demana_talla %}{{ form_talla() }}{% endif %}
 </details>
-
+{% elif seccio == 'composicio' and p.composicio %}
 <section class="panell">
   <h2>{{ t.composicio }}</h2>
   <ul>{% for c in p.composicio %}<li>{{ c.pct }} % {{ c.material }}{% if c.pais %} · {{ pais(c.pais, lang) }}{% endif %}</li>{% endfor %}</ul>
   {% if p.teixit %}<p class="petit muted">{{ p.teixit }}</p>{% endif %}
 </section>
-
-{% if p.mostra_origen %}
+{% elif seccio == 'origen' and p.mostra_origen and p.etapes %}
 <section class="panell">
   <h2>{{ t.origen }}</h2>
   {% if ok == 'origen' %}
@@ -62,42 +83,58 @@
     <ul>{% for c in p.certificats %}<li>{{ c.nom }} <span class="muted petit">· {{ c.abast }}</span></li>{% endfor %}</ul>{% endif %}
   {% else %}
     <p>{% for e in p.etapes %}{{ pais(e.pais, lang) }}{% if not loop.last %} → {% endif %}{% endfor %}</p>
-    <form method="post" action="/p/{{ p.token }}/origen">{{ ocults() }}<button>{{ t.veure_origen }}</button></form>
+    <form method="post" action="/p/{{ p.token }}/origen">{{ ocults() }}<button {{ inactiu }}>{{ t.veure_origen }}</button></form>
   {% endif %}
 </section>
-{% endif %}
-
+{% elif seccio == 'cura' and p.cura %}
 <details class="panell" data-seccio="cura">
   <summary><h2>{{ t.cura }}</h2></summary>
   <ul>{% for c in p.cura %}<li>{{ c }}</li>{% endfor %}</ul>
 </details>
-
-{% if p.combina %}
+{% elif seccio == 'combina' and p.combina %}
 <section class="panell">
   <h2>{{ p.titol_combina }}</h2>
   <ul>{% for nom in p.combina %}<li>{{ nom }}</li>{% endfor %}</ul>
 </section>
-{% endif %}
-
-{% if ok != 'motiu' %}
-<section class="panell">
-  <h2>{{ t.per_que }}</h2>
-  <p class="petit muted">{{ t.per_que_ajuda }}</p>
-  <form method="post" action="/p/{{ p.token }}/motiu" class="fila">
-    {{ ocults() }}
-    {% for clau, text in t.motius.items() %}<button name="motiu" value="{{ clau }}">{{ text }}</button>{% endfor %}
-  </form>
-</section>
-{% endif %}
-
-{% if p.faq %}
+{% elif seccio == 'faq' and p.faq %}
 <details class="panell" data-seccio="preguntes">
   <summary><h2>{{ t.preguntes }}</h2></summary>
   {% for f in p.faq %}<details><summary>{{ f.q }}</summary><p>{{ f.a }}</p></details>{% endfor %}
 </details>
 {% endif %}
+{% endfor %}
 
+{% if accions.demana_talla and 'talles' not in seccions %}
+<section class="panell">{{ form_talla() }}</section>
+{% endif %}
+
+{% if accions.demana_assistencia and ok != 'assistencia' %}
+<section class="panell">
+  <h2>{{ t.assistencia }}</h2>
+  <p class="petit muted">{{ t.assistencia_ajuda }}</p>
+  <form method="post" action="/p/{{ p.token }}/assistencia" class="fila">
+    {{ ocults() }}
+    <input type="text" name="cabina" placeholder="{{ t.cabina }}" size="10" maxlength="20" aria-label="{{ t.cabina }}" {{ inactiu }}>
+    <button class="primari" {{ 'disabled' if not b or previsualitza }}>{{ t.assistencia }}</button>
+  </form>
+</section>
+{% endif %}
+
+{% if accions.per_que_no and ok != 'motiu' and motius %}
+<section class="panell">
+  <h2>{{ t.per_que }}</h2>
+  <p class="petit muted">{{ t.per_que_ajuda }}</p>
+  <form method="post" action="/p/{{ p.token }}/motiu" class="fila">
+    {{ ocults() }}
+    {% for clau, text in motius %}<button name="motiu" value="{{ clau }}" {{ inactiu }}>{{ text }}</button>{% endfor %}
+  </form>
+</section>
+{% endif %}
+
+{% if peu %}<p class="petit">{{ peu }}</p>{% endif %}
 <p class="petit muted">{{ t.privacitat }}</p>
+{% if not previsualitza %}
 <form id="seccions" method="post" action="/p/{{ p.token }}/seccio" hidden>{{ ocults() }}</form>
 <script>{{ script|safe }}</script>
+{% endif %}
 {% endblock %}

@@ -14,9 +14,6 @@ from .comu import bd, filtre, usuari
 
 router = APIRouter(tags=["analítica"])
 
-INFORMES = ("diari", "setmanal", "mensual", "temporada", "pilot", "mango")
-
-
 def _crida(nom: str, *args):
     fn = getattr(analitica, nom, None)
     if fn is None:
@@ -39,7 +36,7 @@ for _ruta_, _nom in [("/resum", "resum"), ("/models", "models"), ("/talles", "ta
                      ("/demanda-perduda", "demanda_perduda"), ("/motius", "motius"), ("/servei", "servei"),
                      ("/estoc", "estoc"), ("/fitxa-nfc", "fitxa_nfc"), ("/experiments", "experiments"),
                      ("/alertes", "alertes"), ("/valor", "valor"), ("/perdues", "perdues"),
-                     ("/estat-sistema", "estat_sistema")]:
+                     ("/estat-sistema", "estat_sistema"), ("/sessions", "sessions")]:
     _ruta(_ruta_, _nom)
 
 
@@ -48,11 +45,7 @@ def model_detall(model: str, f: analitica.Filtre = Depends(filtre), con: sqlite3
     return _crida("model_detall", con, f, model)
 
 
-@router.get("/informes/{tipus}")
-def informe(tipus: str, f: analitica.Filtre = Depends(filtre), con: sqlite3.Connection = Depends(bd)) -> dict:
-    if tipus not in INFORMES:
-        raise HTTPException(404, f"Informe desconegut: {tipus}")
-    return _crida("informe", con, f, tipus)
+# `GET /informes/{tipus}` és a informes.py (v0.3), amb la programació, els lliurats i el PDF.
 
 
 @router.get("/peces/{epc}/historial")

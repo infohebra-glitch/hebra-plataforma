@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<title>{{ inf.titol }} · {{ marca }}</title>
+<style>
+  /* A4, per imprimir: blanc i negre llegible, sense colors de marca. */
+  @page {
+    size: A4;
+    margin: 22mm 16mm 20mm 16mm;
+    @top-left { content: string(marca); font-size: 8.5pt; color: #52514e; }
+    @top-right { content: string(periode); font-size: 8.5pt; color: #52514e; }
+    @bottom-center { content: "Dades de Hebra · pàgina " counter(page) " de " counter(pages);
+                     font-size: 8pt; color: #52514e; }
+  }
+  html { font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif; font-size: 9.5pt; color: #1f1f1e;
+         line-height: 1.4; background: #fff; }
+  body { margin: 0; }
+  .marca { string-set: marca content(); }
+  .periode-cap { string-set: periode content(); }
+  header { border-bottom: 1.5pt solid #1f1f1e; padding-bottom: 6pt; margin-bottom: 12pt; }
+  header .tipus { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .06em; color: #52514e; }
+  h1 { font-size: 19pt; margin: 2pt 0 2pt; font-weight: bold; }
+  header .sub { color: #52514e; }
+  h2 { font-size: 12pt; margin: 16pt 0 6pt; break-after: avoid; }
+  h3 { font-size: 10.5pt; margin: 0 0 3pt; break-after: avoid; }
+  .xifres { display: flex; flex-wrap: wrap; gap: 6pt; margin-bottom: 4pt; }
+  .xifra { flex: 1 1 28%; border: .75pt solid #d6d5d0; border-radius: 4pt; padding: 6pt 8pt; break-inside: avoid; }
+  .xifra .et { font-size: 8pt; color: #52514e; }
+  .xifra .val { font-size: 16pt; font-weight: bold; margin-top: 1pt; }
+  .xifra .var { font-size: 8pt; color: #52514e; }
+  .xifra .obj { font-size: 8pt; color: #52514e; }
+  .accio { border-left: 3pt solid #1f1f1e; background: #f4f4f2; padding: 7pt 10pt; margin: 10pt 0; break-inside: avoid; }
+  .accio .et { font-size: 8pt; text-transform: uppercase; letter-spacing: .06em; color: #52514e; }
+  .accio .meta { font-size: 8pt; color: #52514e; margin-top: 3pt; }
+  .grafic { break-inside: avoid; margin: 10pt 0 6pt; }
+  .grafic svg { width: 100%; height: auto; display: block; }
+  .grafic .nota { font-size: 8pt; color: #52514e; margin-top: 2pt; }
+  .bloc { break-inside: avoid; margin: 0 0 9pt; }
+  .bloc p { margin: 0; }
+  ul.linies { margin: 0; padding-left: 14pt; }
+  .avisos { margin-top: 16pt; border-top: .75pt solid #d6d5d0; padding-top: 6pt; font-size: 8pt; color: #52514e; }
+  .avisos ul { margin: 2pt 0 0; padding-left: 12pt; }
+</style>
+</head>
+<body>
+<header>
+  <div class="tipus marca">{{ marca }}{% if botiga %} · {{ botiga }}{% else %} · totes les botigues{% endif %}</div>
+  <h1>{{ inf.titol }}</h1>
+  <div class="sub"><span class="periode-cap">{{ periode_txt }}</span> · generat el {{ generat_txt }}</div>
+</header>
+
+{% if inf.xifres %}
+<section class="xifres">
+  {% for x in inf.xifres %}
+  <div class="xifra">
+    <div class="et">{{ x.etiqueta }}</div>
+    <div class="val">{{ x.valor | valor(x.unitat) }}</div>
+    {% if x.variacio is not none %}<div class="var">{{ x.variacio | variacio(x.unitat) }} vs {{ x.vs }}</div>{% endif %}
+    {% if x.objectiu is defined and x.objectiu is not none %}
+    <div class="obj">Objectiu: {{ x.objectiu | valor(x.unitat) }}{% if x.compleix is not none %} · {{ "es compleix" if x.compleix else "no es compleix" }}{% endif %}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if inf.accio %}
+<section class="accio">
+  <div class="et">Acció</div>
+  <div>{{ inf.accio.text }}</div>
+  <div class="meta">Responsable: {{ inf.accio.responsable }}{% if inf.accio.data_limit %} · abans del {{ inf.accio.data_limit | data }}{% endif %}</div>
+</section>
+{% endif %}
+
+{% if grafics %}
+<h2>Gràfics</h2>
+{% for g in grafics %}
+<div class="grafic">
+  <h3>{{ g.titol }}</h3>
+  {{ g.svg }}
+  {% if g.nota %}<div class="nota">{{ g.nota }}</div>{% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+<h2>Detall</h2>
+{% for b in inf.blocs %}
+<div class="bloc">
+  <h3>{{ b.titol }}</h3>
+  {% if b.id == "cinc_linies" and b.dades and b.dades.linies %}
+  <ul class="linies">{% for l in b.dades.linies %}<li>{{ l }}</li>{% endfor %}</ul>
+  {% else %}
+  <p>{{ b.text }}</p>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% if inf.avisos %}
+<section class="avisos">
+  <strong>El que no podem afirmar</strong>
+  <ul>{% for a in inf.avisos %}<li>{{ a }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+</body>
+</html>

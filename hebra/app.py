@@ -12,7 +12,6 @@ Arrencada:  uvicorn hebra.app:app --reload   (un sol procés: les alertes en dir
 
 import asyncio
 import logging
-import os
 import secrets
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
@@ -25,7 +24,9 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import __version__, api, auth, db, fitxa, informes, passarella, proves, retencio, shopify, temps, textos, vendes
+from . import __version__, api, auth, db, fitxa, fitxa_config, informes, passarella, proves, retencio, temps, textos, vendes
+from . import informes_programats
+from .integracions import motor as integracions_motor
 from .config import carrega
 
 ARREL = Path(__file__).parent
@@ -40,6 +41,9 @@ CSP = ("default-src 'self'; script-src 'self' '" + fitxa.HASH_SCRIPT + "'; style
        "img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; "
        "form-action 'self'; frame-ancestors 'none'")
 SENSE_CSP = ("/api/docs", "/openapi.json")  # la documentació interactiva carrega Swagger UI d'un CDN
+# La previsualització de la fitxa (v0.3, A.3) es mostra dins d'un iframe del tauler (mateix origen).
+IFRAME_MATEIX_ORIGEN = ("/api/v2/fitxa/previsualitza",)
+CSP_IFRAME = CSP.replace("frame-ancestors 'none'", "frame-ancestors 'self'")
 
 
 def processa_tot() -> None:
@@ -53,32 +57,26 @@ def processa_tot() -> None:
         c.close()
 
 
-def sincronitza_shopify() -> dict:
-    """Sincronitza les botigues que tenen Shopify configurat (domini i testimoni). Les altres, res."""
+def sincronitza_integracions() -> dict:
+    """v0.3 F: sincronitza les integracions a qui toca (cada `interval_min`) i les botigues amb
+    Shopify per variables d'entorn (v0.2, cada hora). Amb una connexió pròpia."""
     c = db.connecta(cfg.ruta_bd)
-    resultat = {}
     try:
-        for b in c.execute("SELECT id FROM botiga").fetchall():
-            if db.parametre(c, b["id"], "shopify_domini") and os.environ.get(shopify.nom_variable_token(b["id"])):
-                try:
-                    resultat[b["id"]] = shopify.sincronitza(c, b["id"])
-                except shopify.ErrorShopify as e:
-                    resultat[b["id"]] = {"error": str(e)}
+        return integracions_motor.sincronitza_pendents(c, cfg.secret)
     finally:
         c.close()
-    return resultat
 
 
-async def _bucle_shopify() -> None:
-    """Cada hora (manual del client: «cada hora amb integració directa»)."""
+async def _bucle_integracions() -> None:
+    """Cada minut mira si a alguna integració li toca sincronitzar-se (vegeu hebra/integracions/motor.py)."""
     while True:
-        await asyncio.sleep(3600)
+        await asyncio.sleep(60)
         try:
-            n = await asyncio.to_thread(sincronitza_shopify)
+            n = await asyncio.to_thread(sincronitza_integracions)
             if n:
-                log.info("Shopify: %s", n)
+                log.info("Integracions: %s", n)
         except Exception:
-            log.exception("Error sincronitzant Shopify")
+            log.exception("Error sincronitzant les integracions")
 
 
 async def _bucle_processament() -> None:
@@ -109,12 +107,34 @@ async def _bucle_retencio() -> None:
         await asyncio.sleep(24 * 3600)
 
 
+def informes_programats_pendents() -> list[int]:
+    """Genera (i envia, si hi ha SMTP) els informes programats que toquen (amb una connexió pròpia)."""
+    c = db.connecta(cfg.ruta_bd)
+    try:
+        return informes_programats.executa_pendents(c, cfg)
+    finally:
+        c.close()
+
+
+async def _bucle_informes() -> None:
+    """Cada minut mira si toca generar algun informe programat (v0.3, E.1)."""
+    while True:
+        await asyncio.sleep(60)
+        try:
+            fets = await asyncio.to_thread(informes_programats_pendents)
+            if fets:
+                log.info("Informes programats generats: %s", fets)
+        except Exception:
+            log.exception("Error generant els informes programats")
+
+
 @asynccontextmanager
 async def _cicle_de_vida(_app):
     tasques = [asyncio.create_task(_bucle_retencio())] if cfg.retencio_dies > 0 else []
     if cfg.processa_cada_min > 0:
         tasques.append(asyncio.create_task(_bucle_processament()))
-    tasques.append(asyncio.create_task(_bucle_shopify()))
+    tasques.append(asyncio.create_task(_bucle_integracions()))
+    tasques.append(asyncio.create_task(_bucle_informes()))
     yield
     for t in tasques:
         t.cancel()
@@ -130,15 +150,16 @@ class CapcaleresSeguretat:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         amb_csp = not scope["path"].startswith(SENSE_CSP)
+        iframe = scope["path"].startswith(IFRAME_MATEIX_ORIGEN)
 
         async def envia(missatge):
             if missatge["type"] == "http.response.start":
                 h = list(missatge.get("headers", []))
                 h += [(b"x-content-type-options", b"nosniff"), (b"referrer-policy", b"no-referrer"),
-                      (b"x-frame-options", b"DENY"),
+                      (b"x-frame-options", b"SAMEORIGIN" if iframe else b"DENY"),
                       (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), interest-cohort=()")]
                 if amb_csp:
-                    h.append((b"content-security-policy", CSP.encode()))
+                    h.append((b"content-security-policy", (CSP_IFRAME if iframe else CSP).encode()))
                 if self.segura:
                     h.append((b"strict-transport-security", b"max-age=31536000"))
                 missatge = dict(missatge, headers=h)
@@ -191,13 +212,6 @@ def clau_passarella(x_hebra_clau: str = Header(default="")) -> None:
         raise HTTPException(401, "Clau de passarel·la incorrecta")
 
 
-def _idioma(lang: str | None, request: Request) -> str:
-    if lang in fitxa.IDIOMES:
-        return lang
-    preferit = request.headers.get("accept-language", "ca")[:2].lower()
-    return preferit if preferit in fitxa.IDIOMES else "ca"
-
-
 @app.get("/salut")
 def salut() -> dict:
     return {"estat": "ok", "versio": __version__}
@@ -232,13 +246,19 @@ def fitxa_peca(request: Request, token: str, b: str | None = None, lang: str | N
     peca = fitxa.peca_per_token(con, token)
     if peca is None:
         raise HTTPException(404, "Peça no trobada")
-    idioma = _idioma(lang, request)
+    cfg_fitxa = fitxa_config.efectiva(con, b)  # v0.3: configuració de la marca (general + botiga)
+    idioma = fitxa.tria_idioma(lang, request.headers.get("accept-language"), cfg_fitxa["idiomes"])
     if not s:
         s = fitxa.nova_sessio()
         fitxa.registra(con, s, b, peca["gtin"], "obre_fitxa", idioma)
-    return plantilles.TemplateResponse(request, "fitxa.html", {
-        "p": fitxa.dades_fitxa(con, peca, b, idioma), "t": textos.TEXTOS[idioma], "lang": idioma,
-        "idiomes": fitxa.IDIOMES, "b": b or "", "s": s, "ok": ok, "script": fitxa.SCRIPT_SECCIONS})
+    return plantilles.TemplateResponse(request, "fitxa.html",
+                                       fitxa.context_pagina(con, peca, b, idioma, cfg_fitxa, s, ok))
+
+
+def _accio_activa(b: str, accio: str) -> None:
+    """La marca pot desactivar un botó de la fitxa: el formulari tampoc s'accepta."""
+    if not fitxa_config.efectiva(con, b or None)["accions"].get(accio, True):
+        raise HTTPException(400, "Aquesta acció no està activada en aquesta botiga")
 
 
 def _torna(token: str, b: str, lang: str, s: str, ok: str) -> RedirectResponse:
@@ -256,6 +276,7 @@ def veu_origen(token: str, b: str = Form(""), lang: str = Form("ca"), s: str = F
 @app.post("/p/{token}/motiu", dependencies=[Depends(limit_fitxa)])
 def motiu(token: str, motiu: str = Form(...), b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
     peca = fitxa.peca_per_token(con, token) or _404()
+    _accio_activa(b, "per_que_no")
     try:
         fitxa.registra(con, s, b or None, peca["gtin"], "motiu_no_compra", lang, motiu)
     except ValueError as e:
@@ -269,11 +290,23 @@ def talla(token: str, gtin: str = Form(...), cabina: str = Form(""), b: str = Fo
     peca = fitxa.peca_per_token(con, token) or _404()
     if not b:
         raise HTTPException(400, "La petició de talla necessita saber la botiga")
+    _accio_activa(b, "demana_talla")
     try:
         fitxa.demana_talla(con, s, b, peca["gtin"], gtin, lang, cabina[:20] or None)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return _torna(token, b, lang, s, "talla")
+
+
+@app.post("/p/{token}/assistencia", dependencies=[Depends(limit_fitxa)])
+def assistencia(token: str, cabina: str = Form(""), b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
+    """«Vull que m'atenguin» (v0.3, A.4): avís a la web del dependent, a la mateixa llista que les peticions de talla."""
+    peca = fitxa.peca_per_token(con, token) or _404()
+    if not b:
+        raise HTTPException(400, "La petició d'assistència necessita saber la botiga")
+    _accio_activa(b, "demana_assistencia")
+    fitxa.demana_assistencia(con, s[:40], b, peca["gtin"], lang, cabina[:20] or None)
+    return _torna(token, b, lang, s, "assistencia")
 
 
 @app.post("/p/{token}/seccio", status_code=204, dependencies=[Depends(limit_fitxa)])

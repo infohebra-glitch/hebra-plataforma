@@ -29,6 +29,8 @@ from datetime import date
 from pathlib import Path
 
 from . import alertes, auth, cataleg, control, db, estoc, proves, retencio, shopify, vendes
+from .integracions import ErrorIntegracio
+from .integracions import motor as integracions_motor
 from . import epc as epc_mod
 from .config import carrega
 
@@ -122,6 +124,16 @@ def etiquetes(con: sqlite3.Connection, ruta: str, botiga_id: str, url: str, sort
     return f"{len(files_sortida)} etiquetes; URL per gravar als xips NFC a {sortida}" + (f"; errors: {errors[:10]}" if errors else "")
 
 
+def sincronitza_shopify(con: sqlite3.Connection, clau: str, botiga_id: str) -> dict:
+    """La integració Shopify activa de la botiga (desada des del tauler) o, si no n'hi ha,
+    la configuració antiga (paràmetres shopify_* i HEBRA_SHOPIFY_TOKEN_<BOTIGA>)."""
+    fila = con.execute("""SELECT id FROM integracio WHERE proveidor = 'shopify' AND actiu = 1 AND botiga_id = ?
+                          ORDER BY id LIMIT 1""", (botiga_id,)).fetchone()
+    if fila:
+        return integracions_motor.sincronitza(con, clau, fila["id"])
+    return shopify.sincronitza(con, botiga_id)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Administració de Hebra")
     sub = ap.add_subparsers(dest="ordre", required=True)
@@ -187,8 +199,8 @@ def main() -> None:
         print(f"{n} files d'estoc importades" + (f"; errors: {errors[:10]}" if errors else ""))
     elif args.ordre == "shopify":
         try:
-            print(shopify.sincronitza(con, args.botiga))
-        except shopify.ErrorShopify as e:
+            print(sincronitza_shopify(con, cfg.secret, args.botiga))
+        except ErrorIntegracio as e:
             sys.exit(str(e))
     elif args.ordre == "retencio":
         print(retencio.neteja(con, cfg.retencio_dies))

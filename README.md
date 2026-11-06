@@ -28,7 +28,7 @@ Aquest repositori és la primera versió de la plataforma per al **pilot de 8 se
 | **Tauler de la marca (web)** | `frontend/`, servit a `/app/` | Aplicació React amb inici de sessió: resum, peces (fitxa de cada model), talles, per què no compren, origen i proves A/B, servei, estoc, decisions, valor estimat, 7 informes imprimibles i importació de dades. Només mostra dades netes que calcula el backend. |
 | Web del dependent (mòbil) | `/app/dependent` | Peticions de talla **en directe** (so i vibració) amb botons grans «En camí / Lliurada / No n'hi ha», i peces abandonades per recollir. |
 | Analítica | `hebra/analitica/` | Tots els càlculs dels insights (conversió, corba de talles, demanda perduda, motius, servei, estoc parat, risc de rebaixa, experiments amb interval de confiança i mida de mostra, valor estimat, acció de la setmana). Una sola font per al tauler i els informes. |
-| API v2 | `hebra/api/`, `/api/v2/*` | La que fa servir el tauler (contracte a [`docs/API.md`](docs/API.md)). Usuaris amb rols **admin / marca / botiga** (una botiga només veu la seva), alertes en directe per SSE, importacions CSV, Shopify (només lectura), paràmetres. |
+| API v2 | `hebra/api/`, `/api/v2/*` | La que fa servir el tauler (contracte a [`docs/API.md`](docs/API.md)). Usuaris amb rols **admin / marca / botiga** (una botiga només veu la seva), alertes en directe per SSE, importacions CSV, integracions de només lectura amb Shopify, Square i CSV per URL (catàleg, vendes amb devolucions i estoc; testimonis xifrats), paràmetres. |
 | Alertes i retenció | `hebra/alertes.py`, `hebra/retencio.py` | Peces abandonades (> 30 min fora de la sala), bus d'alertes en directe; esborrat automàtic de lectures antigues (`HEBRA_RETENCIO_DIES`). |
 | Simulador | `hebra/simulador.py` | Omple la base de dades amb una botiga de 3 cabines i setmanes de pilot simulades, per veure-ho tot funcionant sense maquinari. |
 | Descodificador EPC | `hebra/epc.py` | SGTIN-96 (hex o URN) a GTIN-14 i número de sèrie (estàndard GS1). |
@@ -95,7 +95,9 @@ Per variables d'entorn (vegeu [`.env.example`](.env.example)). Per carregar-les:
 | `HEBRA_RETENCIO_DIES` | 90 | Dies que es guarden les lectures i els sensors en brut. |
 | `HEBRA_PROCESSA_CADA_MIN` | 5 | Cada quant es recalculen proves, vendes atribuïdes i alertes. |
 | `HEBRA_FRONTEND_DIST` | `frontend/dist` | On és el tauler compilat. |
-| `HEBRA_SHOPIFY_TOKEN_<BOTIGA>` | — | Testimoni de Shopify (només lectura) per botiga, p. ex. `HEBRA_SHOPIFY_TOKEN_BCN_01`. |
+| `HEBRA_SHOPIFY_TOKEN_<BOTIGA>` | — | Configuració antiga (v0.2) de Shopify per botiga, p. ex. `HEBRA_SHOPIFY_TOKEN_BCN_01`. La manera nova és connectar-la al tauler (**Connexions i dades**), on el testimoni es desa xifrat amb una clau derivada de `HEBRA_SECRET`. |
+| `HEBRA_SMTP_HOST`, `HEBRA_SMTP_PORT` | — , 587 | Servidor de correu (STARTTLS) per enviar els informes en PDF a l'equip de la marca. Sense host, els informes programats es generen però no s'envien. |
+| `HEBRA_SMTP_USUARI`, `HEBRA_SMTP_CONTRASENYA`, `HEBRA_SMTP_REMITENT` | — | Compte i remitent del correu (si no hi ha remitent, s'usa l'usuari). |
 
 **Abans de fer-ho servir amb una botiga real cal canviar totes les claus i contrasenyes.**
 
@@ -105,7 +107,7 @@ Resum (detall a [`docs/INSTAL-LACIO.md`](docs/INSTAL-LACIO.md)):
 
 1. **Servidor**: `uvicorn` + Caddy (HTTPS), amb els fitxers de `desplegament/`.
 2. **Raspberry Pi**: `python3 -m hebra_passarella /etc/hebra/passarella.toml` (servei systemd inclòs).
-3. **Dades**: `python -m hebra.admin botiga|cataleg|origen|etiquetes|control|estoc|shopify`.
+3. **Dades**: `python -m hebra.admin botiga|cataleg|origen|etiquetes|control|estoc|shopify`; Shopify, Square o el CSV del TPV es connecten al tauler (passos a [`docs/INSTAL-LACIO.md`](docs/INSTAL-LACIO.md#31-connectar-el-tpv-i-la-botiga-en-línia)).
 4. **Usuaris**: `python -m hebra.admin usuari ...` (un per persona; rol `botiga` per a cada botiga).
 
 ## Com encaixa amb el maquinari
@@ -134,7 +136,8 @@ hebra/
   auth.py          usuaris, contrasenyes (PBKDF2) i galeta signada
   alertes.py       peces abandonades i bus d'alertes en directe
   estoc.py         estoc i recomptes
-  shopify.py       sincronització de comandes i estoc (només lectura)
+  integracions/    connectors de només lectura (Shopify, Square, CSV per URL), secrets xifrats i sincronització periòdica
+  shopify.py       compatibilitat: Shopify per variables d'entorn (v0.2)
   retencio.py      esborrat de dades antigues
   config.py        configuració i regla de prova
   schema.sql       model de dades (cap camp de persona)

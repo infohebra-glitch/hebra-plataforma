@@ -19,6 +19,13 @@ Què simula:
 El que s'ha afegit per al tauler fa servir un generador aleatori propi, de manera
 que les proves i vendes simulades són les mateixes que abans.
 
+v0.3 D-E: tasques de botiga d'exemple, programacions d'informes per defecte i els
+informes lliurats de les setmanes simulades.
+
+v0.3 (generador propi `rng3`, tampoc no canvia el que hi havia): algunes sessions
+amb 4-5 peces, sessions amb el mateix model en dues talles (dubte de talla, i de
+vegades se n'acaba comprant una) i peticions d'assistència des de la fitxa.
+
 Ús:  python -m hebra.simulador --setmanes 2 --inici 2026-11-16
 """
 
@@ -49,6 +56,11 @@ SECCIONS_FITXA = ("talles", "cura", "preguntes")
 # Variants que ningú no prova: estoc parat (insight 14). No tenen etiqueta.
 EXTRES = [("08400000990017", "S", 6), ("08400000990024", "M", 4)]
 MODEL_EXTRA = ("FL-25-GRS", "Gris", "faldilla", 65.0)
+# v0.3: probabilitats per sessió (inventades)
+PROB_DUBTE_TALLA = 0.10    # el client s'emporta el mateix model en una altra talla
+PROB_COMPRA_DUBTE = 0.45   # i n'acaba comprant la segona talla
+PROB_MOLTES_PECES = 0.12   # sessió de 4 o 5 peces
+PROB_ASSISTENCIA = 0.05    # demana que l'atenguin des de la fitxa
 ESTOC_VESTIT = 90   # la marca n'ha comprat massa: risc de rebaixa (insight 15)
 PROB_MOTIU = {"vestit": ["talla", "talla", "tall", "preu"], "default": ["preu", "color", "talla", "qualitat", "altre"]}
 
@@ -99,8 +111,12 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
     """Simula `setmanes` setmanes des d'`inici`. Amb `fins`, no genera cap dia posterior (res al futur)."""
     rng = random.Random(llavor)
     rng2 = random.Random(llavor * 1000 + 1)  # només per a les dades del tauler
+    rng3 = random.Random(llavor * 1000 + 3)  # només per a les novetats de la v0.3
     prepara_botiga(con)
     peces = _peces_fisiques(con)
+    per_gtin: dict[str, list[tuple[str, sqlite3.Row]]] = {}
+    for epc, k in peces:
+        per_gtin.setdefault(k["gtin"], []).append((epc, k))
     dies = [inici + timedelta(days=d) for d in range(setmanes * 7)]
     dies = [d for d in dies if d.weekday() != 6 and (fins is None or d <= fins)]  # diumenge tancat
     darrer_dia = max(dies)
@@ -127,7 +143,8 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
                 ]
                 resum["sessions"] += 1
                 sessio_nfc = fitxa.nova_sessio()
-                for epc, k in rng.sample(peces, rng.randint(1, 3)):
+                triades = rng.sample(peces, rng.randint(1, 3))
+                for epc, k in triades:
                     pas = rng.random() < 0.15  # entra i surt de seguida: no és prova
                     entra = t + timedelta(seconds=rng.randint(5, 20))
                     surt = entra + timedelta(seconds=30) if pas else fi - timedelta(seconds=rng.randint(5, 20))
@@ -173,6 +190,8 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
                         motiu = rng.choice(PROB_MOTIU.get(k["categoria"], PROB_MOTIU["default"]))
                         fitxa.registra(con, sessio_nfc, BOTIGA, k["gtin"], "motiu_no_compra", "ca", motiu,
                                        ts=(fi - timedelta(seconds=5)).isoformat())
+                _novetats_sessio(con, lot, files_venda, triades, peces, per_gtin, cabina, antena, t, fi,
+                                 sessio_nfc, dia == darrer_dia, rng3)
                 t = fi + timedelta(minutes=rng.randint(5, 45))
         # Algunes vendes sense prova (compra directa)
         for _ in range(rng.randint(0, 3)):
@@ -194,10 +213,52 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
     resum["proves_detectades"] = proves.processa_botiga(con, BOTIGA, regla)
     resum["vendes_atribuides"] = vendes.atribueix(con, BOTIGA)
     resum["peces_abandonades"] = _abandonades(con, darrer_dia, rng2)
+    resum["tasques"] = _tasques(con, inici, darrer_dia)
+    resum["informes_lliurats"] = _informes(con, inici, setmanes, fins)
     resum["lectures"] = res.lectures
     resum["linies_venda"] = len(files_venda)
     resum["csv_vendes"] = sortida.getvalue()
     return resum
+
+
+# ---------------------------------------------------------------- Novetats v0.3
+
+
+def _novetats_sessio(con: sqlite3.Connection, lot: dict, files_venda: list, triades: list, peces: list,
+                     per_gtin: dict, cabina: str, antena: str, t: datetime, fi: datetime, sessio_nfc: str,
+                     darrer_dia: bool, rng: random.Random) -> None:
+    """Afegeix a una sessió peces de més (dubte de talla, sessions grans) i, de vegades, una petició d'assistència."""
+    dins = {epc for epc, _ in triades}
+    extres: list[tuple[str, sqlite3.Row, float]] = []  # (epc, sku, probabilitat de compra)
+    if rng.random() < PROB_DUBTE_TALLA:
+        _, k = rng.choice(triades)
+        germanes = cataleg.variants_del_model(con, k["model"], k["color"])
+        i = next(j for j, v in enumerate(germanes) if v["gtin"] == k["gtin"])
+        veines = [germanes[j] for j in (i - 1, i + 1) if 0 <= j < len(germanes)]
+        candidates = [pf for v in veines for pf in per_gtin.get(v["gtin"], []) if pf[0] not in dins]
+        if candidates:
+            epc, k2 = rng.choice(candidates)
+            extres.append((epc, k2, PROB_COMPRA_DUBTE))
+            dins.add(epc)
+    if rng.random() < PROB_MOLTES_PECES:
+        for epc, k2 in rng.sample(peces, rng.randint(2, 3)):
+            if epc not in dins and len(dins) < 5:
+                extres.append((epc, k2, CONVERSIO_BASE.get(k2["categoria"], 0.25)))
+                dins.add(epc)
+    for epc, k2, p in extres:
+        entra = t + timedelta(seconds=rng.randint(5, 20))
+        lot["lectures"] += _lectures(epc, antena, entra, fi - timedelta(seconds=rng.randint(5, 20)), -50, rng)
+        if rng.random() < p:
+            hora = fi + timedelta(minutes=rng.randint(2, 15))
+            files_venda.append([hora.isoformat(), BOTIGA, k2["gtin"], 1, k2["preu_eur"], f"T{rng.randint(10**5, 10**6)}"])
+    if rng.random() < PROB_ASSISTENCIA:
+        _, k = rng.choice(triades)
+        ts = t + timedelta(seconds=rng.randint(60, 120))
+        pid = fitxa.demana_assistencia(con, sessio_nfc, BOTIGA, k["gtin"], "ca", cabina, ts=ts.isoformat())
+        if darrer_dia and rng.random() < 0.4:
+            _deixa_oberta(con, pid, "pendent")
+        else:
+            fitxa.resol_peticio(con, pid, "lliurada", (ts + timedelta(seconds=rng.randint(30, 140))).isoformat())
 
 
 # ---------------------------------------------------------------- Dades per al tauler
@@ -316,6 +377,84 @@ def _abandonades(con: sqlite3.Connection, darrer_dia: date, rng: random.Random) 
                        VALUES (?, ?, ?, ?)""", (c["epc"], c["cabina_id"], detectada.isoformat(), resolta))
     con.commit()
     return len(tria)
+
+
+# ---------------------------------------------------------------- v0.3 D-E: tasques i informes
+
+
+def _tasques(con: sqlite3.Connection, inici: date, darrer_dia: date) -> int:
+    """Unes quantes tasques de botiga: dues de pendents, una de feta i una de descartada (idempotent)."""
+    from . import tasques
+    if con.execute("SELECT 1 FROM tasca WHERE botiga_id = ?", (BOTIGA,)).fetchone():
+        return 0
+    l_ = con.execute("SELECT gtin FROM catalog_sku WHERE model = 'CL-24-NAT' AND talla = 'L'").fetchone()
+    vestit = con.execute("SELECT gtin FROM catalog_sku WHERE model = 'VV-26-VRD' ORDER BY gtin LIMIT 1").fetchone()
+
+    def hora(d: date, h: int) -> str:
+        return datetime.combine(d, datetime.min.time(), ZONA).replace(hour=h).isoformat()
+    noves = [
+        ("recompte", "Recompte de la zona de provadors", "Comparar el recompte manual amb la lectura RFID.",
+         None, None, inici, "feta"),
+        ("moure_a_sala", None, "No s'ha provat mai: probablement és al magatzem.", EXTRES[0][0], None, darrer_dia,
+         "pendent"),
+        ("altre", "Demanar la camisa de lli en L", "Tres clients l'han demanada avui i no n'hi ha.",
+         l_["gtin"] if l_ else None, None, darrer_dia, "pendent"),
+        ("promocio", "Posar el vestit de viscosa a l'aparador", "Proposta descartada: el problema és la talla.",
+         vestit["gtin"] if vestit else None, None, inici + timedelta(days=5), "descartada"),
+    ]
+    for tipus, titol, detall, gtin, unitats, dia, estat in noves:
+        t, _ = tasques.crea(con, BOTIGA, tipus, titol, detall, gtin, unitats, ts=hora(dia, 10), notifica=False)
+        if estat != "pendent":
+            tasques.canvia_estat(con, t["id"], estat, ts=hora(dia, 18), notifica=False)
+    return len(noves)
+
+
+PROGRAMACIONS = [  # (tipus, botiga, dia_setmana, dia_mes, destinataris)
+    ("diari", BOTIGA, None, None, ["botiga.bcn@marca.example"]),
+    ("setmanal", BOTIGA, 0, None, ["botiga.bcn@marca.example", "direccio@marca.example"]),
+    ("mensual", None, None, 1, ["direccio@marca.example", "producte@marca.example"]),
+    ("temporada", None, None, None, ["direccio@marca.example", "producte@marca.example"]),
+]
+
+
+def _informes(con: sqlite3.Connection, inici: date, setmanes: int, fins: date | None) -> int:
+    """Programacions per defecte (diari 08:00, setmanal dilluns 08:00, mensual dia 1 08:00 i temporada en
+    acabar el pilot) i els informes lliurats de les setmanes simulades, com si el bucle de fons els hagués
+    generat cada matí. No s'envien: els lliurats queden «no_enviat». Idempotent."""
+    from . import informes_programats as ip
+    final = inici + timedelta(days=setmanes * 7)        # el dilluns després de l'última setmana
+    if fins is not None:
+        final = min(final, fins + timedelta(days=1))
+    # «Creades» el primer dia simulat a les 0 h: el primer lliurat és el diari d'aquell dia.
+    creada = datetime.combine(inici + timedelta(days=1), datetime.min.time(), ZONA).isoformat()
+    n = 0
+    for tipus, botiga, dia_setmana, dia_mes, destinataris in PROGRAMACIONS:
+        fila = con.execute("SELECT * FROM programacio_informe WHERE tipus = ? AND botiga_id IS ?",
+                           (tipus, botiga)).fetchone()
+        if fila is None:
+            data_ = (inici + timedelta(days=42)).isoformat() if tipus == "temporada" else None
+            pid = con.execute(
+                """INSERT INTO programacio_informe (botiga_id, tipus, actiu, dia_setmana, dia_mes, data, hora,
+                                                    destinataris, creada) VALUES (?, ?, 1, ?, ?, ?, '08:00', ?, ?)""",
+                (botiga, tipus, dia_setmana, dia_mes, data_, json.dumps(destinataris), creada)).lastrowid
+            fila = con.execute("SELECT * FROM programacio_informe WHERE id = ?", (pid,)).fetchone()
+        prog = dict(fila)
+        d = inici + timedelta(days=1)
+        while d <= final:
+            ocurrencia = ip.toca(prog, datetime.combine(d, datetime.min.time(), ZONA).replace(hour=8, minute=1),
+                                 ZONA.key)
+            if ocurrencia is not None:
+                des, fi = ip.periode(tipus, ocurrencia.date())
+                if not con.execute("SELECT 1 FROM informe_lliurat WHERE programacio_id = ? AND des = ?",
+                                   (prog["id"], des.isoformat())).fetchone():
+                    ip.genera(con, tipus, botiga, des, fi, prog["id"], ocurrencia.isoformat())
+                    n += 1
+                prog["darrera_execucio"] = ocurrencia.isoformat()
+                con.execute("UPDATE programacio_informe SET darrera_execucio = ? WHERE id = ?",
+                            (prog["darrera_execucio"], prog["id"]))
+            d += timedelta(days=1)
+    con.commit()
+    return n
 
 
 def main() -> None:

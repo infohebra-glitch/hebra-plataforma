@@ -49,7 +49,16 @@ class ConnexioPerFil:
 def inicialitza(con: sqlite3.Connection) -> None:
     """Crea les taules si no existeixen (idempotent)."""
     con.executescript(ESQUEMA.read_text(encoding="utf-8"))
+    _migra_v03_assistencia(con)
     con.commit()
+
+
+def _migra_v03_assistencia(con: sqlite3.Connection) -> None:
+    """v0.3 (A.4): `peticio_talla.tipus`. SQLite no canvia el CHECK d'una taula: s'afegeix la columna si no hi és."""
+    columnes = {f[1] for f in con.execute("PRAGMA table_info(peticio_talla)")}
+    if "tipus" not in columnes:
+        con.execute("""ALTER TABLE peticio_talla ADD COLUMN tipus TEXT NOT NULL DEFAULT 'talla'
+                       CHECK (tipus IN ('talla', 'assistencia'))""")
 
 
 @contextmanager

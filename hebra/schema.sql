@@ -259,3 +259,107 @@ CREATE TABLE IF NOT EXISTS parametre (
     valor       TEXT NOT NULL,
     PRIMARY KEY (botiga_id, clau)
 );
+
+-- ================================================================ v0.3 D-E: estoc parat, tasques, informes programats
+-- (docs/ESPECIFICACIO-v3.md, seccions D i E.)
+
+-- Tasques de botiga (D.1): el que la botiga ha de fer, sovint creat des d'un suggeriment d'estoc parat.
+CREATE TABLE IF NOT EXISTS tasca (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    botiga_id   TEXT NOT NULL REFERENCES botiga(id),
+    tipus       TEXT NOT NULL CHECK (tipus IN ('traspassar', 'moure_a_sala', 'promocio', 'retornar', 'revisar',
+                                               'recompte', 'altre')),
+    titol       TEXT NOT NULL,
+    detall      TEXT NOT NULL DEFAULT '',
+    gtin        TEXT,
+    unitats     INTEGER,
+    botiga_desti TEXT REFERENCES botiga(id),     -- només per a 'traspassar'
+    estat       TEXT NOT NULL DEFAULT 'pendent' CHECK (estat IN ('pendent', 'feta', 'descartada')),
+    creada      TEXT NOT NULL,
+    creada_per  INTEGER REFERENCES usuari(id),
+    feta        TEXT,                            -- quan s'ha tancat (feta o descartada)
+    feta_per    INTEGER REFERENCES usuari(id)
+);
+CREATE INDEX IF NOT EXISTS ix_tasca_botiga_estat ON tasca(botiga_id, estat);
+
+-- Programació d'informes (E.1). botiga_id NULL = informe de totes les botigues.
+CREATE TABLE IF NOT EXISTS programacio_informe (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    botiga_id   TEXT REFERENCES botiga(id),
+    tipus       TEXT NOT NULL CHECK (tipus IN ('diari', 'setmanal', 'mensual', 'temporada', 'pilot', 'mango')),
+    actiu       INTEGER NOT NULL DEFAULT 1,
+    dia_setmana INTEGER CHECK (dia_setmana BETWEEN 0 AND 6),   -- setmanal (0 = dilluns)
+    dia_mes     INTEGER CHECK (dia_mes BETWEEN 1 AND 28),      -- mensual
+    data        TEXT,                                          -- temporada, pilot, mango (una vegada)
+    hora        TEXT NOT NULL DEFAULT '08:00',                 -- HH:MM, hora local de la botiga
+    destinataris TEXT NOT NULL DEFAULT '[]',                   -- JSON: correus de l'EQUIP de la marca
+    creada      TEXT NOT NULL,
+    darrera_execucio TEXT                                      -- ocurrència programada generada per última vegada
+);
+
+-- Informes lliurats (E.1): instantània JSON de cada informe generat.
+CREATE TABLE IF NOT EXISTS informe_lliurat (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    programacio_id INTEGER REFERENCES programacio_informe(id) ON DELETE SET NULL,
+    botiga_id   TEXT REFERENCES botiga(id),
+    tipus       TEXT NOT NULL,
+    des         TEXT NOT NULL,
+    fins        TEXT NOT NULL,
+    generat     TEXT NOT NULL,
+    dades_json  TEXT NOT NULL,
+    enviat_a    TEXT NOT NULL DEFAULT '[]',
+    estat_enviament TEXT NOT NULL DEFAULT 'no_enviat' CHECK (estat_enviament IN ('no_enviat', 'enviat', 'error')),
+    error       TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_informe_lliurat_generat ON informe_lliurat(generat);
+
+-- ================================================================ v0.3 A-C: fitxa configurable, assistència, sessions
+-- Configuració de la fitxa NFC (A.1). botiga_id = '*' és la general; la d'una botiga és parcial
+-- (només els camps que canvien). Formes i validació a hebra/fitxa_config.py.
+CREATE TABLE IF NOT EXISTS config_fitxa (
+    botiga_id   TEXT PRIMARY KEY,
+    config_json TEXT NOT NULL,
+    actualitzada TEXT NOT NULL
+);
+
+-- Contingut propi de la marca per model i idioma (A.2); passa per davant de catalog_sku.origen_json.
+CREATE TABLE IF NOT EXISTS contingut_model (
+    model       TEXT NOT NULL,
+    idioma      TEXT NOT NULL,
+    camps_json  TEXT NOT NULL,
+    actualitzat TEXT NOT NULL,
+    PRIMARY KEY (model, idioma)
+);
+
+-- Assistència des de la fitxa (A.4): peticio_talla.tipus ('talla' | 'assistencia') s'afegeix amb
+-- ALTER TABLE a db.inicialitza (SQLite no canvia taules existents amb CREATE TABLE IF NOT EXISTS).
+-- Una petició d'assistència té gtin_demanat = gtin_origen i talla_demanada = ''.
+
+-- ================================================================ v0.3 F: integracions
+-- Connexions amb Shopify, Square o fitxers CSV per URL (hebra/integracions/). El testimoni d'accés
+-- es desa xifrat (Fernet, clau derivada de HEBRA_SECRET) i mai surt per l'API.
+CREATE TABLE IF NOT EXISTS integracio (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    botiga_id   TEXT REFERENCES botiga(id),     -- NULL = tota la marca
+    proveidor   TEXT NOT NULL CHECK (proveidor IN ('shopify', 'square', 'csv_url')),
+    config_json TEXT NOT NULL DEFAULT '{}',     -- domini, ubicació, noms d'opció, URL... (res secret)
+    secret_xifrat TEXT,
+    actiu       INTEGER NOT NULL DEFAULT 1,
+    abast       TEXT NOT NULL DEFAULT '["cataleg","vendes","estoc"]',  -- JSON
+    interval_min INTEGER NOT NULL DEFAULT 60,   -- mínim 15
+    darrera_sync TEXT,                          -- inici de la darrera sincronització bona
+    estat       TEXT NOT NULL DEFAULT 'mai' CHECK (estat IN ('ok', 'error', 'mai')),
+    missatge    TEXT,
+    creada      TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sync_registre (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    integracio_id INTEGER NOT NULL REFERENCES integracio(id) ON DELETE CASCADE,
+    inici       TEXT NOT NULL,
+    fi          TEXT,
+    estat       TEXT NOT NULL CHECK (estat IN ('en_curs', 'ok', 'error')),
+    resum_json  TEXT,
+    error       TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_sync_registre ON sync_registre(integracio_id, inici);

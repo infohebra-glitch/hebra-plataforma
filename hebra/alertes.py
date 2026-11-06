@@ -9,7 +9,9 @@ Amb diversos processos (uvicorn --workers > 1) caldria un bus extern (p. ex.
 Redis o LISTEN/NOTIFY de PostgreSQL); al pilot n'hi ha un.
 
 Tipus d'esdeveniment (nom SSE): `peticio` (nova o canvi d'estat), `abandonada`
-(peça abandonada nova) i `alerta` (`talla_esgotada`).
+(peça abandonada nova), `alerta` (`talla_esgotada`) i `tasca` (tasca de botiga
+nova o canviada, v0.3). També `cabina` (estat en directe d'una cabina, v0.3,
+hebra/provadors.py). Les peticions poden ser de talla o d'assistència (camp `tipus`).
 
 Peces abandonades
 -----------------
@@ -119,18 +121,36 @@ def _segons(des: str, fins: str) -> int:
     return max(0, int((datetime.fromisoformat(fins) - datetime.fromisoformat(des)).total_seconds()))
 
 
+def _altres_botigues(fila: sqlite3.Row) -> list[dict]:
+    """v0.3 (A.5): si la talla demanada no hi és, on n'hi ha (taula `estoc`), de més a menys unitats."""
+    if fila["tipus"] != "talla" or not (fila["disponible"] == 0 or fila["estat"] == "no_disponible"):
+        return []
+    altres = json.loads(fila["altres_json"] or "[]")
+    return sorted(altres, key=lambda a: (-a["unitats"], a["botiga_id"]))
+
+
 def peticio_json(fila: sqlite3.Row, ara: str | None = None) -> dict:
-    """Forma de `GET /api/v2/peticions` (docs/API.md). `fila` ve de `consulta_peticions`."""
+    """Forma de `GET /api/v2/peticions` (docs/API.md). `fila` ve de `SQL_PETICIONS`.
+
+    `tipus`: 'talla' | 'assistencia' (v0.3, A.4). Una d'assistència té `talla` = ''.
+    """
     fins = fila["hora_resolta"] or ara or temps.ara()
-    return {"id": fila["id"], "botiga_id": fila["botiga_id"], "model": fila["model"],
+    return {"id": fila["id"], "tipus": fila["tipus"], "botiga_id": fila["botiga_id"], "model": fila["model"],
             "nom": _nom_model(fila["origen_json"], fila["model"]), "color": fila["color"],
             "talla": fila["talla_demanada"], "cabina": fila["cabina"], "hora_peticio": fila["hora_peticio"],
             "hora_resolta": fila["hora_resolta"], "estat": fila["estat"],
             "disponible": None if fila["disponible"] is None else bool(fila["disponible"]),
-            "segons_espera": _segons(fila["hora_peticio"], fins)}
+            "segons_espera": _segons(fila["hora_peticio"], fins),
+            "altres_botigues": _altres_botigues(fila)}
 
 
-SQL_PETICIONS = """SELECT pt.*, k.model, k.color, k.origen_json FROM peticio_talla pt
+SQL_PETICIONS = """SELECT pt.*, k.model, k.color, k.origen_json,
+                          (SELECT json_group_array(json_object('botiga_id', e.botiga_id, 'nom', b.nom,
+                                                               'unitats', e.unitats))
+                           FROM estoc e JOIN botiga b ON b.id = e.botiga_id
+                           WHERE e.gtin = pt.gtin_demanat AND e.botiga_id != pt.botiga_id AND e.unitats > 0
+                          ) AS altres_json
+                   FROM peticio_talla pt
                    JOIN catalog_sku k ON k.gtin = pt.gtin_demanat"""
 
 
@@ -164,6 +184,11 @@ def _potser_talla_esgotada(con: sqlite3.Connection, peticio_id: int) -> None:
         "text": f"{n} peticions avui de {nom} en {pt['talla_demanada']} i no n'hi ha estoc.",
         "botiga_id": pt["botiga_id"], "cabina": pt["cabina"], "creada": pt["hora_peticio"],
         "estat": "pendent", "ref": pt["gtin_demanat"]}, pt["botiga_id"])
+
+
+def notifica_tasca(tasca: dict, nova: bool) -> None:
+    """Publica una tasca de botiga (v0.3, D.1) nova o canviada: esdeveniment SSE `tasca`."""
+    bus.publica("tasca", dict(tasca, accio="nova" if nova else "canvi"), tasca["botiga_id"])
 
 
 def disponible(con: sqlite3.Connection, botiga_id: str | None, gtin: str, estoc_origen: int | None) -> int | None:

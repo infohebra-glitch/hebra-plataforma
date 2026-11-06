@@ -1,6 +1,7 @@
 """Els informes B-G (docs/ESPECIFICACIO.md, «Els 7 informes»; blocs a docs/API.md).
 
-Cada informe és {tipus, titol, periode, blocs, accio, avisos}. Cada bloc és
+Cada informe és {tipus, titol, periode, blocs, accio, avisos, xifres, grafics} (les dues
+darreres claus, de la v0.3, a informes_grafics.py). Cada bloc és
 {id, titol, text, dades}: `text` és una frase per llegir, `dades` els números.
 
 Regles comunes:
@@ -20,6 +21,7 @@ from datetime import timedelta
 from . import Filtre, base, estadistica
 from . import temps_real as alertes_mod, inventari as estoc_mod, experimentacio as exp_mod, per_model as models_mod
 from . import nfc as nfc_mod, tauler as resum_mod, cabina as servei_mod, per_talla as talles_mod, palanques as valor_mod
+from . import informes_grafics
 
 TITOLS = {
     "diari": "Resum diari",
@@ -433,5 +435,7 @@ def informe(con: sqlite3.Connection, f: Filtre, tipus: str) -> dict:
     k = resum_mod.kpi(con, f)
     blocs, avisos_tipus = _BLOCS[tipus](con, f, k)
     acc = resum_mod.accio_principal(con, f, DIES_LIMIT[tipus]) or _accio_reserva(tipus, f)
-    return {"tipus": tipus, "titol": TITOLS[tipus], "periode": base.periode(f), "blocs": blocs,
-            "accio": acc, "avisos": avisos(con, f, k) + avisos_tipus}
+    inf = {"tipus": tipus, "titol": TITOLS[tipus], "periode": base.periode(f), "blocs": blocs,
+           "accio": acc, "avisos": avisos(con, f, k) + avisos_tipus}
+    # v0.3: xifres amb variació, gràfics (els mateixos al tauler i al PDF) i alguns blocs nous.
+    return informes_grafics.enriqueix(con, f, tipus, k, inf)

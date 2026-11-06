@@ -56,7 +56,7 @@ def test_models_i_detall(con):
     assert marcats == ["VV-26-VRD"]  # el vestit "es prova i no es ven"
     d = A.model_detall(con, F, "CL-24-NAT")
     claus(d, "model", "nom", "categoria", "color", "preu", "kpi", "talles", "motius", "serie_setmanal",
-          "provat_amb", "origen", "efecte_origen")
+          "provat_amb", "origen", "efecte_origen", "dubte_talla")
     claus(d["kpi"], "proves", "compres", "conversio", "venut_sense_provar", "respostes_motiu", "taxa_resposta_motiu")
     claus(d["talles"][0], "talla", "gtin", "proves", "compres", "conversio", "pct_proves", "pct_compres", "estoc",
           "demanda_perduda", "canvis_de_talla")
@@ -85,7 +85,7 @@ def test_talles_demanda_motius(con):
 
 def test_servei_estoc_fitxa(con):
     s = A.servei(con, F)
-    claus(s, "peticions", "peticions_per_sessio", "mediana_s", "pct_sota_90s", "per_estat", "ocupacio",
+    claus(s, "peticions", "peticions_assistencia", "peticions_per_sessio", "mediana_s", "pct_sota_90s", "per_estat", "ocupacio",
           "peces_per_sessio")
     claus(s["per_estat"], "pendent", "en_cami", "lliurada", "no_disponible")
     assert s["per_estat"]["en_cami"] + s["per_estat"]["pendent"] >= 1
@@ -93,9 +93,11 @@ def test_servei_estoc_fitxa(con):
     claus(s["ocupacio"]["mapa"][0], "dia_setmana", "hora", "sessions", "pct_totes_plenes")
     claus(s["peces_per_sessio"][0], "peces", "sessions", "pct_amb_compra")
     e = A.estoc(con, F)
-    claus(e, "parat", "risc_rebaixa", "precisio")
+    claus(e, "parat", "resum_parat", "risc_rebaixa", "precisio")
     assert {p["model"] for p in e["parat"]} == {"FL-25-GRS"}
-    claus(e["parat"][0], "gtin", "model", "nom", "talla", "unitats", "dies_sense_activitat")
+    claus(e["parat"][0], "gtin", "model", "nom", "color", "talla", "categoria", "botiga_id", "unitats", "valor_eur",
+          "dies_parat", "dies_sense_activitat", "darrera_prova", "darrera_venda", "proves_altres_botigues",
+          "vendes_altres_botigues", "suggeriment", "tasca")
     assert all(p["dies_sense_activitat"] >= 21 for p in e["parat"])
     claus(e["risc_rebaixa"][0], "model", "nom", "unitats", "cobertura_setmanes", "conversio", "quartil_categoria")
     claus(e["precisio"], "recomptes", "error_mitja_pct")
@@ -128,8 +130,14 @@ def test_experiments_alertes_valor(con):
 @pytest.mark.parametrize("tipus", ["diari", "setmanal", "mensual", "temporada", "pilot", "mango"])
 def test_informes(con, tipus):
     r = A.informe(con, F, tipus)
-    claus(r, "tipus", "titol", "periode", "blocs", "accio", "avisos")
-    assert r["tipus"] == tipus and r["blocs"]
+    claus(r, "tipus", "titol", "periode", "blocs", "accio", "avisos", "xifres", "grafics")
+    assert r["tipus"] == tipus and r["blocs"] and r["xifres"] and r["grafics"]
+    for g in r["grafics"]:
+        claus(g, "id", "titol", "tipus", "unitat", "eix_x", "series", "nota")
+        assert g["tipus"] in ("linia", "barres", "barres_apilades", "donut")
+        assert all(len(s["valors"]) == len(g["eix_x"]) for s in g["series"])
+    for x in r["xifres"]:
+        assert {"etiqueta", "valor", "unitat", "variacio", "vs"} <= set(x)
     for b in r["blocs"]:
         claus(b, "id", "titol", "text", "dades")
     claus(r["accio"], *ACCIO)

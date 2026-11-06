@@ -40,9 +40,11 @@ from .cabina import servei  # noqa: E402
 from .per_talla import demanda_perduda, talles  # noqa: E402
 from .palanques import valor  # noqa: E402
 from .sistema import estat_sistema  # noqa: E402
+from .sessions import sessions  # noqa: E402  (v0.3, C)
 
 __all__ = [
     "Filtre", "parametre",
     "resum", "models", "model_detall", "talles", "demanda_perduda", "motius", "servei", "estoc",
     "fitxa_nfc", "experiments", "alertes", "valor", "informe", "historial_peca", "perdues", "estat_sistema",
+    "sessions",
 ]
