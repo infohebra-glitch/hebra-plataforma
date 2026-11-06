@@ -280,6 +280,18 @@ function fitxaNfc(f: FiltreMock): T.FitxaNfc {
   };
 }
 
+function estatSistema(): T.EstatSistema {
+  const fa = (min: number) => new Date(Date.now() - min * 60000).toISOString();
+  return {
+    cabines: [1, 2, 3].map((n) => ({
+      cabina_id: `BCN-01-C${n}`, nom: `Cabina ${n}`, botiga_id: 'BCN-01',
+      darrera_lectura: fa(n * 7), darrer_sensor: fa(n * 5), hores_sense_dades: n * 0.1, alerta: false,
+    })),
+    darrera_venda: fa(60 * 20), dies_sense_vendes: 1, peces_llegides: 412, peces_desconegudes: 3,
+    pct_desconegudes: 3 / 412, hores_alerta: 24, generat: fa(0), periode: { des: '2026-11-16', fins: '2026-11-22' },
+  };
+}
+
 function alertes(): T.RespostaAlertes {
   return {
     alertes: [
@@ -386,6 +398,7 @@ export function respon(metode: string, url: URL, cos: unknown): Resposta {
       case '/experiments': return ok({ experiments: [experimentOrigen(f), EXPERIMENT_ACABAT] });
       case '/alertes': return ok(alertes());
       case '/valor': return ok(valor());
+      case '/estat-sistema': return ok(estatSistema());
       case '/peticions': return ok({ peticions: estat.peticions.filter((p) => !q.get('estat') || p.estat === q.get('estat')).map((p) => ({ ...p, segons_espera: Math.round((Date.now() - Date.parse(p.hora_peticio)) / 1000) })) });
       case '/abandonades': return ok({ abandonades: estat.abandonades.filter((a) => !q.get('obertes') || !a.resolta) });
       case '/decisions': return ok({ decisions: estat.decisions });

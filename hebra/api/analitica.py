@@ -38,7 +38,8 @@ def _ruta(ruta: str, nom: str) -> None:
 for _ruta_, _nom in [("/resum", "resum"), ("/models", "models"), ("/talles", "talles"),
                      ("/demanda-perduda", "demanda_perduda"), ("/motius", "motius"), ("/servei", "servei"),
                      ("/estoc", "estoc"), ("/fitxa-nfc", "fitxa_nfc"), ("/experiments", "experiments"),
-                     ("/alertes", "alertes"), ("/valor", "valor"), ("/perdues", "perdues")]:
+                     ("/alertes", "alertes"), ("/valor", "valor"), ("/perdues", "perdues"),
+                     ("/estat-sistema", "estat_sistema")]:
     _ruta(_ruta_, _nom)
 
 

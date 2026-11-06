@@ -12,6 +12,7 @@ Arrencada:  uvicorn hebra.app:app --reload   (un sol procés: les alertes en dir
 
 import asyncio
 import logging
+import os
 import secrets
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
@@ -24,7 +25,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import __version__, api, auth, db, fitxa, informes, passarella, proves, retencio, temps, textos, vendes
+from . import __version__, api, auth, db, fitxa, informes, passarella, proves, retencio, shopify, temps, textos, vendes
 from .config import carrega
 
 ARREL = Path(__file__).parent
@@ -50,6 +51,34 @@ def processa_tot() -> None:
             vendes.atribueix(c, b["id"])
     finally:
         c.close()
+
+
+def sincronitza_shopify() -> dict:
+    """Sincronitza les botigues que tenen Shopify configurat (domini i testimoni). Les altres, res."""
+    c = db.connecta(cfg.ruta_bd)
+    resultat = {}
+    try:
+        for b in c.execute("SELECT id FROM botiga").fetchall():
+            if db.parametre(c, b["id"], "shopify_domini") and os.environ.get(shopify.nom_variable_token(b["id"])):
+                try:
+                    resultat[b["id"]] = shopify.sincronitza(c, b["id"])
+                except shopify.ErrorShopify as e:
+                    resultat[b["id"]] = {"error": str(e)}
+    finally:
+        c.close()
+    return resultat
+
+
+async def _bucle_shopify() -> None:
+    """Cada hora (manual del client: «cada hora amb integració directa»)."""
+    while True:
+        await asyncio.sleep(3600)
+        try:
+            n = await asyncio.to_thread(sincronitza_shopify)
+            if n:
+                log.info("Shopify: %s", n)
+        except Exception:
+            log.exception("Error sincronitzant Shopify")
 
 
 async def _bucle_processament() -> None:
@@ -85,6 +114,7 @@ async def _cicle_de_vida(_app):
     tasques = [asyncio.create_task(_bucle_retencio())] if cfg.retencio_dies > 0 else []
     if cfg.processa_cada_min > 0:
         tasques.append(asyncio.create_task(_bucle_processament()))
+    tasques.append(asyncio.create_task(_bucle_shopify()))
     yield
     for t in tasques:
         t.cancel()

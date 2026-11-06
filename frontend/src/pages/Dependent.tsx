@@ -1,17 +1,17 @@
 /**
  * Web del dependent (mòbil, una mà): peticions de talla en directe pel flux SSE,
- * amb botons grans, i peces abandonades per recollir.
+ * amb botons grans, avisos de talla esgotada i peces abandonades per recollir.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { operacio } from '../api/endpoints';
+import { analitica, operacio } from '../api/endpoints';
 import { obreFlux, type EstatFlux } from '../api/flux';
-import type { Abandonada, EstatPeticio, Peticio } from '../api/types';
+import type { Abandonada, Alerta, EstatPeticio, Peticio } from '../api/types';
 import { ErrorEstat, Esquelet } from '../components/Estat';
 import { LogoHebra } from '../components/Icones';
 import { useFiltre } from '../context/Filtre';
 import { useSessio } from '../context/Sessio';
-import { hora } from '../lib/format';
+import { hora, isoData } from '../lib/format';
 import { usePreferencia } from '../lib/useApi';
 
 const OBERTES: EstatPeticio[] = ['pendent', 'en_cami'];
@@ -80,6 +80,7 @@ export function Dependent() {
   const { botiga, setBotiga } = useFiltre();
   const [peticions, setPeticions] = useState<Peticio[] | null>(null);
   const [abandonades, setAbandonades] = useState<Abandonada[] | null>(null);
+  const [esgotades, setEsgotades] = useState<Alerta[]>([]);
   const [error, setError] = useState<Error | null>(null);
   const [avisError, setAvisError] = useState<string | null>(null);
   const [estatFlux, setEstatFlux] = useState<EstatFlux>('connectant');
@@ -96,9 +97,12 @@ export function Dependent() {
 
   const carrega = useCallback(async () => {
     try {
-      const [p, a] = await Promise.all([operacio.peticions(b), operacio.abandonades(b)]);
+      const avui = isoData(new Date());
+      const [p, a, al] = await Promise.all([operacio.peticions(b), operacio.abandonades(b),
+        analitica.alertes({ botiga: b, des: avui, fins: avui })]);
       setPeticions(p.peticions.filter((x) => OBERTES.includes(x.estat)));
       setAbandonades(a.abandonades.filter((x) => !x.resolta));
+      setEsgotades(al.alertes.filter((x) => x.tipus === 'talla_esgotada'));
       setError(null);
     } catch (e) { setError(e as Error); }
   }, [b]);
@@ -124,6 +128,10 @@ export function Dependent() {
       } else if (ev.tipus === 'abandonada') {
         const a = ev.dades;
         setAbandonades((llista) => { const resta = (llista ?? []).filter((x) => x.id !== a.id); return a.resolta ? resta : [a, ...resta]; });
+      } else if (ev.tipus === 'alerta' && ev.dades.tipus === 'talla_esgotada') {
+        const al = ev.dades;
+        avisaRef.current();
+        setEsgotades((llista) => [al, ...llista.filter((x) => x.id !== al.id)]);
       }
     },
   }), [b, carrega]);
@@ -166,6 +174,16 @@ export function Dependent() {
       </div>
       {avisError && <p className="missatge-error" role="alert">{avisError}</p>}
       {error && !peticions && <ErrorEstat error={error} reintenta={carrega} />}
+
+      {esgotades.length > 0 && (
+        <section aria-labelledby="t-esgotades" className="panell" style={{ marginBottom: 16, borderColor: 'var(--critical)' }}>
+          <h2 id="t-esgotades" style={{ fontSize: 17, margin: '0 0 6px' }}>Talles esgotades que demanen</h2>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {esgotades.map((x) => <li key={x.id}>{x.text}</li>)}
+          </ul>
+          <p className="petit muted" style={{ margin: '6px 0 0' }}>Digues-ho a l’encarregada i mira si n’hi ha en una altra botiga.</p>
+        </section>
+      )}
 
       <section id="peticions" aria-labelledby="t-peticions">
         <h1 id="t-peticions" style={{ fontSize: 22, margin: '8px 0 10px' }}>Talles demanades {peticions ? <span className="muted">({ordenades.length})</span> : null}</h1>

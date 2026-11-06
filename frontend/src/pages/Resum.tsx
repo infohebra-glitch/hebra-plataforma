@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
 import { analitica } from '../api/endpoints';
-import type { Accio, Resum as TResum } from '../api/types';
+import type { Accio, EstatSistema as TEstatSistema, Resum as TResum } from '../api/types';
 import { Consulta, Esquelet } from '../components/Estat';
 import { MostraPetita } from '../components/Insignies';
 import { Rajola, type Delta } from '../components/Rajola';
 import { SerieTemporal } from '../components/grafics/SerieTemporal';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
 import { useFiltre } from '../context/Filtre';
-import { deCada, diaCurt, diaLlarg, diaSetmana, enter, pct, punts, segons } from '../lib/format';
+import { deCada, diaCurt, diaLlarg, diaSetmana, enter, hora, pct, punts, segons } from '../lib/format';
 import { insight } from '../lib/etiquetes';
 import { useApi } from '../lib/useApi';
 
@@ -54,9 +54,44 @@ function Xifres({ r }: { r: TResum }) {
   );
 }
 
+const quan = (iso: string | null) => (iso ? `${diaCurt(iso)}${iso.length > 10 ? `, ${hora(iso)}` : ''}` : 'mai');
+
+/** Pantalla «Estat del sistema» del manual: si cada cabina envia dades i si arriben les vendes. */
+function EstatDelSistema({ e }: { e: TEstatSistema }) {
+  const alertes = e.cabines.filter((c) => c.alerta).length;
+  return (
+    <Seccio titol="Estat del sistema" subtitol={`Una cabina surt en vermell si fa més de ${e.hores_alerta} h que no envia dades (després d’un dia de tancament és normal fins a la primera prova).`}>
+      <div className="panell">
+        <div className="taula-wrap"><table>
+          <caption className="sr-only">Darrera dada de cada cabina</caption>
+          <thead><tr><th scope="col">Cabina</th><th scope="col">Darrera lectura</th><th scope="col">Darrer sensor</th><th scope="col">Estat</th></tr></thead>
+          <tbody>
+            {e.cabines.map((c) => (
+              <tr key={c.cabina_id}>
+                <th scope="row">{c.nom} <span className="muted petit">{c.botiga_id}</span></th>
+                <td>{quan(c.darrera_lectura)}</td>
+                <td>{quan(c.darrer_sensor)}</td>
+                <td>{c.alerta ? <span className="insignia insignia-critic">Sense dades</span> : <span className="insignia insignia-bo">Envia dades</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+        <p className="petit" style={{ marginTop: 10 }}>
+          <b>Darrera venda importada:</b> {quan(e.darrera_venda)}
+          {e.dies_sense_vendes !== null && e.dies_sense_vendes > 7 && <span className="insignia insignia-critic" style={{ marginLeft: 6 }}>fa {e.dies_sense_vendes} dies</span>}
+          {' · '}<b>Peces desconegudes:</b> {pct(e.pct_desconegudes, 1)} ({enter(e.peces_desconegudes)} de {enter(e.peces_llegides)} etiquetes llegides al període no són a la taula d’etiquetes)
+          {(e.dies_sense_vendes ?? 99) > 7 && <> · <Link to="/dades">Importa les vendes</Link></>}
+          {alertes > 0 && <> · {alertes === 1 ? 'Una cabina' : `${alertes} cabines`} sense dades: mira la xarxa, el lector i la passarel·la (manual, capítol 19).</>}
+        </p>
+      </div>
+    </Seccio>
+  );
+}
+
 export function Resum() {
   const { filtre, clau } = useFiltre();
   const q = useApi((s) => analitica.resum(filtre, s), [clau]);
+  const qs = useApi((s) => analitica.estatSistema(filtre, s), [clau]);
   return (
     <>
       <TitolPagina titol="Resum">Què s’ha provat, què s’ha venut i què cal fer aquesta setmana.</TitolPagina>
@@ -96,6 +131,7 @@ export function Resum() {
           </>
         )}
       </Consulta>
+      {qs.dades && <EstatDelSistema e={qs.dades} />}
     </>
   );
 }

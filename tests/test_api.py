@@ -457,3 +457,17 @@ def test_peticions_simultanies_no_es_trepitgen(entorn):
     with ThreadPoolExecutor(max_workers=8) as ex:
         codis = list(ex.map(lambda cr: cr[0].get(cr[1]).status_code, crides))
     assert set(codis) == {200}, codis
+
+
+def test_estat_sistema(entorn):
+    app_mod, con = entorn
+    con.execute("""INSERT INTO lectura_agregada (epc, antena_id, inici, fi, n_lectures, rssi_max, rssi_mitja)
+                   SELECT 'urn:desconegut', id, '2020-01-15T10:00:00+01:00', '2020-01-15T10:00:10+01:00', 5, -50, -55
+                   FROM antena LIMIT 1""")
+    con.commit()
+    r = _client(app_mod, "bcn@hebra.cat").get("/api/v2/estat-sistema?des=2020-01-13&fins=2020-01-19")
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert {c["botiga_id"] for c in d["cabines"]} == {"BCN-01"}  # una botiga només veu les seves cabines
+    assert sum(not c["alerta"] for c in d["cabines"]) == 0  # fa anys de l'última lectura: totes en alerta
+    assert d["peces_desconegudes"] == 1 and d["pct_desconegudes"] == 1.0

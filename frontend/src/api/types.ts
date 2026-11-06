@@ -272,6 +272,28 @@ export interface Alerta {
 }
 export interface RespostaAlertes { alertes: Alerta[] }
 
+/** GET /estat-sistema */
+export interface EstatCabina {
+  cabina_id: string;
+  nom: string;
+  botiga_id: string;
+  darrera_lectura: DataHora | null;
+  darrer_sensor: DataHora | null;
+  hores_sense_dades: number | null;
+  alerta: boolean;
+}
+export interface EstatSistema {
+  cabines: EstatCabina[];
+  darrera_venda: DataHora | null;
+  dies_sense_vendes: number | null;
+  peces_llegides: number;
+  peces_desconegudes: number;
+  pct_desconegudes: number | null;
+  hores_alerta: number;
+  generat: DataHora;
+  periode: { des: string; fins: string };
+}
+
 // ── GET /valor ───────────────────────────────────────────────────────────
 export interface Palanca {
   palanca: string;

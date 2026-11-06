@@ -24,6 +24,7 @@ export const analitica = {
   experiments: (x: T.Filtre, s?: AbortSignal) => api.get<T.RespostaExperiments>('/experiments', f(x), s),
   alertes: (x: T.Filtre, s?: AbortSignal) => api.get<T.RespostaAlertes>('/alertes', f(x), s),
   valor: (x: T.Filtre, s?: AbortSignal) => api.get<T.Valor>('/valor', f(x), s),
+  estatSistema: (x: T.Filtre, s?: AbortSignal) => api.get<T.EstatSistema>('/estat-sistema', f(x), s),
   informe: (x: T.Filtre, tipus: T.TipusInforme, s?: AbortSignal) => api.get<T.Informe>(`/informes/${tipus}`, f(x), s),
   historial: (epc: string) => api.get<T.HistorialPeca>(`/peces/${enc(epc)}/historial`),
   perdues: (x: T.Filtre) => api.get<T.Perdues>('/perdues', f(x)),

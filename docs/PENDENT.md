@@ -17,6 +17,18 @@
 - **Recàlcul incremental de proves**: ara es recalcula la història guardada de cada cabina cada 5 minuts. Per a una botiga i 8 setmanes va bé (la simulació de 8 setmanes triga ~1 min a generar-se, però les consultes del tauler responen en < 150 ms).
 - **Notificacions push** al mòbil del dependent amb la pantalla bloquejada (ara: la pàgina oberta rep les alertes en directe, amb so i vibració).
 
+## Comparació amb el manual del client (doc 18, 06-11)
+
+**Fet tal com ho diu el manual:** web del dependent amb les tres alertes (petició de talla, talla esgotada demanada, peces oblidades), panell de la marca amb les pantalles de la taula 12.2 (inclòs l'estat del sistema), els 7 informes (A-G, imprimibles en PDF des del navegador), usuaris personals per a la marca i un usuari per botiga, Shopify cada hora, retenció de dades, insights 1-18 i 21-25.
+
+**El manual promet coses que el codi encara no fa** (o es treuen del manual o es fan):
+- **Resum diari per correu** (13.2): ara només és al panell (`/app/informes/diari`). Cal un servei de correu.
+- **Filtres** de cabina, categoria, model, talla i grup de control al panell (12.3): ara només botiga i període; la fitxa de cada peça i les pantalles de talles i origen ja ho desglossen.
+- **«Pendent de vendes»** a la conversió del dia (12.4) quan les vendes encara no han arribat.
+- **Observació manual i informe de qualitat de lectura** (8.4.2, 8.4.4): la taula `observacio_manual` existeix i l'informe final declara la taxa d'error, però no hi ha pantalla per entrar el full ni l'informe d'una pàgina de la setmana 1.
+- **Etiquetes de recanvi i devolucions** (7.5, 7.7): es donen d'alta amb `python -m hebra.admin etiquetes`; no hi ha pantalla, i Shopify no importa els reemborsaments.
+- **Alta i baixa d'usuaris**: el manual diu que ho fa Hebra (suport), i és així (`hebra.admin usuari` o l'API `/api/v2/usuaris`); no hi ha pantalla al tauler.
+
 ## Abans de posar-ho davant d'una botiga real
 
 - `HEBRA_ENTORN=produccio`, `HEBRA_SECRET`, `HEBRA_COOKIE_SECURE=1`, claus i contrasenyes noves, i només HTTPS.

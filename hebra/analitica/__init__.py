@@ -39,9 +39,10 @@ from .tauler import resum  # noqa: E402
 from .cabina import servei  # noqa: E402
 from .per_talla import demanda_perduda, talles  # noqa: E402
 from .palanques import valor  # noqa: E402
+from .sistema import estat_sistema  # noqa: E402
 
 __all__ = [
     "Filtre", "parametre",
     "resum", "models", "model_detall", "talles", "demanda_perduda", "motius", "servei", "estoc",
-    "fitxa_nfc", "experiments", "alertes", "valor", "informe", "historial_peca", "perdues",
+    "fitxa_nfc", "experiments", "alertes", "valor", "informe", "historial_peca", "perdues", "estat_sistema",
 ]

@@ -162,6 +162,15 @@ Prova de dues proporcions (z) i IC del 95 % de la diferència; `proves_necessari
 ```
 Tipus: `peticio_talla`, `talla_esgotada` (≥ 3 peticions del mateix GTIN el mateix dia sense estoc), `peca_abandonada`, `molt_provat_poc_venut`.
 
+### `GET /estat-sistema` → `analitica.estat_sistema`
+```json
+{"cabines": [{"cabina_id": "BCN-01-C1", "nom": "Cabina 1", "botiga_id": "BCN-01", "darrera_lectura": "...",
+              "darrer_sensor": "...", "hores_sense_dades": 0.3, "alerta": false}],
+ "darrera_venda": "...", "dies_sense_vendes": 1, "peces_llegides": 412, "peces_desconegudes": 3,
+ "pct_desconegudes": 0.007, "hores_alerta": 24, "generat": "...", "periode": {"des": "...", "fins": "..."}}
+```
+`alerta`: la cabina fa més de `hores_alerta` hores que no envia lectures ni sensors. Les peces desconegudes són EPC llegits al període que no són a la taula `etiqueta`.
+
 ### `GET /valor` → `analitica.valor`
 ```json
 {"parametres": {"marge_peca": 40, "quota_mensual": 350, "pvp_mitja": 69},
