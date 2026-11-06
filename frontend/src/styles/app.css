@@ -495,3 +495,4 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .form-integracio { background: var(--surface-2); }
 .registre { border-top: 1px solid var(--line-2); padding-top: 8px; }
 .enllac { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
+.avis-demo { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: min(92vw, 460px); background: var(--fg); color: var(--bg); padding: 10px 14px; border-radius: 8px; font-size: 14px; z-index: 50; box-shadow: 0 4px 16px rgb(0 0 0 / 0.2); }

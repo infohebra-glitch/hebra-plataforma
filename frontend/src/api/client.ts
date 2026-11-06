@@ -7,7 +7,7 @@
  * En mode demostració (vegeu src/mock), `transport` es reemplaça per un
  * servidor fals en memòria i la resta del codi no se n'assabenta.
  */
-import { rutaActual, rutaApp } from '../lib/mode';
+import { esDemo, rutaActual, rutaApp } from '../lib/mode';
 import type { Filtre } from './types';
 
 export const BASE = '/api/v2';
@@ -98,7 +98,18 @@ export async function descarrega(ruta: string, params?: Params): Promise<Blob> {
 }
 
 /** Desa un Blob amb un nom (enllaç temporal). */
+/** Avís breu a la demo, on la pàgina no pot baixar fitxers (el visor no ho permet). */
+function avisDemo(nom: string): void {
+  const d = document.createElement('div');
+  d.setAttribute('role', 'status');
+  d.className = 'avis-demo';
+  d.textContent = `A la demo no es baixen fitxers. A la plataforma, aquí es descarrega «${nom}».`;
+  document.body.appendChild(d);
+  window.setTimeout(() => d.remove(), 4500);
+}
+
 export function desaBlob(b: Blob, nom: string): void {
+  if (esDemo()) { avisDemo(nom); return; }
   const url = URL.createObjectURL(b);
   const a = document.createElement('a');
   a.href = url; a.download = nom; document.body.appendChild(a); a.click(); a.remove();
