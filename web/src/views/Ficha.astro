@@ -1,0 +1,140 @@
+---
+import Base from '../layouts/Base.astro';
+import Phone from '../components/Phone.astro';
+import Cta from '../components/Cta.astro';
+import { ui, path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: {
+    title: 'La ficha', desc: 'La ficha que se abre al tocar una prenda con el móvil: composición, cuidado y origen para tu cliente, y lo que pasa en el probador para ti. Sin app.',
+    h1: 'Toca la prenda. Se abre su historia.',
+    lead: 'Tu cliente acerca el móvil a la etiqueta y aparece una ficha con tu marca. Sin app, sin QR, en su idioma. Y lo que hace en ella te dice qué pasa en tu probador.',
+    modeLabel: 'Dónde está tu cliente', cab: 'En la cabina', home: 'En casa',
+    cabText: 'En la cabina la ficha suma dos cosas: pedir otra talla y decir por qué no se la lleva.',
+    homeText: 'En casa queda lo esencial: composición, cuidado y origen. La etiqueta sigue funcionando toda la vida de la prenda.',
+    try: 'Desliza dentro del móvil y toca las tallas.',
+    seesH: 'Lo que ve tu cliente',
+    sees: [['Qué es y cómo cuidarla', 'Composición, cuidado con sus símbolos y el precio, en el idioma del móvil. Sin descargar nada.'], ['De dónde viene', 'Fibra, tejido, tinte y confección, con el lugar de cada etapa. Lo que la marca sabe, contado en claro.'], ['Otra talla sin salir', 'Dentro de la cabina pide la talla que le falta. La tienda recibe el aviso al momento.'], ['Por qué no se la lleva', 'Un toque: talla, corte, precio, color o calidad. Sin datos personales, solo el motivo.']],
+    getsH: 'Lo que recibes tú', getsL: 'Cada toque es un dato de tu tienda física, el que la caja no ve. Lo recibes cada lunes, por tienda y por prenda.', getsLink: 'Cómo lo usamos en el probador',
+    gets: [['Prueba sin venta', 'Qué prendas se prueban mucho y se venden poco, por modelo, talla y color.'], ['Tallas que faltan', 'Las tallas pedidas desde la cabina, también las que no había en tienda.'], ['El porqué', 'Los motivos del «no» agrupados por prenda, para decidir si es el corte, el precio o la curva de tallas.'], ['Interés por el origen', 'Cuánta gente abre la cadena y si eso cambia lo que compra.']],
+    specs: [['Sin app', 'Funciona con cualquier móvil reciente, iPhone o Android.'], ['Con tu marca', 'Tus colores, tu tipografía y tus fotos. Hebra solo firma al pie.'], ['En su idioma', 'Castellano, catalán, francés e inglés, según el móvil de quien la toca.'], ['Para toda su vida', 'La misma etiqueta sirve en tienda, en casa y para el futuro pasaporte digital de producto europeo.']],
+  },
+  ca: {
+    title: 'La fitxa', desc: 'La fitxa que s’obre en tocar una peça amb el mòbil: composició, cura i origen per al teu client, i el que passa a l’emprovador per a tu. Sense app.',
+    h1: 'Toca la peça. S’obre la seva història.',
+    lead: 'El teu client acosta el mòbil a l’etiqueta i apareix una fitxa amb la teva marca. Sense app, sense QR, en el seu idioma. I el que hi fa et diu què passa al teu emprovador.',
+    modeLabel: 'On és el teu client', cab: 'A la cabina', home: 'A casa',
+    cabText: 'A la cabina la fitxa hi afegeix dues coses: demanar una altra talla i dir per què no se l’endú.',
+    homeText: 'A casa queda l’essencial: composició, cura i origen. L’etiqueta continua funcionant tota la vida de la peça.',
+    try: 'Llisca dins del mòbil i toca les talles.',
+    seesH: 'El que veu el teu client',
+    sees: [['Què és i com cuidar-la', 'Composició, cura amb els seus símbols i el preu, en l’idioma del mòbil. Sense descarregar res.'], ['D’on ve', 'Fibra, teixit, tint i confecció, amb el lloc de cada etapa. El que la marca sap, explicat clar.'], ['Una altra talla sense sortir', 'Dins la cabina demana la talla que li falta. La botiga rep l’avís a l’instant.'], ['Per què no se l’endú', 'Un toc: talla, tall, preu, color o qualitat. Sense dades personals, només el motiu.']],
+    getsH: 'El que reps tu', getsL: 'Cada toc és una dada de la teva botiga física, la que la caixa no veu. La reps cada dilluns, per botiga i per peça.', getsLink: 'Com ho fem servir a l’emprovador',
+    gets: [['Prova sense venda', 'Quines peces s’emproven molt i es venen poc, per model, talla i color.'], ['Talles que falten', 'Les talles demanades des de la cabina, també les que no hi havia a la botiga.'], ['El perquè', 'Els motius del «no» agrupats per peça, per decidir si és el tall, el preu o la corba de talles.'], ['Interès per l’origen', 'Quanta gent obre la cadena i si això canvia el que compra.']],
+    specs: [['Sense app', 'Funciona amb qualsevol mòbil recent, iPhone o Android.'], ['Amb la teva marca', 'Els teus colors, la teva tipografia i les teves fotos. Hebra només signa al peu.'], ['En el seu idioma', 'Castellà, català, francès i anglès, segons el mòbil de qui la toca.'], ['Per a tota la seva vida', 'La mateixa etiqueta serveix a la botiga, a casa i per al futur passaport digital de producte europeu.']],
+  },
+  en: {
+    title: 'The garment page', desc: 'The page that opens when a garment is tapped with a phone: composition, care and origin for your customer, and what happens in the fitting room for you. No app.',
+    h1: 'Tap the garment. Its story opens.',
+    lead: 'Your customer holds their phone to the tag and a page with your brand appears. No app, no QR code, in their language. And what they do on it tells you what happens in your fitting room.',
+    modeLabel: 'Where your customer is', cab: 'In the room', home: 'At home',
+    cabText: 'In the fitting room the page adds two things: asking for another size and saying why they won’t buy it.',
+    homeText: 'At home the essentials stay: composition, care and origin. The tag keeps working for the garment’s whole life.',
+    try: 'Scroll inside the phone and tap the sizes.',
+    seesH: 'What your customer sees',
+    sees: [['What it is and how to care for it', 'Composition, care with its symbols and the price, in the phone’s language. Nothing to download.'], ['Where it comes from', 'Fibre, fabric, dyeing and making, with the place of each stage. What the brand knows, told plainly.'], ['Another size without leaving', 'From inside the room they ask for the size they need. The store gets the alert straight away.'], ['Why they won’t buy it', 'One tap: size, fit, price, colour or quality. No personal data, only the reason.']],
+    getsH: 'What you get', getsL: 'Every tap is a data point from your physical store, the one the till can’t see. You get it every Monday, by store and by garment.', getsLink: 'How we use it in the fitting room',
+    gets: [['Tried on, not sold', 'Which garments are tried on a lot and sell little, by style, size and colour.'], ['Missing sizes', 'Sizes requested from the fitting room, including ones the store didn’t have.'], ['The why', 'Reasons for “no” grouped by garment, so you can tell whether it’s the fit, the price or the size curve.'], ['Interest in origin', 'How many people open the supply chain and whether it changes what they buy.']],
+    specs: [['No app', 'Works with any recent phone, iPhone or Android.'], ['Your brand', 'Your colours, your type and your photos. Hebra only signs at the bottom.'], ['In their language', 'Spanish, Catalan, French and English, depending on the phone that taps it.'], ['For its whole life', 'The same tag works in store, at home and for the future EU digital product passport.']],
+  },
+}[lang];
+---
+<Base title={T.title} lang={lang} route="/ficha/" dark description={T.desc}>
+  <section class="fx-hero">
+    <div class="wrap fx-grid">
+      <div class="fx-copy">
+        <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / {T.title}</p>
+        <h1 data-split>{T.h1}</h1>
+        <p class="lead">{T.lead}</p>
+        <div class="fx-mode" role="group" aria-label={T.modeLabel} data-mode>
+          <button type="button" data-value="cabina" aria-pressed="true">{T.cab}</button>
+          <button type="button" data-value="casa" aria-pressed="false">{T.home}</button>
+        </div>
+        <p class="fx-mode-text" data-mode-text="cabina">{T.cabText}</p>
+        <p class="fx-mode-text" data-mode-text="casa" hidden>{T.homeText}</p>
+        <p class="small fx-try">{T.try}</p>
+      </div>
+      <div class="fx-phone" data-mode-target>
+        <div class="fx-glow" aria-hidden="true"></div>
+        <Phone compact={false} interactive lang={lang} />
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2 class="fx-h" data-reveal>{T.seesH}</h2>
+      <ol class="fx-cards">
+        {T.sees.map(([t, d], i) => (
+          <li data-reveal><span class="fx-n">{String(i + 1).padStart(2, '0')}</span><h3>{t}</h3><p>{d}</p></li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="band grana">
+    <div class="wrap split">
+      <div data-reveal>
+        <h2>{T.getsH}</h2>
+        <p class="lead fx-lead">{T.getsL}</p>
+        <a class="textlink" href={path(lang, '/probador/')}>{T.getsLink}</a>
+      </div>
+      <ul class="rows" data-reveal>
+        {T.gets.map(([t, d]) => <li><h3>{t}</h3><p>{d}</p></li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="band perla tight">
+    <div class="wrap fx-specs">
+      {T.specs.map(([h, p]) => <div data-reveal><h3>{h}</h3><p>{p}</p></div>)}
+    </div>
+  </section>
+
+  <Cta lang={lang} />
+</Base>
+
+<style>
+  .fx-hero { position: relative; background: radial-gradient(70% 80% at 72% 40%, #1e5a9c 0%, var(--blau) 64%); color: var(--blanc); padding: calc(76px + clamp(2rem, 5vw, 4rem)) 0 clamp(4rem, 8vw, 6rem); overflow: hidden; }
+  .fx-grid { display: grid; gap: 3rem; align-items: center; }
+  @media (min-width: 960px) { .fx-grid { grid-template-columns: 1.1fr .9fr; } }
+  .fx-copy h1 { color: var(--blanc); font-size: clamp(2.6rem, 1.6rem + 3.6vw, 4.8rem); max-width: 12ch; }
+  .fx-copy .lead { color: #DCE4EE; max-width: 34rem; }
+  .fx-hero .crumb, .fx-hero .crumb a { color: #C9D3E0; }
+  .fx-mode { display: inline-flex; margin-top: 2rem; padding: 4px; border-radius: 999px; background: rgba(249,249,249,.1); box-shadow: inset 0 0 0 1px rgba(249,249,249,.2); }
+  .fx-mode button { font: 600 .95rem/1 var(--sans); padding: .8rem 1.3rem; border-radius: 999px; border: 0; background: transparent; color: #DCE4EE; cursor: pointer; transition: background .25s, color .25s; }
+  .fx-mode button[aria-pressed='true'] { background: var(--blanc); color: var(--blau); }
+  .fx-mode button:focus-visible { outline: 2px solid #E4B3C1; outline-offset: 2px; }
+  .fx-mode-text { color: #DCE4EE; margin: 1rem 0 0; max-width: 30rem; min-height: 3em; }
+  .fx-try { color: #A9B8CB; margin-top: 1.5rem; }
+  .fx-phone { position: relative; width: min(340px, 82vw); justify-self: center; }
+  .fx-glow { position: absolute; inset: 10% -30%; background: radial-gradient(closest-side, rgba(228,179,193,.28), transparent); filter: blur(30px); pointer-events: none; }
+  .fx-phone :global(.phone) { transform: rotate(-3deg); transition: transform .6s cubic-bezier(.2,.7,.2,1); }
+  .fx-phone:hover :global(.phone) { transform: rotate(0); }
+
+  .fx-h { margin-bottom: 2.5rem; }
+  .fx-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: 18px; overflow: hidden; }
+  @media (min-width: 720px) { .fx-cards { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1100px) { .fx-cards { grid-template-columns: repeat(4, 1fr); } }
+  .fx-cards li { background: var(--blanc); padding: 2rem 1.6rem 2.2rem; }
+  .fx-n { display: block; font: 400 2.4rem/1 var(--serif); color: var(--grana); margin-bottom: 1.6rem; }
+  .fx-cards h3 { margin: 0 0 .5rem; }
+  .fx-cards p { margin: 0; color: var(--tinta-2); }
+  .fx-lead { color: #F3DDE4; }
+  .fx-specs { display: grid; gap: 2rem; }
+  @media (min-width: 720px) { .fx-specs { grid-template-columns: repeat(4, 1fr); } }
+  .fx-specs h3 { margin: 0 0 .4rem; }
+  .fx-specs p { margin: 0; color: var(--tinta-2); font-size: var(--step--1); }
+  @media (max-width: 959px) { .fx-phone :global(.phone) { transform: none; } }
+</style>

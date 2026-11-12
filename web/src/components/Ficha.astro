@@ -1,79 +1,124 @@
 ---
 // La ficha que se abre al tocar la prenda con el móvil. Ejemplo ilustrativo.
-interface Props { compact?: boolean; interactive?: boolean }
-const { compact = false, interactive = true } = Astro.props;
+import type { Lang } from '../i18n';
+interface Props { compact?: boolean; interactive?: boolean; lang?: Lang }
+const { compact = false, interactive = true, lang = 'es' } = Astro.props;
 const sizes = [
   { s: 'S', ok: true }, { s: 'M', ok: true, cur: true }, { s: 'L', ok: false }, { s: 'XL', ok: true },
 ];
-const why = ['Talla', 'Corte', 'Precio', 'Color', 'Calidad'];
-const chain = [
-  { k: 'Fibra', v: 'Lino', where: 'Normandía, Francia' },
-  { k: 'Hilado y tejido', v: 'Tela de lino lavado', where: 'Biella, Italia' },
-  { k: 'Tinte y acabado', v: 'Teñido en pieza', where: 'Biella, Italia' },
-  { k: 'Confección', v: 'Cosida a mano', where: 'Guimarães, Portugal' },
-];
+const T = {
+  es: {
+    brand: 'Tu marca', alt: 'Camiseta básica de algodón, blanca', auth: 'Prenda auténtica',
+    name: 'Camiseta básica de algodón', ref: 'Ref. 2041 · Talla M',
+    tags: ['Algodón orgánico 100 %', 'Confección en Portugal', '4 de 4 etapas conocidas'],
+    other: '¿Te traigo otra talla?', cab: 'Cabina 2', yours: 'la tuya', notify: 'avisar', sizesLabel: 'Elegir talla', outLabel: 'sin stock en tienda',
+    from: 'De dónde viene', care: 'Cuidado', careItems: ['30 °C', 'Sin secadora', 'Plancha media', 'Sin lejía'],
+    whyH: '¿No te la llevas? Dinos por qué', whyLabel: 'Motivo', why: ['Talla', 'Corte', 'Precio', 'Color', 'Calidad'],
+    sizeMsg: 'Hecho. Te llevamos la {s} a la cabina 2.', outMsg: 'La {s} no está en tienda. Te avisamos cuando llegue.', whyMsg: 'Gracias. No guardamos quién eres, solo el motivo.',
+    chain: [
+      { k: 'Fibra', v: 'Algodón orgánico', where: 'Esmirna, Turquía' },
+      { k: 'Hilado y tejido', v: 'Punto jersey 180 g', where: 'Barcelos, Portugal' },
+      { k: 'Tinte y acabado', v: 'Teñido en prenda', where: 'Barcelos, Portugal' },
+      { k: 'Confección', v: 'Cosida y rematada', where: 'Guimarães, Portugal' },
+    ],
+    by: 'con Hebra',
+  },
+  ca: {
+    brand: 'La teva marca', alt: 'Samarreta bàsica de cotó, blanca', auth: 'Peça autèntica',
+    name: 'Samarreta bàsica de cotó', ref: 'Ref. 2041 · Talla M',
+    tags: ['Cotó orgànic 100 %', 'Confecció a Portugal', '4 de 4 etapes conegudes'],
+    other: 'T’atanso una altra talla?', cab: 'Cabina 2', yours: 'la teva', notify: 'avisar', sizesLabel: 'Triar talla', outLabel: 'sense estoc a la botiga',
+    from: 'D’on ve', care: 'Cura', careItems: ['30 °C', 'Sense assecadora', 'Planxa mitjana', 'Sense lleixiu'],
+    whyH: 'No te l’endus? Digues-nos per què', whyLabel: 'Motiu', why: ['Talla', 'Tall', 'Preu', 'Color', 'Qualitat'],
+    sizeMsg: 'Fet. Et portem la {s} a la cabina 2.', outMsg: 'La {s} no és a la botiga. T’avisem quan arribi.', whyMsg: 'Gràcies. No guardem qui ets, només el motiu.',
+    chain: [
+      { k: 'Fibra', v: 'Cotó orgànic', where: 'Esmirna, Turquia' },
+      { k: 'Filat i teixit', v: 'Punt jersei 180 g', where: 'Barcelos, Portugal' },
+      { k: 'Tint i acabat', v: 'Tenyit en peça', where: 'Barcelos, Portugal' },
+      { k: 'Confecció', v: 'Cosida i rematada', where: 'Guimarães, Portugal' },
+    ],
+    by: 'amb Hebra',
+  },
+  en: {
+    brand: 'Your brand', alt: 'Basic white cotton T-shirt', auth: 'Authentic garment',
+    name: 'Basic cotton T-shirt', ref: 'Ref. 2041 · Size M',
+    tags: ['100 % organic cotton', 'Made in Portugal', '4 of 4 stages known'],
+    other: 'Shall I bring another size?', cab: 'Room 2', yours: 'yours', notify: 'notify me', sizesLabel: 'Choose a size', outLabel: 'out of stock in store',
+    from: 'Where it comes from', care: 'Care', careItems: ['30 °C', 'Do not tumble dry', 'Medium iron', 'No bleach'],
+    whyH: 'Not taking it? Tell us why', whyLabel: 'Reason', why: ['Size', 'Fit', 'Price', 'Colour', 'Quality'],
+    sizeMsg: 'Done. We’re bringing the {s} to room 2.', outMsg: 'The {s} isn’t in store. We’ll let you know when it arrives.', whyMsg: 'Thank you. We don’t store who you are, only the reason.',
+    chain: [
+      { k: 'Fibre', v: 'Organic cotton', where: 'Izmir, Türkiye' },
+      { k: 'Spinning and knitting', v: '180 g jersey knit', where: 'Barcelos, Portugal' },
+      { k: 'Dyeing and finishing', v: 'Garment dyed', where: 'Barcelos, Portugal' },
+      { k: 'Making', v: 'Sewn and finished', where: 'Guimarães, Portugal' },
+    ],
+    by: 'with Hebra',
+  },
+}[lang];
+const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR · EN', en: 'CA · ES · FR · <b>EN</b>' }[lang];
 ---
 <article class:list={['ficha', { compact }]} data-ficha={interactive ? '' : undefined}>
   <div class="fi-img">
-    <span class="fi-brand">Tu marca</span>
-    <img src="/img/camisa-render.png" alt="Camisa de lino lavado, blanca" width="520" height="520" loading="lazy" />
-    <span class="fi-nfc"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 8.5a6 6 0 0 1 0 7M10.5 6a10 10 0 0 1 0 12M14 3.5a14 14 0 0 1 0 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Prenda auténtica</span>
+    <span class="fi-brand">{T.brand}</span>
+    <img src="/img/camiseta-render.png" alt={T.alt} width="520" height="520" loading="lazy" />
+    <span class="fi-nfc"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 8.5a6 6 0 0 1 0 7M10.5 6a10 10 0 0 1 0 12M14 3.5a14 14 0 0 1 0 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> {T.auth}</span>
   </div>
 
   <header class="fi-head">
-    <h2 class="fi-name">Camisa de lino lavado</h2>
-    <p class="fi-meta"><span>69 €</span><span>Ref. 2041 · Talla M</span></p>
+    <h2 class="fi-name">{T.name}</h2>
+    <p class="fi-meta"><span>29 €</span><span>{T.ref}</span></p>
     <ul class="fi-tags">
-      <li>Lino 100 %</li><li>Confección en Portugal</li><li>4 de 4 etapas conocidas</li>
+      {T.tags.map((x) => <li>{x}</li>)}
     </ul>
   </header>
 
   {!compact && (
     <section class="fi-block fi-cabina">
-      <div class="fi-cab-head"><h3>¿Te pruebo otra talla?</h3><span class="fi-badge">Cabina 2</span></div>
-      <div class="fi-sizes" role="group" aria-label="Elegir talla">
+      <div class="fi-cab-head"><h3>{T.other}</h3><span class="fi-badge">{T.cab}</span></div>
+      <div class="fi-sizes" role="group" aria-label={T.sizesLabel}>
         {sizes.map((z) => (
-          <button type="button" data-size={z.s} aria-pressed="false" class:list={[{ cur: z.cur, out: !z.ok }]} aria-label={z.ok ? `Talla ${z.s}` : `Talla ${z.s}, sin stock en tienda`}>
-            {z.s}{!z.ok && <small>avisar</small>}
+          <button type="button" data-size={z.s} aria-pressed="false" class:list={[{ cur: z.cur, out: !z.ok }]} aria-label={z.ok ? z.s : `${z.s}, ${T.outLabel}`} data-ok={z.ok ? '1' : '0'}>
+            {z.s}{!z.ok && <small>{T.notify}</small>}
           </button>
         ))}
       </div>
-      <p class="fi-msg" data-size-msg aria-live="polite"></p>
+      <p class="fi-msg" data-size-msg data-ok-msg={T.sizeMsg} data-out-msg={T.outMsg} aria-live="polite"></p>
     </section>
   )}
 
   <section class="fi-block">
-    <h3>De dónde viene</h3>
+    <h3>{T.from}</h3>
     <ol class="fi-chain">
-      {chain.map((c) => (
+      {T.chain.map((c) => (
         <li><span class="dot" aria-hidden="true"></span><b>{c.k}</b><span>{c.v}</span><em>{c.where}</em></li>
       ))}
     </ol>
   </section>
 
   <section class="fi-block">
-    <h3>Cuidado</h3>
+    <h3>{T.care}</h3>
     <ul class="fi-care">
-      <li><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M3 8h34l-4 20H7z M3 8c4 4 8 4 11 0 3 4 8 4 11 0 3 4 8 4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><text x="20" y="24" text-anchor="middle" font-size="10" font-weight="700" fill="currentColor">30</text></svg>30 °C</li>
-      <li><svg viewBox="0 0 40 32" aria-hidden="true"><rect x="7" y="4" width="26" height="24" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="16" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 3l28 26M34 3L6 29" stroke="currentColor" stroke-width="2"/></svg>Sin secadora</li>
-      <li><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M6 24h28c0-8-5-14-14-14h-6l-2 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="17" cy="19" r="1.6" fill="currentColor"/><circle cx="23" cy="19" r="1.6" fill="currentColor"/></svg>Plancha media</li>
-      <li><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M20 4L35 28H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6 3l28 26M34 3L6 29" stroke="currentColor" stroke-width="2"/></svg>Sin lejía</li>
+      <li><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M3 8h34l-4 20H7z M3 8c4 4 8 4 11 0 3 4 8 4 11 0 3 4 8 4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><text x="20" y="24" text-anchor="middle" font-size="10" font-weight="700" fill="currentColor">30</text></svg>{T.careItems[0]}</li>
+      <li><svg viewBox="0 0 40 32" aria-hidden="true"><rect x="7" y="4" width="26" height="24" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="16" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 3l28 26M34 3L6 29" stroke="currentColor" stroke-width="2"/></svg>{T.careItems[1]}</li>
+      <li><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M6 24h28c0-8-5-14-14-14h-6l-2 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="17" cy="19" r="1.6" fill="currentColor"/><circle cx="23" cy="19" r="1.6" fill="currentColor"/></svg>{T.careItems[2]}</li>
+      <li><svg viewBox="0 0 40 32" aria-hidden="true"><path d="M20 4L35 28H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6 3l28 26M34 3L6 29" stroke="currentColor" stroke-width="2"/></svg>{T.careItems[3]}</li>
     </ul>
   </section>
 
   {!compact && (
     <section class="fi-block fi-cabina">
-      <h3>¿No te la llevas? Dinos por qué</h3>
-      <div class="fi-chips" role="group" aria-label="Motivo">
-        {why.map((w) => <button type="button" data-why={w} aria-pressed="false">{w}</button>)}
+      <h3>{T.whyH}</h3>
+      <div class="fi-chips" role="group" aria-label={T.whyLabel}>
+        {T.why.map((w) => <button type="button" data-why={w} aria-pressed="false">{w}</button>)}
       </div>
-      <p class="fi-msg" data-why-msg aria-live="polite"></p>
+      <p class="fi-msg" data-why-msg data-msg={T.whyMsg} aria-live="polite"></p>
     </section>
   )}
 
   <footer class="fi-foot">
-    <span>CA · <b>ES</b> · FR · EN</span>
-    <span>con Hebra</span>
+    <span set:html={langs} />
+    <span>{T.by}</span>
   </footer>
 </article>
 

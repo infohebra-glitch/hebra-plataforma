@@ -1,5 +1,6 @@
 @import '@fontsource-variable/fraunces';
 @import '@fontsource-variable/hanken-grotesk';
+[hidden] { display: none !important; }
 
 /* Paleta Hebra (11-11-2026). Grana = acento, ~5 % de la superficie. Nunca azul sobre grana. */
 :root {
@@ -12,6 +13,8 @@
   --tinta-2: #4A5668;    /* texto secundario sobre blanco (7:1) */
   --linea: #DAD7D6;      /* filetes finos sobre blanco */
   --perla-suave: #ECEAE9;
+  --grana-fosc: #6E2239;
+  --grana-suau: #F4E8EC;
 
   --serif: 'Fraunces Variable', Georgia, serif;
   --sans: 'Hanken Grotesk Variable', system-ui, sans-serif;
@@ -45,7 +48,7 @@ body {
 }
 img, svg { display: block; max-width: 100%; }
 a { color: inherit; }
-::selection { background: var(--blau); color: var(--blanc); }
+::selection { background: var(--grana); color: var(--blanc); }
 :focus-visible { outline: 2px solid var(--grana); outline-offset: 3px; }
 
 h1, h2, h3 {
@@ -60,6 +63,9 @@ h1, h2, h3 {
 }
 h1 { font-size: var(--step-4); }
 h2 { font-size: var(--step-3); }
+h1 em, h2 em { font-style: italic; color: var(--grana); font-variation-settings: 'opsz' 120, 'SOFT' 100; }
+.band.blau h1 em, .band.blau h2 em { color: #E4B3C1; }
+.band.grana h2 em { color: #F3DDE4; }
 h3 { font-size: var(--step-1); font-variation-settings: 'opsz' 30; font-weight: 450; line-height: 1.2; letter-spacing: 0; }
 p { margin: 0 0 1em; max-width: 66ch; text-wrap: pretty; }
 .lead { font-size: var(--step-1); line-height: 1.5; color: var(--tinta); max-width: 52ch; }
@@ -74,6 +80,12 @@ section { position: relative; }
 .band.blau h2, .band.blau h3 { color: var(--blanc); }
 .band.blau .quiet { color: #C9D3E0; }
 .band.perla { background: var(--perla-suave); }
+.band.grana { background: var(--grana); color: var(--blanc); }
+.band.grana h2, .band.grana h3 { color: var(--blanc); }
+.band.grana .quiet, .band.grana .lead { color: #F3DDE4; }
+.kick { display: inline-block; color: var(--grana); font-weight: 600; font-size: var(--step--1); margin: 0 0 .9rem; }
+.band.blau .kick { color: #E4B3C1; }
+.band.grana .kick { color: #F3DDE4; }
 
 .split { display: grid; gap: clamp(2rem, 5vw, 5rem); grid-template-columns: 1fr; }
 @media (min-width: 900px) {
@@ -87,18 +99,21 @@ section { position: relative; }
   display: inline-flex; align-items: center; gap: 0.6em;
   padding: 0.9em 1.4em; border-radius: 999px;
   font: 600 var(--step-0)/1 var(--sans); text-decoration: none;
-  border: 1.5px solid var(--blau); background: var(--blau); color: var(--blanc);
-  cursor: pointer; transition: background .2s, color .2s;
+  border: 1.5px solid var(--grana); background: var(--grana); color: var(--blanc);
+  cursor: pointer; transition: background .2s, color .2s, transform .2s;
 }
-.btn:hover { background: var(--tinta); border-color: var(--tinta); }
+.btn:hover { background: var(--grana-fosc); border-color: var(--grana-fosc); transform: translateY(-1px); }
 .btn.ghost { background: transparent; color: var(--blau); }
 .btn.ghost:hover { background: var(--blau); color: var(--blanc); }
-.band.blau .btn { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+.band.blau .btn, .band.grana .btn { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+.band.grana .btn { color: var(--grana); }
+.band.grana .btn.ghost { background: transparent; color: var(--blanc); }
 .band.blau .btn.ghost { background: transparent; color: var(--blanc); }
 .actions { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2rem; }
 
 .textlink { color: var(--blau); text-decoration: underline; text-decoration-color: var(--grana); text-underline-offset: 0.25em; text-decoration-thickness: 1.5px; font-weight: 600; }
 .band.blau .textlink { color: var(--blanc); }
+.band.grana .textlink { color: var(--blanc); text-decoration-color: #F3DDE4; }
 
 /* Listas con filete: para pasos o pares título-texto */
 .rows { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--linea); }
@@ -107,7 +122,9 @@ section { position: relative; }
 .rows.stack > li { grid-template-columns: 1fr; }
 .rows h3 { margin: 0; }
 .rows p { margin: 0; }
-.band.blau .rows, .band.blau .rows > li { border-color: rgba(249,249,249,.18); }
+.band.blau .rows, .band.blau .rows > li, .band.grana .rows, .band.grana .rows > li { border-color: rgba(249,249,249,.18); }
+.band.grana .rows p { color: #F3DDE4; }
+.band.grana .steps > li h3::before { color: #F3DDE4; }
 
 .steps { counter-reset: s; }
 .steps > li h3::before { counter-increment: s; content: counter(s); display: inline-block; width: 1.8em; color: var(--grana); font-family: var(--sans); font-weight: 600; font-variant-numeric: tabular-nums; }

@@ -1,12 +1,13 @@
 ---
 import Base from '../layouts/Base.astro';
-interface Props { title: string; description: string }
-const { title, description } = Astro.props;
+import { ui, path, type Lang } from '../i18n';
+interface Props { title: string; description: string; lang?: Lang; route: string }
+const { title, description, lang = 'es', route } = Astro.props;
 ---
-<Base title={title} description={description}>
+<Base title={title} description={description} lang={lang} route={route}>
   <header class="page-head">
     <div class="wrap">
-      <p class="crumb"><a href="/">Inicio</a> / {title}</p>
+      <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / {title}</p>
       <h1>{title}</h1>
     </div>
   </header>

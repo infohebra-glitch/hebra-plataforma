@@ -1,0 +1,217 @@
+---
+// Simulador del probador: el visitante lleva prendas a la cabina y ve cómo se convierten en datos.
+// Todo es de ejemplo y ocurre en el navegador.
+import type { Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+const T = {
+  es: {
+    rail: 'Elige una prenda', cabin: 'Cabina', inCabin: 'En la cabina', empty: 'Toca una prenda para llevarla a la cabina 2',
+    trying: 'Probándose…', counted: 'Cuenta como prueba', what: '¿Qué hace tu cliente?',
+    buy: 'Se la lleva', size: 'Pide otra talla', no: 'No se la lleva', why: '¿Por qué?',
+    auto: 'Simula una tarde entera', reset: 'Empezar de cero',
+    dash: 'Lo que ve la marca', live: 'en directo',
+    th: ['Prenda', 'Pruebas', 'Ventas', 'Conversión'],
+    sizes: 'Tallas pedidas en cabina', reasons: 'Por qué no se la llevan', alert: 'Aviso a la tienda',
+    alertText: 'Cabina 2 pide {g} en {s}', insight: 'La acción del lunes',
+    saleWord: ['venta', 'ventas'], insightText: '{g}: {p} pruebas y solo {v} {vw}. El motivo que más se repite es «{r}». Revisa {fix} antes de reponer.',
+    insightEmpty: 'Haz unas cuantas pruebas y aquí aparecerá la acción recomendada.',
+    fixes: { Talla: 'la curva de tallas', Corte: 'el patrón', Precio: 'el precio', Color: 'los colores', Calidad: 'el tejido' },
+    garments: ['Camiseta básica', 'Vaqueros rectos', 'Vestido de viscosa', 'Jersey de lana'],
+    reasonList: ['Talla', 'Corte', 'Precio', 'Color', 'Calidad'],
+    note: 'Simulación con datos de ejemplo. Hebra no registra quién se prueba la ropa: solo prendas, tiempos y lo que el cliente decide contarte.',
+  },
+  ca: {
+    rail: 'Tria una peça', cabin: 'Cabina', inCabin: 'A la cabina', empty: 'Toca una peça per portar-la a la cabina 2',
+    trying: 'S’ho està emprovant…', counted: 'Compta com a prova', what: 'Què fa el teu client?',
+    buy: 'Se l’endú', size: 'Demana una altra talla', no: 'No se l’endú', why: 'Per què?',
+    auto: 'Simula una tarda sencera', reset: 'Tornar a començar',
+    dash: 'El que veu la marca', live: 'en directe',
+    th: ['Peça', 'Proves', 'Vendes', 'Conversió'],
+    sizes: 'Talles demanades a la cabina', reasons: 'Per què no se l’enduen', alert: 'Avís a la botiga',
+    alertText: 'La cabina 2 demana {g} en {s}', insight: 'L’acció del dilluns',
+    saleWord: ['venda', 'vendes'], insightText: '{g}: {p} proves i només {v} {vw}. El motiu que més es repeteix és «{r}». Revisa {fix} abans de reposar.',
+    insightEmpty: 'Fes unes quantes proves i aquí apareixerà l’acció recomanada.',
+    fixes: { Talla: 'la corba de talles', Tall: 'el patró', Preu: 'el preu', Color: 'els colors', Qualitat: 'el teixit' },
+    garments: ['Samarreta bàsica', 'Texans rectes', 'Vestit de viscosa', 'Jersei de llana'],
+    reasonList: ['Talla', 'Tall', 'Preu', 'Color', 'Qualitat'],
+    note: 'Simulació amb dades d’exemple. Hebra no registra qui s’emprova la roba: només peces, temps i el que el client et vol explicar.',
+  },
+  en: {
+    rail: 'Pick a garment', cabin: 'Room', inCabin: 'In the room', empty: 'Tap a garment to take it to room 2',
+    trying: 'Trying it on…', counted: 'Counts as a try-on', what: 'What does your customer do?',
+    buy: 'Buys it', size: 'Asks for another size', no: 'Doesn’t buy it', why: 'Why?',
+    auto: 'Simulate a whole afternoon', reset: 'Start again',
+    dash: 'What the brand sees', live: 'live',
+    th: ['Garment', 'Try-ons', 'Sales', 'Conversion'],
+    sizes: 'Sizes requested from the room', reasons: 'Why they don’t buy it', alert: 'Alert to the store',
+    alertText: 'Room 2 asks for {g} in {s}', insight: 'Monday’s action',
+    saleWord: ['sale', 'sales'], insightText: '{g}: {p} try-ons and only {v} {vw}. The most common reason is “{r}”. Check {fix} before restocking.',
+    insightEmpty: 'Do a few try-ons and the recommended action will show up here.',
+    fixes: { Size: 'the size curve', Fit: 'the pattern', Price: 'the price', Colour: 'the colours', Quality: 'the fabric' },
+    garments: ['Basic T-shirt', 'Straight jeans', 'Viscose dress', 'Wool jumper'],
+    reasonList: ['Size', 'Fit', 'Price', 'Colour', 'Quality'],
+    note: 'Simulation with example data. Hebra doesn’t record who tries clothes on: only garments, times and what the customer chooses to tell you.',
+  },
+}[lang];
+const colors = ['#F4F2EF', '#3E5F8A', '#8C304B', '#B7B3B2'];
+const icons = [
+  'M14 6l6-3h8l6 3 8 6-5 7-4-3v26H11V16l-4 3-5-7z',
+  'M12 3h24l3 39h-9l-6-24-6 24H9z',
+  'M17 3h14l1 8 9 31H7l9-31z',
+  'M14 5l6-2h8l6 2 9 7-3 26-6-1V17v25H14V17v20l-6 1-3-26z',
+];
+---
+<div class="sim" data-sim>
+  <script type="application/json" data-sim-i18n set:html={JSON.stringify(T)} />
+  <div class="sim-room">
+    <div class="sim-rail">
+      <p class="sim-k">{T.rail}</p>
+      <div class="sim-garments" role="group" aria-label={T.rail}>
+        {T.garments.map((g, i) => (
+          <button type="button" class="sim-g" data-g={i} data-icon={icons[i]} data-color={colors[i]} aria-pressed="false" aria-label={g}>
+            <svg viewBox="0 0 48 46" aria-hidden="true"><path d={icons[i]} fill={colors[i]} stroke="#12263F" stroke-width="1.4" stroke-linejoin="round" /></svg>
+            <span>{g}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+    <div class="sim-cabins">
+      {[1, 2, 3].map((n) => (
+        <div class:list={['sim-cab', { main: n === 2 }]} data-cab={n}>
+          <span class="sim-cab-n">{T.cabin} {n}</span>
+          {n === 2 && (
+            <div class="sim-cab-in" data-cab-in>
+              <p class="sim-empty" data-empty>{T.empty}</p>
+              <div class="sim-hanger" data-hanger hidden>
+                <svg viewBox="0 0 48 46" aria-hidden="true"><path data-hanger-path d="" fill="#fff" stroke="#12263F" stroke-width="1.4" stroke-linejoin="round" /></svg>
+                <p class="sim-status" data-status></p>
+                <div class="sim-timer" aria-hidden="true"><span data-timer></span></div>
+              </div>
+            </div>
+          )}
+          {n !== 2 && <div class="sim-ghost" aria-hidden="true"></div>}
+        </div>
+      ))}
+    </div>
+    <div class="sim-choices" data-choices hidden>
+      <p class="sim-k">{T.what}</p>
+      <div class="sim-btns">
+        <button type="button" data-act="buy">{T.buy}</button>
+        <button type="button" data-act="size">{T.size}</button>
+        <button type="button" data-act="no">{T.no}</button>
+      </div>
+      <div class="sim-sizes" data-sizepick hidden>
+        {['S', 'M', 'L', 'XL'].map((s) => <button type="button" data-s={s}>{s}</button>)}
+      </div>
+      <div class="sim-why" data-whypick hidden>
+        <p class="sim-k">{T.why}</p>
+        <div class="sim-btns">{T.reasonList.map((r) => <button type="button" data-r={r}>{r}</button>)}</div>
+      </div>
+    </div>
+    <div class="sim-auto">
+      <button type="button" class="btn" data-auto>{T.auto}</button>
+      <button type="button" class="sim-reset" data-reset>{T.reset}</button>
+    </div>
+  </div>
+
+  <div class="sim-dash" aria-live="polite">
+    <div class="sim-dash-head"><p>{T.dash}</p><span class="sim-live"><i></i>{T.live}</span></div>
+    <table class="sim-table">
+      <thead><tr>{T.th.map((h) => <th scope="col">{h}</th>)}</tr></thead>
+      <tbody>
+        {T.garments.map((g, i) => (
+          <tr data-row={i}>
+            <th scope="row">{g}</th>
+            <td data-p>0</td>
+            <td data-v>0</td>
+            <td><div class="sim-bar"><span data-bar></span></div><small data-c>–</small></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <div class="sim-two">
+      <div>
+        <p class="sim-k">{T.sizes}</p>
+        <div class="sim-chips" data-sizes></div>
+      </div>
+      <div>
+        <p class="sim-k">{T.reasons}</p>
+        <ul class="sim-reasons" data-reasons>
+          {T.reasonList.map((r) => <li data-reason={r}><span>{r}</span><div class="sim-bar"><span></span></div><b>0</b></li>)}
+        </ul>
+      </div>
+    </div>
+    <div class="sim-alert" data-alert hidden><p class="sim-k">{T.alert}</p><p data-alert-text></p></div>
+    <div class="sim-insight">
+      <p class="sim-k">{T.insight}</p>
+      <p data-insight>{T.insightEmpty}</p>
+    </div>
+  </div>
+  <p class="small quiet sim-note">{T.note}</p>
+</div>
+
+<style>
+  .sim { display: grid; gap: 1.5rem; }
+  @media (min-width: 1000px) { .sim { grid-template-columns: 1fr 1fr; align-items: start; } .sim-note { grid-column: 1 / -1; } }
+  .sim-room, .sim-dash { background: #fff; border-radius: 18px; padding: clamp(1.1rem, 2.5vw, 1.8rem); box-shadow: 0 1px 0 var(--linea), 0 30px 60px -45px rgba(18,38,63,.5); color: var(--tinta); }
+  .sim-k { font-size: .78rem; font-weight: 600; color: var(--tinta-2); margin: 0 0 .6rem; }
+  .sim-garments { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
+  .sim-g { display: grid; justify-items: center; gap: .35rem; padding: .7rem .3rem .6rem; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--blanc); cursor: pointer; font: 600 .74rem/1.2 var(--sans); color: var(--tinta); transition: border-color .2s, transform .2s, background .2s; }
+  .sim-g:hover { border-color: var(--grana); transform: translateY(-2px); }
+  .sim-g[aria-pressed='true'] { border-color: var(--grana); background: var(--grana-suau); }
+  .sim-g svg { width: 44px; height: 42px; }
+  .sim-g span { text-align: center; }
+  .sim-cabins { display: grid; grid-template-columns: .8fr 1.4fr .8fr; gap: .5rem; margin: 1.2rem 0; }
+  .sim-cab { position: relative; min-height: 190px; border-radius: 10px; background: linear-gradient(180deg, #EEF1F5, #E2E7EE); border: 1.5px solid #D5DBE3; padding: .6rem; overflow: hidden; }
+  .sim-cab::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 10px; background: repeating-linear-gradient(90deg, #B7B3B2 0 6px, transparent 6px 10px); opacity: .6; }
+  .sim-cab.main { background: linear-gradient(180deg, #F4E8EC, #EBD8DE); border-color: #D9B8C3; }
+  .sim-cab-n { position: relative; font-size: .7rem; font-weight: 700; color: var(--tinta-2); }
+  .sim-cab.main .sim-cab-n { color: var(--grana); }
+  .sim-ghost { position: absolute; inset: 40% 30% 12%; border-radius: 40% 40% 8px 8px; background: rgba(18,38,63,.06); }
+  .sim-cab-in { height: calc(100% - 1.2rem); display: grid; place-items: center; text-align: center; }
+  .sim-empty { font-size: .78rem; color: var(--grana); margin: 0; max-width: 18ch; }
+  .sim-hanger { display: grid; justify-items: center; gap: .3rem; }
+  .sim-hanger svg { width: 74px; height: 70px; filter: drop-shadow(0 8px 10px rgba(18,38,63,.18)); }
+  .sim-status { font-size: .74rem; font-weight: 700; color: var(--grana); margin: 0; min-height: 1.2em; }
+  .sim-timer { width: 90px; height: 4px; border-radius: 4px; background: rgba(140,48,75,.18); overflow: hidden; }
+  .sim-timer span { display: block; height: 100%; width: 0; background: var(--grana); }
+  .sim-btns { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .sim-btns button, .sim-sizes button { font: 600 .82rem/1 var(--sans); padding: .65rem .9rem; border-radius: 999px; border: 1.5px solid #D5DBE3; background: #fff; color: var(--tinta); cursor: pointer; transition: all .2s; }
+  .sim-btns button:hover, .sim-sizes button:hover { border-color: var(--grana); color: var(--grana); }
+  .sim-sizes { display: flex; gap: .4rem; margin-top: .6rem; }
+  .sim-why { margin-top: .9rem; }
+  .sim-auto { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1.4rem; padding-top: 1.2rem; border-top: 1px solid var(--linea); }
+  .sim-auto .btn { font-size: .92rem; padding: .8em 1.2em; }
+  .sim-reset { background: none; border: 0; color: var(--tinta-2); font: 600 .85rem var(--sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .sim-dash-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .sim-dash-head p { margin: 0; font: 400 1.35rem/1.1 var(--serif); color: var(--blau); }
+  .sim-live { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 700; color: var(--grana); }
+  .sim-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--grana); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  .sim-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .sim-table th, .sim-table td { text-align: left; padding: .55rem .3rem; border-bottom: 1px solid var(--linea); font-variant-numeric: tabular-nums; }
+  .sim-table thead th { font-size: .7rem; color: var(--tinta-2); font-weight: 600; }
+  .sim-table tbody th { font-weight: 600; }
+  .sim-table td:last-child { min-width: 110px; }
+  .sim-table tr.flash { animation: flash 1s; }
+  @keyframes flash { from { background: var(--grana-suau); } to { background: transparent; } }
+  .sim-bar { height: 6px; border-radius: 4px; background: #EEF0F3; overflow: hidden; }
+  .sim-bar span { display: block; height: 100%; width: 0; background: var(--grana); border-radius: 4px; transition: width .6s cubic-bezier(.2,.7,.2,1); }
+  .sim-table small { font-size: .72rem; color: var(--tinta-2); }
+  .sim-two { display: grid; gap: 1.2rem; margin-top: 1.2rem; }
+  @media (min-width: 560px) { .sim-two { grid-template-columns: 1fr 1.2fr; } }
+  .sim-chips { display: flex; flex-wrap: wrap; gap: .35rem; min-height: 2rem; }
+  .sim-chips span { font-size: .72rem; font-weight: 700; padding: .3rem .55rem; border-radius: 999px; background: var(--grana-suau); color: var(--grana); animation: pop .4s; }
+  @keyframes pop { from { transform: scale(.6); opacity: 0; } }
+  .sim-reasons { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+  .sim-reasons li { display: grid; grid-template-columns: 4.8rem 1fr 1.6rem; align-items: center; gap: .5rem; font-size: .78rem; }
+  .sim-reasons b { text-align: right; font-variant-numeric: tabular-nums; }
+  .sim-alert { margin-top: 1rem; padding: .8rem 1rem; border-radius: 10px; background: var(--blau); color: var(--blanc); animation: pop .4s; }
+  .sim-alert .sim-k { color: #C9D3E0; margin-bottom: .2rem; }
+  .sim-alert p:last-child { margin: 0; font-weight: 600; }
+  .sim-insight { margin-top: 1rem; padding: 1rem 1.1rem; border-radius: 10px; background: var(--grana); color: var(--blanc); }
+  .sim-insight .sim-k { color: #F3DDE4; margin-bottom: .3rem; }
+  .sim-insight p:last-child { margin: 0; font: 400 1.05rem/1.35 var(--serif); }
+  .sim button:focus-visible { outline: 2px solid var(--grana); outline-offset: 2px; }
+</style>

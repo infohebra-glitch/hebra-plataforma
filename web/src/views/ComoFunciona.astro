@@ -1,0 +1,162 @@
+---
+import Base from '../layouts/Base.astro';
+import Simulator from '../components/Simulator.astro';
+import DataCards from '../components/DataCards.astro';
+import Cta from '../components/Cta.astro';
+import { ui, path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: {
+    title: 'Cómo funciona', desc: 'Una etiqueta en cada prenda, una tienda que la reconoce sola y una acción cada lunes. Prueba el simulador del probador.',
+    h1: 'Una etiqueta. Toda la historia de la prenda.',
+    lead: 'Cosemos una etiqueta inteligente en cada prenda. La tienda la reconoce sola y tu cliente la toca con el móvil. Nosotros lo convertimos en decisiones.',
+    try: 'Probar el simulador',
+    steps: [
+      ['Etiquetamos', 'Una etiqueta cosida o colgante, con un código único por prenda: referencia, color y talla. Nada del cliente, sin batería.'],
+      ['La tienda la reconoce', 'Sin que nadie haga nada, sabemos cuándo entra una prenda al probador, cuánto tiempo está y si acaba en la caja.'],
+      ['Tu cliente la toca', 'Con el móvil y sin app: composición, cuidado, origen, otra talla o por qué no se la lleva.'],
+      ['Te llega la acción', 'Avisos en directo a la tienda y, cada lunes, una página con lo que ha pasado y qué hacer.'],
+    ],
+    simK: 'Simulador', simH: 'Lleva una prenda al probador.', simL: 'Elige una prenda, decide qué hace tu cliente y mira cómo se convierte en datos. O simula una tarde entera de golpe.',
+    dK: 'Los datos', dH: 'Lo que recibes, dato a dato.',
+    needH: 'Lo que necesita tu tienda.',
+    need: [['Ninguna obra', 'Se instala en una visita, fuera del horario de apertura.'], ['Nada de tu red', 'Funciona con su propia conexión: no toca tu wifi ni tu caja.'], ['Tus ventas', 'Desde Shopify o con un fichero semanal de la caja.'], ['Una persona', 'Que reciba el informe del lunes y decida.']],
+    privH: 'Prendas, no personas.',
+    priv: ['Sin cámaras ni micrófonos.', 'No sabemos quién se prueba la ropa ni cuántas personas entran.', 'Los toques de la ficha no se ligan a ninguna compra.', 'No medimos al personal de la tienda.'],
+    privL: 'Cómo tratamos los datos',
+  },
+  ca: {
+    title: 'Com funciona', desc: 'Una etiqueta a cada peça, una botiga que la reconeix sola i una acció cada dilluns. Prova el simulador de l’emprovador.',
+    h1: 'Una etiqueta. Tota la història de la peça.',
+    lead: 'Cosim una etiqueta intel·ligent a cada peça. La botiga la reconeix sola i el teu client la toca amb el mòbil. Nosaltres ho convertim en decisions.',
+    try: 'Provar el simulador',
+    steps: [
+      ['Etiquetem', 'Una etiqueta cosida o penjant, amb un codi únic per peça: referència, color i talla. Res del client, sense bateria.'],
+      ['La botiga la reconeix', 'Sense que ningú faci res, sabem quan entra una peça a l’emprovador, quant de temps hi és i si acaba a la caixa.'],
+      ['El teu client la toca', 'Amb el mòbil i sense app: composició, cura, origen, una altra talla o per què no se l’endú.'],
+      ['Et arriba l’acció', 'Avisos en directe a la botiga i, cada dilluns, una pàgina amb el que ha passat i què fer.'],
+    ],
+    simK: 'Simulador', simH: 'Porta una peça a l’emprovador.', simL: 'Tria una peça, decideix què fa el teu client i mira com es converteix en dades. O simula una tarda sencera de cop.',
+    dK: 'Les dades', dH: 'El que reps, dada a dada.',
+    needH: 'El que necessita la teva botiga.',
+    need: [['Cap obra', 'S’instal·la en una visita, fora de l’horari d’obertura.'], ['Res de la teva xarxa', 'Funciona amb la seva pròpia connexió: no toca el teu wifi ni la teva caixa.'], ['Les teves vendes', 'Des de Shopify o amb un fitxer setmanal de la caixa.'], ['Una persona', 'Que rebi l’informe del dilluns i decideixi.']],
+    privH: 'Peces, no persones.',
+    priv: ['Sense càmeres ni micròfons.', 'No sabem qui s’emprova la roba ni quantes persones entren.', 'Els tocs de la fitxa no es lliguen a cap compra.', 'No mesurem el personal de la botiga.'],
+    privL: 'Com tractem les dades',
+  },
+  en: {
+    title: 'How it works', desc: 'A tag in every garment, a store that recognises it on its own, and an action every Monday. Try the fitting room simulator.',
+    h1: 'One tag. The garment’s whole story.',
+    lead: 'We sew a smart tag into every garment. The store recognises it on its own and your customer taps it with their phone. We turn that into decisions.',
+    try: 'Try the simulator',
+    steps: [
+      ['We tag', 'A sewn-in or hanging tag with a unique code per garment: style, colour and size. Nothing about the customer, no battery.'],
+      ['The store recognises it', 'Without anyone doing anything, we know when a garment goes into the fitting room, how long it stays and whether it ends up at the till.'],
+      ['Your customer taps it', 'With their phone, no app: composition, care, origin, another size, or why they won’t buy it.'],
+      ['You get the action', 'Live alerts to the store and, every Monday, one page with what happened and what to do.'],
+    ],
+    simK: 'Simulator', simH: 'Take a garment to the fitting room.', simL: 'Pick a garment, decide what your customer does and watch it turn into data. Or simulate a whole afternoon in one go.',
+    dK: 'The data', dH: 'What you get, one data point at a time.',
+    needH: 'What your store needs.',
+    need: [['No building work', 'Installed in one visit, outside opening hours.'], ['Nothing from your network', 'It runs on its own connection: it doesn’t touch your wifi or your till.'], ['Your sales', 'From Shopify or a weekly file from the till.'], ['One person', 'Who gets the Monday report and decides.']],
+    privH: 'Garments, not people.',
+    priv: ['No cameras or microphones.', 'We don’t know who tries clothes on or how many people come in.', 'Taps on the garment page are never linked to a purchase.', 'We don’t measure store staff.'],
+    privL: 'How we handle data',
+  },
+}[lang];
+const crumbs = ui[lang].home;
+---
+<Base title={T.title} lang={lang} route="/como-funciona/" dark description={T.desc}>
+  <header class="page-head dark-head">
+    <div class="wrap">
+      <p class="crumb"><a href={path(lang, '/')}>{crumbs}</a> / {T.title}</p>
+      <h1 data-split>{T.h1}</h1>
+      <p class="lead">{T.lead}</p>
+      <div class="actions"><a class="btn" href="#simulador">{T.try}</a></div>
+    </div>
+  </header>
+
+  <section class="band tight cf-steps-band">
+    <div class="wrap">
+      <ol class="cf-steps">
+        {T.steps.map(([h, p], i) => (
+          <li data-reveal>
+            <span class="cf-n">{String(i + 1).padStart(2, '0')}</span>
+            <span class="cf-ic" aria-hidden="true">
+              {i === 0 && <svg viewBox="0 0 48 48"><path d="M14 6h20l6 8v28H8V14z" /><circle cx="24" cy="14" r="2.5" /><path d="M18 26c2-3 10-3 12 0M16 31c4-5 12-5 16 0" /></svg>}
+              {i === 1 && <svg viewBox="0 0 48 48"><rect x="8" y="8" width="14" height="32" rx="2" /><rect x="26" y="8" width="14" height="32" rx="2" /><path d="M15 20v8M33 20v8" /></svg>}
+              {i === 2 && <svg viewBox="0 0 48 48"><rect x="14" y="4" width="20" height="40" rx="4" /><path d="M21 9h6M30 22c3 3 3 7 0 10M34 18c5 5 5 13 0 18" /></svg>}
+              {i === 3 && <svg viewBox="0 0 48 48"><path d="M10 6h22l6 6v30H10z" /><path d="M16 18h16M16 24h16M16 30h10" /><path d="M30 36l4 4 8-9" /></svg>}
+            </span>
+            <h3>{h}</h3>
+            <p>{p}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="band perla" id="simulador">
+    <div class="wrap">
+      <div class="cf-head">
+        <p class="kick" data-reveal>{T.simK}</p>
+        <h2 data-reveal>{T.simH}</h2>
+        <p class="lead" data-reveal>{T.simL}</p>
+      </div>
+      <Simulator lang={lang} />
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <div class="cf-head"><p class="kick" data-reveal>{T.dK}</p><h2 data-reveal>{T.dH}</h2></div>
+      <DataCards lang={lang} />
+    </div>
+  </section>
+
+  <section class="band blau">
+    <div class="wrap split">
+      <h2 data-reveal>{T.needH}</h2>
+      <ul class="rows" data-reveal>
+        {T.need.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="band tight">
+    <div class="wrap split">
+      <h2 data-reveal>{T.privH}</h2>
+      <div data-reveal>
+        <ul class="cf-priv">{T.priv.map((x) => <li>{x}</li>)}</ul>
+        <a class="textlink" href={path(lang, '/privacidad/')}>{T.privL}</a>
+      </div>
+    </div>
+  </section>
+
+  <Cta lang={lang} />
+</Base>
+
+<style>
+  .dark-head { background: radial-gradient(70% 90% at 75% 30%, #1e5a9c 0%, var(--blau) 62%); color: var(--blanc); }
+  .dark-head h1 { color: var(--blanc); max-width: 16ch; }
+  .dark-head .lead { color: #DCE4EE; }
+  .dark-head .crumb, .dark-head .crumb a { color: #C9D3E0; }
+  .dark-head .btn { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+  .cf-steps-band { background: var(--blanc); }
+  .cf-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+  @media (min-width: 720px) { .cf-steps { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1100px) { .cf-steps { grid-template-columns: repeat(4, 1fr); } }
+  .cf-steps li { position: relative; padding: 1.6rem 1.4rem; border-radius: 16px; background: #fff; box-shadow: 0 1px 0 var(--linea), 0 24px 40px -36px rgba(18,38,63,.6); }
+  .cf-steps li::after { content: ''; position: absolute; left: 1.4rem; right: 1.4rem; top: 0; height: 3px; background: var(--grana); border-radius: 0 0 3px 3px; transform-origin: left; }
+  .cf-n { font: 340 2.4rem/1 var(--serif); color: var(--grana); }
+  .cf-ic { display: block; width: 46px; height: 46px; margin: 1rem 0; }
+  .cf-ic svg { width: 100%; height: 100%; fill: none; stroke: var(--blau); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .cf-ic circle { fill: var(--grana); stroke: none; }
+  .cf-steps h3 { margin-bottom: .4rem; }
+  .cf-steps p { margin: 0; color: var(--tinta-2); font-size: .95rem; }
+  .cf-head { margin-bottom: 2rem; max-width: 46rem; }
+  .cf-priv { list-style: none; margin: 0 0 1.5rem; padding: 0; display: grid; gap: .8rem; }
+  .cf-priv li { display: flex; gap: .8rem; font-size: var(--step-1); line-height: 1.4; }
+  .cf-priv li::before { content: ''; flex: none; width: 10px; height: 10px; margin-top: .55em; border-radius: 50%; background: var(--grana); }
+</style>

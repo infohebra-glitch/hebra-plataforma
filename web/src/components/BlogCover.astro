@@ -1,0 +1,51 @@
+---
+// Portada ilustrada de cada artículo (SVG, sin fotos). Elige el dibujo por slug.
+interface Props { slug: string; big?: boolean }
+const { slug, big = false } = Astro.props;
+const kind = slug.includes('probado') ? 'bars' : slug.includes('dejan') ? 'why' : 'chain';
+---
+<div class:list={['cover', kind, { big }]} aria-hidden="true">
+  {kind === 'bars' && (
+    <svg viewBox="0 0 400 240">
+      <g font-family="var(--sans)" font-size="11" fill="#F3DDE4">
+        {[[42, 7], [31, 12], [26, 11], [18, 8]].map(([p, v], i) => (
+          <g transform={`translate(${60 + i * 80} 0)`}>
+            <rect x="0" y={200 - p * 4} width="26" height={p * 4} rx="4" fill="rgba(249,249,249,.25)" />
+            <rect x="30" y={200 - v * 4} width="26" height={v * 4} rx="4" fill="#F9F9F9" />
+          </g>
+        ))}
+      </g>
+      <line x1="40" y1="200" x2="370" y2="200" stroke="rgba(249,249,249,.4)" />
+    </svg>
+  )}
+  {kind === 'why' && (
+    <svg viewBox="0 0 400 240">
+      {[['Talla', 46], ['Corte', 22], ['Precio', 18], ['Color', 9], ['Calidad', 5]].map(([k, v], i) => (
+        <g transform={`translate(70 ${40 + i * 36})`}>
+          <rect width="260" height="14" rx="7" fill="rgba(249,249,249,.18)" />
+          <rect width={Number(v) * 5.6} height="14" rx="7" fill={i === 0 ? '#F9F9F9' : 'rgba(249,249,249,.6)'} />
+        </g>
+      ))}
+    </svg>
+  )}
+  {kind === 'chain' && (
+    <svg viewBox="0 0 400 240">
+      <path d="M50 170 C 120 60, 180 200, 240 110 S 330 60, 350 80" fill="none" stroke="rgba(249,249,249,.5)" stroke-width="2" stroke-dasharray="4 6" />
+      {[[50, 170], [150, 128], [240, 110], [350, 80]].map(([x, y], i) => (
+        <g>
+          <circle cx={x} cy={y} r="16" fill="rgba(249,249,249,.18)" />
+          <circle cx={x} cy={y} r="7" fill="#F9F9F9" />
+        </g>
+      ))}
+    </svg>
+  )}
+</div>
+<style>
+  .cover { position: relative; aspect-ratio: 5 / 3; border-radius: 16px; overflow: hidden; display: grid; place-items: center; }
+  .cover.bars { background: radial-gradient(80% 90% at 30% 20%, #A63E5D, var(--grana)); }
+  .cover.why { background: radial-gradient(80% 90% at 70% 20%, #1e5a9c, var(--blau)); }
+  .cover.chain { background: radial-gradient(80% 90% at 50% 10%, #A63E5D, var(--grana) 70%); }
+  .cover svg { width: 88%; height: auto; }
+  .cover.big { aspect-ratio: 21 / 9; border-radius: 22px; }
+  .cover.big svg { width: min(70%, 640px); }
+</style>

@@ -1,0 +1,350 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: F; src: url(fonts/fraunces.woff2) format('woff2'); font-weight: 100 900; }
+@font-face { font-family: H; src: url(fonts/hanken.woff2) format('woff2'); font-weight: 100 900; }
+:root { --blanc:#F9F9F9; --blau:#14457D; --grana:#8C304B; --perla:#B7B3B2; --pedra:#9E9997; --tinta:#12263F; --t2:#4A5A6E; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1280px; height: 720px; overflow: hidden; background: var(--blanc); font-family: H, sans-serif; color: var(--tinta); }
+#v { position: relative; width: 1280px; height: 720px; overflow: hidden; background: var(--blanc); }
+.sc { position: absolute; inset: 0; opacity: 0; }
+.copy { position: absolute; left: 88px; top: 0; bottom: 0; width: 470px; display: flex; flex-direction: column; justify-content: center; }
+.k { font: 700 15px/1 H; letter-spacing: .14em; text-transform: uppercase; color: var(--grana); margin-bottom: 22px; }
+.h { font: 360 52px/1.06 F; color: var(--blau); letter-spacing: -.01em; }
+.p { font: 400 21px/1.45 H; color: var(--t2); margin-top: 22px; }
+.num { position: absolute; left: 88px; top: 56px; font: 400 15px/1 H; letter-spacing: .1em; color: var(--pedra); }
+.prog { position: absolute; left: 0; bottom: 0; height: 5px; background: var(--grana); }
+.foot { position: absolute; right: 56px; top: 50px; display: flex; align-items: center; gap: 10px; font: 600 16px/1 H; color: var(--blau); letter-spacing: .02em; }
+.foot img { height: 30px; }
+.note { position: absolute; right: 56px; bottom: 30px; font: 400 13px/1 H; color: var(--pedra); }
+.vis { position: absolute; left: 620px; top: 0; width: 600px; height: 720px; }
+.card { position: absolute; background: #fff; border-radius: 22px; box-shadow: 0 1px 0 #E3E6EA, 0 40px 70px -40px rgba(18,38,63,.45); }
+/* cabin */
+.cabin { position: absolute; left: 150px; top: 120px; width: 330px; height: 480px; border-radius: 18px 18px 6px 6px; background: linear-gradient(#EEF1F5, #E6EAF0); box-shadow: inset 0 0 0 2px #D5DBE3; overflow: hidden; }
+.rail { position: absolute; left: 0; right: 0; top: 26px; height: 6px; background: var(--blau); border-radius: 3px; }
+.curtain { position: absolute; top: 30px; bottom: 0; width: 120px; background: repeating-linear-gradient(90deg, #1b4f8a 0 18px, #14457D 18px 36px); }
+.curtain.l { left: 0; } .curtain.r { right: 0; }
+.cablabel { position: absolute; left: 150px; top: 76px; width: 330px; text-align: center; font: 600 16px/1 H; color: var(--blau); letter-spacing: .08em; text-transform: uppercase; }
+.tee { position: absolute; width: 300px; height: 300px; }
+.tee img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 30px 30px rgba(18,38,63,.25)); }
+.tag { position: absolute; width: 16px; height: 16px; border-radius: 50%; background: var(--grana); box-shadow: 0 0 0 0 rgba(140,48,75,.5); }
+.chip { position: absolute; padding: 12px 16px; border-radius: 12px; background: var(--blau); color: #fff; font: 600 16px/1.2 H; white-space: nowrap; }
+.chip small { display: block; font: 400 13px/1.3 H; color: #C9D6E6; margin-bottom: 3px; letter-spacing: .04em; }
+.pill { position: absolute; padding: 9px 16px; border-radius: 999px; background: var(--grana); color: #fff; font: 700 15px/1 H; letter-spacing: .06em; text-transform: uppercase; }
+.big { font: 340 96px/1 F; color: var(--blau); font-variant-numeric: tabular-nums; }
+.lab { font: 500 16px/1.3 H; color: var(--t2); }
+/* phone */
+.phone { position: absolute; left: 40px; top: 60px; width: 300px; height: 610px; border-radius: 44px; background: #0E1E33; padding: 12px; box-shadow: 0 50px 80px -40px rgba(18,38,63,.7); }
+.screen { width: 100%; height: 100%; border-radius: 34px; background: #fff; overflow: hidden; position: relative; }
+.scr { position: absolute; left: 0; right: 0; top: 0; }
+.fi-img { height: 230px; background: #F1F2F4; display: grid; place-items: center; }
+.fi-img img { width: 190px; }
+.fi-b { padding: 18px 20px; }
+.fi-brand { font: 700 11px/1 H; letter-spacing: .14em; text-transform: uppercase; color: var(--pedra); }
+.fi-n { font: 420 23px/1.15 F; color: var(--blau); margin: 8px 0 4px; }
+.fi-pr { font: 600 15px/1 H; color: var(--tinta); }
+.fi-t { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.fi-t span { font: 500 11px/1 H; padding: 6px 8px; border-radius: 999px; background: #F4E8EC; color: var(--grana); }
+.fi-h { font: 700 11px/1 H; letter-spacing: .12em; text-transform: uppercase; color: var(--pedra); margin: 18px 0 10px; }
+.fi-sz { display: flex; gap: 8px; }
+.fi-sz span { flex: 1; text-align: center; padding: 11px 0; border-radius: 10px; box-shadow: inset 0 0 0 1.5px #D5DBE3; font: 600 14px/1 H; color: var(--blau); }
+.fi-sz span.on { background: var(--grana); color: #fff; box-shadow: none; }
+.fi-ch div { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #EEF0F3; font: 500 12.5px/1.3 H; color: var(--tinta); }
+.fi-ch div b { width: 8px; height: 8px; border-radius: 50%; background: var(--grana); margin-top: 4px; flex: none; }
+.fi-ch div i { font-style: normal; color: var(--t2); display: block; font-weight: 400; }
+.ring { position: absolute; width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--grana); }
+.toast { position: absolute; left: 310px; top: 140px; width: 260px; padding: 18px 20px; }
+.toast .tk { font: 700 12px/1 H; letter-spacing: .12em; text-transform: uppercase; color: var(--grana); }
+.toast .tt { font: 420 22px/1.2 F; color: var(--blau); margin-top: 8px; }
+.toast .ts { font: 400 14px/1.3 H; color: var(--t2); margin-top: 6px; }
+/* bars */
+.bars { position: absolute; left: 40px; top: 160px; width: 520px; padding: 34px 36px; }
+.bars h4 { font: 700 13px/1 H; letter-spacing: .12em; text-transform: uppercase; color: var(--pedra); margin-bottom: 22px; }
+.bar { display: grid; grid-template-columns: 110px 1fr 60px; align-items: center; gap: 16px; margin: 16px 0; font: 600 17px/1 H; color: var(--tinta); }
+.bar .tr { height: 16px; border-radius: 8px; background: #EEF1F5; overflow: hidden; }
+.bar .fl { height: 100%; border-radius: 8px; background: var(--blau); }
+.bar.top .fl { background: var(--grana); }
+.bar .pc { text-align: right; font-variant-numeric: tabular-nums; color: var(--blau); }
+.bar.top .pc { color: var(--grana); }
+/* table */
+.tbl { position: absolute; left: 20px; top: 150px; width: 560px; padding: 26px 30px; }
+.tbl h4 { font: 700 13px/1 H; letter-spacing: .12em; text-transform: uppercase; color: var(--pedra); margin-bottom: 14px; }
+.row { display: grid; grid-template-columns: 1fr 70px 70px 150px; align-items: center; padding: 15px 10px; border-bottom: 1px solid #EEF0F3; font: 500 16.5px/1.2 H; color: var(--tinta); border-radius: 10px; }
+.row.hd { font: 700 12px/1 H; letter-spacing: .08em; text-transform: uppercase; color: var(--pedra); }
+.row span:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.row.hot { background: #F4E8EC; }
+.row.hot span:last-child { color: var(--grana); font-weight: 700; }
+/* report */
+.rep { position: absolute; left: 70px; top: 110px; width: 460px; padding: 36px 38px; }
+.rep .rk { font: 700 12px/1 H; letter-spacing: .12em; text-transform: uppercase; color: var(--pedra); }
+.rep .rt { font: 380 30px/1.15 F; color: var(--blau); margin: 10px 0 22px; padding-right: 64px; }
+.rep .ln { height: 10px; border-radius: 5px; background: #EEF1F5; margin: 10px 0; }
+.act { margin-top: 26px; padding: 22px 22px; border-radius: 16px; background: var(--grana); color: #fff; }
+.act .ak { font: 700 12px/1 H; letter-spacing: .12em; text-transform: uppercase; color: #F3DDE4; }
+.act .at { font: 400 21px/1.3 F; margin-top: 8px; }
+.check { position: absolute; right: 30px; top: 30px; width: 54px; height: 54px; border-radius: 50%; background: var(--blau); display: grid; place-items: center; }
+/* end */
+#end { background: var(--grana); }
+#end .c { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: #fff; }
+#end img { height: 120px; }
+#end .e1 { font: 340 54px/1.1 F; margin-top: 30px; }
+#end .e2 { font: 500 20px/1 H; color: #F3DDE4; margin-top: 22px; letter-spacing: .04em; }
+.thread { position: absolute; left: 0; top: 0; }
+</style></head>
+<body><div id="v">
+
+<!-- 1: prenda entra -->
+<section class="sc" id="s1">
+  <div class="copy"><p class="k" data-t="k1"></p><h1 class="h" data-t="h1"></h1><p class="p" data-t="p1"></p></div>
+  <div class="vis">
+    <p class="cablabel" data-t="cab"></p>
+    <div class="cabin"><div class="rail"></div><div class="curtain l"></div><div class="curtain r"></div></div>
+    <div class="tee" id="tee1"><img src="camiseta-render.png"></div>
+    <div class="tag" id="tag1"></div>
+    <div class="chip" id="chip1"><small data-t="chipk"></small><span data-t="chipv"></span></div>
+  </div>
+</section>
+
+<!-- 2: en cabina -->
+<section class="sc" id="s2">
+  <div class="copy"><p class="k" data-t="k2"></p><h1 class="h" data-t="h2"></h1><p class="p" data-t="p2"></p></div>
+  <div class="vis">
+    <div class="card" style="left:60px;top:150px;width:480px;height:420px"></div>
+    <div class="pill" id="pill2" style="left:100px;top:190px" data-t="incab"></div>
+    <div style="position:absolute;left:100px;top:260px"><div class="big" id="timer">0:00</div><div class="lab" data-t="timel"></div></div>
+    <div style="position:absolute;left:100px;top:420px;display:flex;gap:46px">
+      <div><div class="big" style="font-size:54px" id="tries">17</div><div class="lab" data-t="triesl"></div></div>
+      <div><div class="big" style="font-size:54px;color:var(--grana)" id="conv">27 %</div><div class="lab" data-t="convl"></div></div>
+    </div>
+    <div class="tee" style="left:330px;top:210px;width:190px;height:190px" id="tee2"><img src="camiseta-render.png"></div>
+  </div>
+</section>
+
+<!-- 3: toca la etiqueta -->
+<section class="sc" id="s3">
+  <div class="copy"><p class="k" data-t="k3"></p><h1 class="h" data-t="h3"></h1><p class="p" data-t="p3"></p></div>
+  <div class="vis">
+    <div class="phone"><div class="screen"><div class="scr" id="scr">
+      <div class="fi-img"><img src="camiseta-render.png"></div>
+      <div class="fi-b">
+        <p class="fi-brand" data-t="brand"></p>
+        <p class="fi-n" data-t="name"></p>
+        <p class="fi-pr">29 €</p>
+        <div class="fi-t"><span data-t="tag1"></span><span data-t="tag2"></span></div>
+        <p class="fi-h" data-t="other"></p>
+        <div class="fi-sz"><span>S</span><span id="szm">M</span><span>L</span><span>XL</span></div>
+        <p class="fi-h" data-t="from"></p>
+        <div class="fi-ch" id="chain"></div>
+      </div>
+    </div></div></div>
+    <div class="ring" id="ring"></div>
+    <div class="card toast" id="toast"><p class="tk" data-t="toastk"></p><p class="tt" data-t="toastt"></p><p class="ts" data-t="toasts"></p></div>
+  </div>
+</section>
+
+<!-- 4: motivo -->
+<section class="sc" id="s4">
+  <div class="copy"><p class="k" data-t="k4"></p><h1 class="h" data-t="h4"></h1><p class="p" data-t="p4"></p></div>
+  <div class="vis"><div class="card bars"><h4 data-t="barsh"></h4><div id="barlist"></div></div></div>
+</section>
+
+<!-- 5: probado y no vendido -->
+<section class="sc" id="s5">
+  <div class="copy"><p class="k" data-t="k5"></p><h1 class="h" data-t="h5"></h1><p class="p" data-t="p5"></p></div>
+  <div class="vis"><div class="card tbl"><h4 data-t="tblh"></h4><div id="rows"></div></div></div>
+</section>
+
+<!-- 6: lunes -->
+<section class="sc" id="s6">
+  <div class="copy"><p class="k" data-t="k6"></p><h1 class="h" data-t="h6"></h1><p class="p" data-t="p6"></p></div>
+  <div class="vis"><div class="card rep" id="rep">
+    <p class="rk" data-t="repk"></p><p class="rt" data-t="rept"></p>
+    <div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><div class="ln" style="width:85%"></div>
+    <div class="act" id="act"><p class="ak" data-t="actk"></p><p class="at" data-t="actt"></p></div>
+    <div class="check" id="check"><svg width="26" height="26" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  </div></div>
+</section>
+
+<section class="sc" id="end"><div class="c"><div>
+  <img src="logo-blanc.png" id="endlogo">
+  <p class="e1" data-t="e1"></p>
+  <p class="e2">hebraia.com</p>
+</div></div></section>
+
+<p class="num" id="num"></p>
+<div class="foot" id="foot"><img src="logo-blau.png">Hebra</div>
+<p class="note" id="note" data-t="note"></p>
+<div class="prog" id="prog"></div>
+</div>
+
+<script>
+const L = {
+  es: {
+    k1: 'La prenda', h1: 'Una prenda entra al probador.', p1: 'Cada prenda lleva una etiqueta con un código único: modelo, color y talla.',
+    cab: 'Cabina 2', chipk: 'Prenda reconocida', chipv: 'Camiseta 2041 · Blanca · M',
+    k2: 'El probador', h2: 'La tienda lo sabe, sin que nadie haga nada.', p2: 'Cuánto rato está en la cabina, cuántas veces se prueba y si acaba en la caja.',
+    incab: 'En cabina', timel: 'en la cabina 2', triesl: 'pruebas hoy', convl: 'acaban en la caja',
+    k3: 'La ficha', h3: 'Tu cliente toca la etiqueta con el móvil.', p3: 'Sin app. Ve composición y origen, y pide otra talla sin salir de la cabina.',
+    brand: 'Tu marca', name: 'Camiseta básica de algodón', tag1: 'Algodón orgánico', tag2: 'Hecha en Portugal', other: '¿Te traigo otra talla?', from: 'De dónde viene',
+    chain: [['Fibra', 'Esmirna, Turquía'], ['Tejido', 'Barcelos, Portugal'], ['Confección', 'Guimarães, Portugal']],
+    toastk: 'Aviso a la tienda', toastt: 'Cabina 2 pide una M', toasts: 'Camiseta 2041 · blanca',
+    k4: 'El porqué', h4: '¿Por qué no se la lleva?', p4: 'Un toque en la ficha. Sin datos personales: solo el motivo.',
+    barsh: 'Motivos de no compra · esta semana', bars: [['Talla', 46], ['Corte', 22], ['Precio', 18], ['Color', 9], ['Calidad', 5]],
+    k5: 'Los datos', h5: 'Lo probado y no vendido, por fin a la vista.', p5: 'Lo que la caja no ve: qué se prueba mucho y se vende poco.',
+    tblh: 'Tienda Born · semana 46', th: ['Prenda', 'Pruebas', 'Ventas', 'Probador → caja'],
+    rows: [['Camiseta 2041', 42, 7, '17 %'], ['Pantalón 1180', 31, 12, '39 %'], ['Camisa 3307', 26, 11, '42 %'], ['Vestido 0912', 18, 8, '44 %']],
+    k6: 'La acción', h6: 'Cada lunes, una página y una decisión.', p6: 'Con lo que ha pasado en tu tienda y qué hacer esta semana.',
+    repk: 'Informe del lunes', rept: 'Tienda Born · semana 46', actk: 'Acción recomendada', actt: 'Pide más M de la camiseta 2041: 9 personas la pidieron y no había.',
+    e1: 'Prendas, no personas.', note: 'Datos de ejemplo',
+  },
+  ca: {
+    k1: 'La peça', h1: 'Una peça entra a l’emprovador.', p1: 'Cada peça porta una etiqueta amb un codi únic: model, color i talla.',
+    cab: 'Cabina 2', chipk: 'Peça reconeguda', chipv: 'Samarreta 2041 · Blanca · M',
+    k2: 'L’emprovador', h2: 'La botiga ho sap, sense que ningú faci res.', p2: 'Quanta estona és a la cabina, quantes vegades s’emprova i si acaba a la caixa.',
+    incab: 'A la cabina', timel: 'a la cabina 2', triesl: 'proves avui', convl: 'acaben a la caixa',
+    k3: 'La fitxa', h3: 'El teu client toca l’etiqueta amb el mòbil.', p3: 'Sense app. Veu composició i origen, i demana una altra talla sense sortir de la cabina.',
+    brand: 'La teva marca', name: 'Samarreta bàsica de cotó', tag1: 'Cotó orgànic', tag2: 'Feta a Portugal', other: 'T’atanso una altra talla?', from: 'D’on ve',
+    chain: [['Fibra', 'Esmirna, Turquia'], ['Teixit', 'Barcelos, Portugal'], ['Confecció', 'Guimarães, Portugal']],
+    toastk: 'Avís a la botiga', toastt: 'La cabina 2 demana una M', toasts: 'Samarreta 2041 · blanca',
+    k4: 'El perquè', h4: 'Per què no se l’endú?', p4: 'Un toc a la fitxa. Sense dades personals: només el motiu.',
+    barsh: 'Motius de no compra · aquesta setmana', bars: [['Talla', 46], ['Tall', 22], ['Preu', 18], ['Color', 9], ['Qualitat', 5]],
+    k5: 'Les dades', h5: 'El que s’emprova i no es ven, per fi a la vista.', p5: 'El que la caixa no veu: què s’emprova molt i es ven poc.',
+    tblh: 'Botiga Born · setmana 46', th: ['Peça', 'Proves', 'Vendes', 'Emprovador → caixa'],
+    rows: [['Samarreta 2041', 42, 7, '17 %'], ['Pantaló 1180', 31, 12, '39 %'], ['Camisa 3307', 26, 11, '42 %'], ['Vestit 0912', 18, 8, '44 %']],
+    k6: 'L’acció', h6: 'Cada dilluns, una pàgina i una decisió.', p6: 'Amb el que ha passat a la teva botiga i què fer aquesta setmana.',
+    repk: 'Informe del dilluns', rept: 'Botiga Born · setmana 46', actk: 'Acció recomanada', actt: 'Demana més M de la samarreta 2041: 9 persones la van demanar i no n’hi havia.',
+    e1: 'Peces, no persones.', note: 'Dades d’exemple',
+  },
+  en: {
+    k1: 'The garment', h1: 'A garment goes into the fitting room.', p1: 'Every garment carries a tag with a unique code: style, colour and size.',
+    cab: 'Room 2', chipk: 'Garment recognised', chipv: 'T-shirt 2041 · White · M',
+    k2: 'The fitting room', h2: 'The store knows, without anyone doing a thing.', p2: 'How long it stays in the room, how often it’s tried on and whether it reaches the till.',
+    incab: 'In the room', timel: 'in room 2', triesl: 'try-ons today', convl: 'reach the till',
+    k3: 'The garment page', h3: 'Your customer taps the tag with their phone.', p3: 'No app. They see composition and origin, and ask for another size without leaving the room.',
+    brand: 'Your brand', name: 'Basic cotton T-shirt', tag1: 'Organic cotton', tag2: 'Made in Portugal', other: 'Shall I bring another size?', from: 'Where it comes from',
+    chain: [['Fibre', 'Izmir, Türkiye'], ['Knitting', 'Barcelos, Portugal'], ['Making', 'Guimarães, Portugal']],
+    toastk: 'Store alert', toastt: 'Room 2 wants an M', toasts: 'T-shirt 2041 · white',
+    k4: 'The why', h4: 'Why didn’t they buy it?', p4: 'One tap on the garment page. No personal data: just the reason.',
+    barsh: 'Reasons for not buying · this week', bars: [['Size', 46], ['Fit', 22], ['Price', 18], ['Colour', 9], ['Quality', 5]],
+    k5: 'The data', h5: 'Tried on, not sold. Finally visible.', p5: 'What the till can’t see: what gets tried on a lot and sells little.',
+    tblh: 'Born store · week 46', th: ['Garment', 'Try-ons', 'Sales', 'Room → till'],
+    rows: [['T-shirt 2041', 42, 7, '17 %'], ['Trousers 1180', 31, 12, '39 %'], ['Shirt 3307', 26, 11, '42 %'], ['Dress 0912', 18, 8, '44 %']],
+    k6: 'The action', h6: 'Every Monday, one page and one decision.', p6: 'What happened in your store and what to do this week.',
+    repk: 'Monday report', rept: 'Born store · week 46', actk: 'Recommended action', actt: 'Order more M in T-shirt 2041: 9 people asked for it and there was none.',
+    e1: 'Garments, not people.', note: 'Example data',
+  },
+};
+const lang = new URLSearchParams(location.search).get('lang') || 'es';
+const T = L[lang];
+document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = T[el.dataset.t]; });
+document.getElementById('chain').innerHTML = T.chain.map(([k, v]) => `<div><b></b><span>${k}<i>${v}</i></span></div>`).join('');
+document.getElementById('barlist').innerHTML = T.bars.map(([k, v], i) => `<div class="bar${i === 0 ? ' top' : ''}"><span>${k}</span><div class="tr"><div class="fl"></div></div><span class="pc">0 %</span></div>`).join('');
+document.getElementById('rows').innerHTML = `<div class="row hd">${T.th.map((x) => `<span>${x}</span>`).join('')}</div>` + T.rows.map((r) => `<div class="row">${r.map((x) => `<span>${x}</span>`).join('')}</div>`).join('');
+
+const DUR = 40;
+const S = [['s1', 0, 5.6], ['s2', 5.6, 11.6], ['s3', 11.6, 18.8], ['s4', 18.8, 24.6], ['s5', 24.6, 30.6], ['s6', 30.6, 35.8], ['end', 35.8, 40.5]];
+const cl = (x) => Math.max(0, Math.min(1, x));
+const seg = (t, a, b) => cl((t - a) / (b - a));
+const eo = (x) => 1 - Math.pow(1 - x, 3);
+const eio = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const back = (x) => { const c = 1.5; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const $ = (id) => document.getElementById(id);
+const set = (el, o, y = 0, x = 0, s = 1) => { el.style.opacity = o; el.style.transform = `translate(${x}px,${y}px) scale(${s})`; };
+
+function copyIn(sc, lt) {
+  const els = sc.querySelectorAll('.copy > *');
+  els.forEach((el, i) => { const p = eo(seg(lt, .15 + i * .18, .85 + i * .18)); set(el, p, (1 - p) * 26); });
+}
+
+function render(t) {
+  for (const [id, a, b] of S) {
+    const el = $(id);
+    const fin = id === 's1' ? 1 : seg(t, a - .35, a + .35);
+    const fout = id === 'end' ? 1 : 1 - seg(t, b - .35, b + .35);
+    const o = Math.min(fin, fout);
+    el.style.opacity = o;
+    el.style.display = o <= 0 ? 'none' : 'block';
+    if (o > 0) {
+      copyIn(el, t - a);
+      const vis = el.querySelector('.vis');
+      if (vis) { const p = eo(seg(t, a - .2, a + .8)); vis.style.transform = `translateX(${(1 - p) * 40}px)`; }
+    }
+  }
+  const idx = S.findIndex(([, a, b]) => t >= a && t < b);
+  $('num').textContent = idx >= 0 && idx < 6 ? `0${idx + 1} / 06` : '';
+  const chrome = 1 - seg(t, 35.5, 36.1);
+  ['num', 'foot', 'note'].forEach((k) => ($(k).style.opacity = chrome));
+  $('note').style.opacity = chrome * (t > 24.6 && t < 35.8 ? 1 : 0);
+  $('prog').style.width = `${(t / DUR) * 100}%`;
+  $('prog').style.opacity = chrome;
+
+  // s1 — prenda viaja hasta la cabina
+  {
+    const lt = t; const tee = $('tee1');
+    const p = eio(seg(lt, .5, 3.0));
+    const x = -60 + p * 225, y = 210 - Math.sin(p * Math.PI) * 30;
+    tee.style.left = `${x}px`; tee.style.top = `${y}px`; tee.style.opacity = seg(lt, .2, .8);
+    const tg = $('tag1'); tg.style.left = `${x + 214}px`; tg.style.top = `${y + 128}px`;
+    const glow = seg(lt, 3.0, 3.3); const pulse = (lt - 3) % 1.1 / 1.1;
+    tg.style.opacity = glow; tg.style.boxShadow = lt > 3 ? `0 0 0 ${pulse * 26}px rgba(140,48,75,${.45 * (1 - pulse)})` : 'none';
+    const cp = back(seg(lt, 3.3, 3.9)); const ch = $('chip1');
+    ch.style.left = `${x + 160}px`; ch.style.top = `${y - 30}px`; set(ch, seg(lt, 3.3, 3.6), (1 - cp) * 14, 0, .9 + cp * .1);
+  }
+  // s2 — reloj y contadores
+  {
+    const lt = t - 5.6;
+    const secs = Math.floor(eo(seg(lt, .6, 4.8)) * 220);
+    $('timer').textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+    $('tries').textContent = lt > 2.6 ? '18' : '17';
+    const bump = lt > 2.6 ? 1 + .15 * (1 - seg(lt, 2.6, 3.0)) : 1;
+    $('tries').style.transform = `scale(${bump})`; $('tries').style.transformOrigin = 'left bottom';
+    const pp = (lt % 1.4) / 1.4; $('pill2').style.boxShadow = `0 0 0 ${pp * 14}px rgba(140,48,75,${.35 * (1 - pp)})`;
+    $('tee2').style.transform = `rotate(${Math.sin(lt * 1.4) * 3}deg)`;
+  }
+  // s3 — toque, ficha, aviso
+  {
+    const lt = t - 11.6;
+    const r = $('ring'); const rp = seg(lt, .7, 1.5);
+    r.style.left = `${190 - 35}px`; r.style.top = `${300}px`;
+    r.style.opacity = rp > 0 && rp < 1 ? 1 - rp : 0; r.style.transform = `scale(${.4 + rp * 1.4})`;
+    const sp = eio(seg(lt, 1.6, 3.0)) * 200 + eio(seg(lt, 5.0, 6.2)) * 160;
+    $('scr').style.transform = `translateY(${-sp}px)`;
+    $('scr').style.opacity = .25 + .75 * seg(lt, .9, 1.4);
+    $('szm').className = lt > 3.4 ? 'on' : '';
+    const tp = back(seg(lt, 3.8, 4.4));
+    set($('toast'), seg(lt, 3.8, 4.1), (1 - tp) * -24, 0, .94 + tp * .06);
+  }
+  // s4 — barras
+  {
+    const lt = t - 18.8;
+    document.querySelectorAll('#barlist .bar').forEach((b, i) => {
+      const v = T.bars[i][1]; const p = eo(seg(lt, .7 + i * .22, 2.0 + i * .22));
+      b.querySelector('.fl').style.width = `${(v / 50) * 100 * p}%`;
+      b.querySelector('.pc').textContent = `${Math.round(v * p)} %`;
+      b.style.opacity = seg(lt, .5 + i * .22, .9 + i * .22);
+    });
+  }
+  // s5 — tabla
+  {
+    const lt = t - 24.6;
+    document.querySelectorAll('#rows .row').forEach((r, i) => { const p = eo(seg(lt, .6 + i * .2, 1.2 + i * .2)); set(r, p, (1 - p) * 14); });
+    const hot = document.querySelectorAll('#rows .row')[1]; hot.classList.toggle('hot', lt > 2.6);
+  }
+  // s6 — informe
+  {
+    const lt = t - 30.6;
+    const p = eo(seg(lt, .3, 1.2)); $('rep').style.transform = `translateY(${(1 - p) * 30}px) rotate(${(1 - p) * -2}deg)`;
+    const a = back(seg(lt, 1.6, 2.3)); set($('act'), seg(lt, 1.6, 1.9), (1 - a) * 18, 0, .95 + a * .05);
+    const c = back(seg(lt, 2.8, 3.3)); set($('check'), seg(lt, 2.8, 3.0), 0, 0, c);
+  }
+  // end
+  {
+    const lt = t - 35.8; const p = eo(seg(lt, .3, 1.3));
+    set($('endlogo'), p, (1 - p) * 20); const q = eo(seg(lt, .7, 1.7));
+    document.querySelectorAll('#end .e1, #end .e2').forEach((el, i) => { const r = eo(seg(lt, .7 + i * .3, 1.7 + i * .3)); set(el, r, (1 - r) * 16); });
+  }
+}
+window.render = render; window.DUR = DUR;
+render(0);
+</script>
+</body></html>

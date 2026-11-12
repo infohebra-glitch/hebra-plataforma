@@ -1,13 +1,14 @@
 ---
 // Marco de móvil con la ficha dentro. La pantalla se puede desplazar.
 import Ficha from './Ficha.astro';
-interface Props { compact?: boolean; interactive?: boolean; tall?: boolean }
-const { compact = true, interactive = false, tall = false } = Astro.props;
+import type { Lang } from '../i18n';
+interface Props { compact?: boolean; interactive?: boolean; tall?: boolean; lang?: Lang }
+const { compact = true, interactive = false, tall = false, lang = 'es' } = Astro.props;
 ---
 <div class:list={['phone', { tall }]}>
   <div class="phone-screen" data-lenis-prevent>
     <div class="phone-bar" aria-hidden="true"><span>10:12</span><i></i><span class="ind">●●● ▮</span></div>
-    <Ficha compact={compact} interactive={interactive} />
+    <Ficha compact={compact} interactive={interactive} lang={lang} />
   </div>
 </div>
 

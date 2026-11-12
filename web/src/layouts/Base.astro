@@ -1,33 +1,32 @@
 ---
 import '../styles/global.css';
+import { ui, path, langs, langShort, langName, contacts, type Lang } from '../i18n';
 
 interface Props {
   title: string;
   description: string;
+  lang?: Lang;
+  route?: string; // ruta sin idioma, p. ej. '/probador/', para enlazar las otras versiones
   current?: string;
   bare?: boolean; // ficha NFC: sin cabecera ni pie de la web
   dark?: boolean; // la página empieza sobre fondo azul
 }
-const { title, description, current = '', bare = false, dark = false } = Astro.props;
-const nav = [
-  { href: '/probador/', label: 'Probador' },
-  { href: '/origen/', label: 'Origen' },
-  { href: '/ficha/', label: 'La ficha' },
-  { href: '/como-funciona/', label: 'Cómo funciona' },
-  { href: '/nosotros/', label: 'Nosotros' },
-  { href: '/contacto/', label: 'Contacto' },
-];
-const fullTitle = title === 'Hebra' ? 'Hebra · Lo que pasa dentro del probador' : `${title} · Hebra`;
-const canonical = new URL(Astro.url.pathname, Astro.site);
+const { title, description, lang = 'es', route = '/', current = route, bare = false, dark = false } = Astro.props;
+const t = ui[lang];
+const nav = t.nav.map(([href, label]) => ({ route: href, href: path(lang, href), label }));
+const fullTitle = title === 'Hebra' ? t.titleHome : `${title} · Hebra`;
+const canonical = new URL(path(lang, route), Astro.site);
+const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
 ---
 <!doctype html>
-<html lang="es">
+<html lang={lang}>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{fullTitle}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
+  {langs.map((l) => <link rel="alternate" hreflang={l} href={new URL(path(l, route), Astro.site)} />)}
   <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <meta name="theme-color" content="#14457D" />
@@ -36,14 +35,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   <meta property="og:type" content="website" />
   <meta property="og:title" content={fullTitle} />
   <meta property="og:description" content={description} />
-  <meta property="og:locale" content="es_ES" />
+  <meta property="og:locale" content={locale} />
   <script is:inline>document.documentElement.classList.add('js');</script>
 </head>
 <body class={bare ? 'bare' : ''}>
   {!bare && (
     <header class:list={['top', { dark }]} data-top>
       <div class="wrap top-in">
-        <a class="brand" href="/" aria-label="Hebra, inicio">
+        <a class="brand" href={path(lang, '/')} aria-label={`Hebra, ${t.home}`}>
           <img class="logo-b" src="/img/logo-blau.png" alt="" width="22" height="32" />
           <img class="logo-w" src="/img/logo-blanc.png" alt="" width="22" height="32" />
           <span>Hebra</span>
@@ -51,13 +50,18 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         <nav class="nav" id="nav" aria-label="Principal">
           <ul>
             {nav.map((n) => (
-              <li><a href={n.href} aria-current={current === n.href ? 'page' : undefined}>{n.label}</a></li>
+              <li><a href={n.href} aria-current={current === n.route || (n.route !== '/' && current.startsWith(n.route)) ? 'page' : undefined}>{n.label}</a></li>
             ))}
           </ul>
         </nav>
-        <a class="btn top-cta" href="/contacto/?motivo=demo">Pedir una demo</a>
+        <div class="langs" aria-label="Idioma">
+          {langs.map((l) => (
+            <a href={path(l, route)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} title={langName[l]}>{langShort[l]}</a>
+          ))}
+        </div>
+        <a class="btn top-cta" href={path(lang, '/contacto/?motivo=demo')}>{t.demo}</a>
         <button class="menu" aria-expanded="false" aria-controls="nav" data-menu>
-          <span class="visually-hidden">Menú</span><i></i><i></i>
+          <span class="visually-hidden">{t.menu}</span><i></i><i></i>
         </button>
       </div>
     </header>
@@ -68,24 +72,26 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       <div class="wrap">
         <div class="foot-grid">
           <div>
-            <p class="foot-claim">La prenda ya sabe dónde ha estado. Hebra hace que la marca lo sepa.</p>
-            <a class="btn" href="/contacto/?motivo=demo">Pedir una demo</a>
+            <p class="foot-claim">{t.footClaim}</p>
+            <a class="btn" href={path(lang, '/contacto/?motivo=demo')}>{t.demo}</a>
           </div>
           <nav aria-label="Pie">
             <ul>
               {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
-              <li><a href="/piloto/">El piloto</a></li>
+              <li><a href={path(lang, '/piloto/')}>{t.pilot}</a></li>
+              <li><a href={path(lang, '/contacto/')}>{t.contact}</a></li>
             </ul>
             <ul>
-              <li><a href="/privacidad/">Privacidad y sensores</a></li>
-              <li><a href="/aviso-legal/">Aviso legal y cookies</a></li>
-              <li><a href="/p/demo/">Ver una ficha NFC</a></li>
+              {contacts.map((c) => <li><a href={`mailto:${c.email}`}>{c.email}</a></li>)}
               <li><a href="https://www.instagram.com/hebra.trace/" rel="noopener">Instagram</a></li>
               <li><a href="https://www.tiktok.com/@hebra.trace" rel="noopener">TikTok</a></li>
+              <li><a href={path(lang, '/p/demo/')}>{t.fichaDemo}</a></li>
+              <li><a href={path(lang, '/privacidad/')}>{t.privacy}</a></li>
+              <li><a href={path(lang, '/aviso-legal/')}>{t.legal}</a></li>
             </ul>
           </nav>
         </div>
-        <p class="foot-base">Hebra, Barcelona. Trace the truth.</p>
+        <p class="foot-base"><span>{t.base}</span><span class="foot-langs">{langs.map((l) => <a href={path(l, route)} hreflang={l} aria-current={l === lang ? 'true' : undefined}>{langName[l]}</a>)}</span></p>
       </div>
     </footer>
   )}
@@ -123,6 +129,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   .nav a { text-decoration: none; font-weight: 500; font-size: .98rem; color: var(--tinta); padding: .3rem 0; border-bottom: 1.5px solid transparent; }
   .nav a:hover, .nav a[aria-current] { border-color: var(--grana); color: var(--blau); }
   .top-cta { padding: .7em 1.15em; font-size: .95rem; }
+  .langs { display: flex; gap: .15rem; font-size: .78rem; font-weight: 600; letter-spacing: .02em; }
+  .langs a { text-decoration: none; color: var(--tinta-2); padding: .35rem .4rem; border-radius: 6px; }
+  .langs a:hover { color: var(--grana); }
+  .langs a[aria-current] { color: var(--grana); background: rgba(140,48,75,.08); }
+  .top.dark:not(.scrolled) .langs a { color: #C9D3E0; }
+  .top.dark:not(.scrolled) .langs a[aria-current] { color: var(--blanc); background: rgba(249,249,249,.14); }
   .menu { display: none; }
   @media (max-width: 1020px) {
     .nav { position: fixed; inset: 76px 0 auto; background: var(--blanc); border-bottom: 1px solid var(--linea); padding: 1rem var(--gutter) 2rem; display: none; }
@@ -142,9 +154,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   @media (min-width: 860px) { .foot-grid { grid-template-columns: 1.3fr 1fr; } }
   .foot-claim { font: 340 var(--step-3)/1.08 var(--serif); font-variation-settings: 'opsz' 120; color: var(--blanc); max-width: 18ch; letter-spacing: -0.015em; }
   .foot .btn { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+  .foot-langs { display: flex; gap: 1rem; }
+  .foot-langs a { color: #C9D3E0; text-decoration: none; }
+  .foot-langs a[aria-current] { color: var(--blanc); text-decoration: underline; text-decoration-color: #E4B3C1; text-underline-offset: 4px; }
   .foot nav { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
   .foot nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; align-content: start; }
   .foot nav a { text-decoration: none; color: #D8E0EA; }
   .foot nav a:hover { color: var(--blanc); text-decoration: underline; text-decoration-color: #E4B3C1; }
-  .foot-base { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid rgba(249,249,249,.18); font-size: var(--step--1); color: #C9D3E0; max-width: none; }
+  .foot-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid rgba(249,249,249,.18); font-size: var(--step--1); color: #C9D3E0; max-width: none; }
 </style>

@@ -1,0 +1,62 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import BlogCover from '../components/BlogCover.astro';
+import Cta from '../components/Cta.astro';
+import { ui, path, type Lang } from '../i18n';
+interface Props { lang: Lang; entry: CollectionEntry<'blog'> }
+const { lang, entry } = Astro.props;
+const { Content } = await render(entry);
+const slug = entry.id.split('/').slice(1).join('/');
+const T = {
+  es: { blog: 'Blog', read: 'min de lectura', more: 'Sigue leyendo', back: 'Todos los artículos', by: 'Equipo Hebra' },
+  ca: { blog: 'Blog', read: 'min de lectura', more: 'Continua llegint', back: 'Tots els articles', by: 'Equip Hebra' },
+  en: { blog: 'Blog', read: 'min read', more: 'Keep reading', back: 'All articles', by: 'The Hebra team' },
+}[lang];
+const fmt = new Intl.DateTimeFormat({ es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }[lang], { day: 'numeric', month: 'long', year: 'numeric' });
+const others = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`) && e.id !== entry.id)).slice(0, 2);
+---
+<Base title={entry.data.title} lang={lang} route={`/blog/${slug}/`} description={entry.data.description}>
+  <header class="page-head art-head">
+    <div class="wrap">
+      <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / <a href={path(lang, '/blog/')}>{T.blog}</a></p>
+      <p class="kick">{entry.data.kicker}</p>
+      <h1 data-split>{entry.data.title}</h1>
+      <p class="lead">{entry.data.description}</p>
+      <p class="meta">{T.by} · {fmt.format(entry.data.date)} · {entry.data.minutes} {T.read}</p>
+    </div>
+  </header>
+  <div class="wrap"><BlogCover slug={slug} big /></div>
+  <article class="band tight">
+    <div class="wrap prose"><Content /></div>
+  </article>
+  {others.length > 0 && (
+    <section class="band perla tight">
+      <div class="wrap">
+        <h2>{T.more}</h2>
+        <ul class="rows">
+          {others.map((o) => (
+            <li><h3><a href={path(lang, `/blog/${o.id.split('/').slice(1).join('/')}/`)}>{o.data.title}</a></h3><p class="quiet">{o.data.description}</p></li>
+          ))}
+        </ul>
+        <p style="margin-top:1.5rem"><a class="textlink" href={path(lang, '/blog/')}>{T.back}</a></p>
+      </div>
+    </section>
+  )}
+  <Cta lang={lang} />
+</Base>
+
+<style>
+  .art-head h1 { max-width: 22ch; }
+  .meta { font-size: var(--step--1); color: var(--tinta-2); margin: 1.5rem 0 0; }
+  .prose { max-width: 42rem; font-size: 1.12rem; line-height: 1.7; }
+  .prose :global(h2) { font-size: var(--step-2); margin: 2.6rem 0 .8rem; }
+  .prose :global(p) { margin: 0 0 1.2em; }
+  .prose :global(ul) { padding-left: 1.2rem; margin: 0 0 1.4em; }
+  .prose :global(li) { margin: .5rem 0; }
+  .prose :global(li::marker) { color: var(--grana); }
+  .prose :global(strong) { color: var(--blau); }
+  .prose > :global(p:first-child) { font-size: var(--step-1); line-height: 1.55; }
+  .rows h3 a { color: var(--blau); text-decoration: none; }
+  .rows h3 a:hover { color: var(--grana); }
+</style>

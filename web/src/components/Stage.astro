@@ -1,41 +1,76 @@
 ---
 // Portada: escena 3D fijada mientras se hace scroll. Tres momentos: la prenda, la etiqueta, el móvil.
 import Phone from './Phone.astro';
+import { path, type Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+const T = {
+  es: {
+    h1: 'Tu ropa sabe cosas. Hebra te las explica.',
+    lead: 'Tecnología textil para marcas de moda: una etiqueta inteligente en cada prenda y datos de lo que pasa en tu probador, en tu tienda y en tu cadena.',
+    demo: 'Pedir una demo', more: 'Descubrir Hebra',
+    k2: 'La etiqueta', h2: 'Una etiqueta. Dos maneras de leerla.',
+    l2: 'La tienda sabe, sin que nadie haga nada, qué se prueba y qué se vende. Tu cliente la toca con el móvil y ve de dónde viene.',
+    k3: 'La ficha', h3: 'Tu cliente la toca. Tú lo entiendes.',
+    l3: 'Composición, cuidado y origen en su idioma, sin app. Y si quiere otra talla o no se la lleva, te lo dice.',
+    hint: 'Desliza',
+  },
+  ca: {
+    h1: 'La teva roba sap coses. Hebra te les explica.',
+    lead: 'Tecnologia tèxtil per a marques de moda: una etiqueta intel·ligent a cada peça i dades del que passa al teu emprovador, a la teva botiga i a la teva cadena.',
+    demo: 'Demanar una demo', more: 'Descobrir Hebra',
+    k2: 'L’etiqueta', h2: 'Una etiqueta. Dues maneres de llegir-la.',
+    l2: 'La botiga sap, sense que ningú faci res, què s’emprova i què es ven. El teu client la toca amb el mòbil i veu d’on ve.',
+    k3: 'La fitxa', h3: 'El teu client la toca. Tu ho entens.',
+    l3: 'Composició, cura i origen en el seu idioma, sense app. I si vol una altra talla o no se l’endú, t’ho diu.',
+    hint: 'Llisca',
+  },
+  en: {
+    h1: 'Your clothes know things. Hebra explains them.',
+    lead: 'Textile technology for fashion brands: a smart tag in every garment, and data on what happens in your fitting room, your store and your supply chain.',
+    demo: 'Book a demo', more: 'Discover Hebra',
+    k2: 'The tag', h2: 'One tag. Two ways to read it.',
+    l2: 'The store knows what gets tried on and what gets sold, without anyone doing a thing. Your customer taps it with their phone and sees where it comes from.',
+    k3: 'The garment page', h3: 'Your customer taps it. You understand them.',
+    l3: 'Composition, care and origin in their language, no app. And if they want another size or don’t buy it, they tell you.',
+    hint: 'Scroll',
+  },
+}[lang];
 ---
 <section class="stage" data-stage>
   <div class="stage-pin" data-stage-pin>
-    <canvas class="stage-canvas" data-garment data-logo="/img/logo-blau.png" aria-hidden="true"></canvas>
+    <canvas class="stage-canvas" data-garment data-logo="/img/logo-blau.png" data-model="/3d/" aria-hidden="true"></canvas>
     <div class="stage-fallback" aria-hidden="true"></div>
     <div class="stage-scrim" data-stage-scrim aria-hidden="true"></div>
 
     <div class="wrap stage-grid">
       <div class="stage-copy">
         <div class="beat b1" data-beat="1">
-          <h1 data-split>Tu ropa sabe cosas. Hebra te las explica.</h1>
-          <p class="lead">Tecnología textil para marcas de moda: una etiqueta inteligente en cada prenda y datos de lo que pasa en tu probador, en tu tienda y en tu cadena.</p>
+          <h1 data-split>{T.h1}</h1>
+          <p class="lead">{T.lead}</p>
           <div class="actions">
-            <a class="btn" href="/contacto/?motivo=demo">Pedir una demo</a>
-            <a class="btn ghost" href="#problema">Descubrir Hebra</a>
+            <a class="btn" href={path(lang, '/contacto/?motivo=demo')}>{T.demo}</a>
+            <a class="btn ghost" href="#problema">{T.more}</a>
           </div>
         </div>
         <div class="beat b2" data-beat="2" aria-hidden="true">
-          <p class="kick">La etiqueta</p>
-          <h2>Dos tecnologías, una sola etiqueta.</h2>
-          <p class="lead">RFID UHF para que la tienda sepa qué se prueba y qué se vende. NFC para que tu cliente la toque con el móvil y vea de dónde viene.</p>
+          <p class="kick">{T.k2}</p>
+          <h2>{T.h2}</h2>
+          <p class="lead">{T.l2}</p>
         </div>
         <div class="beat b3" data-beat="3" aria-hidden="true">
-          <p class="kick">La ficha</p>
-          <h2>Tu cliente la toca. Tú lo entiendes.</h2>
-          <p class="lead">Composición, cuidado y origen en su idioma, sin app. Y si quiere otra talla o no se la lleva, te lo dice.</p>
+          <p class="kick">{T.k3}</p>
+          <h2>{T.h3}</h2>
+          <p class="lead">{T.l3}</p>
         </div>
       </div>
       <div class="stage-phone" data-stage-phone aria-hidden="true">
-        <Phone />
+        <Phone lang={lang} />
       </div>
     </div>
 
     <div class="stage-progress" aria-hidden="true"><span data-stage-bar></span></div>
-    <p class="stage-hint small" aria-hidden="true" data-stage-hint>Desliza</p>
+    <p class="stage-hint small" aria-hidden="true" data-stage-hint>{T.hint}</p>
   </div>
 </section>
 
@@ -57,9 +92,9 @@ import Phone from './Phone.astro';
   .beat h1 { font-size: clamp(2.7rem, 1.8rem + 4vw, 5.6rem); }
   .beat .lead { color: #DCE4EE; }
   .beat .btn { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+  .stage .kick { color: #E4B3C1; }
   .beat .btn.ghost { background: transparent; color: var(--blanc); }
   .beat .btn.ghost:hover { background: rgba(249,249,249,.12); }
-  .kick { color: #E4B3C1; font-weight: 600; margin-bottom: .8rem; }
   .js .b2, .js .b3 { opacity: 0; visibility: hidden; }
 
   .stage-phone { position: absolute; z-index: 3; right: max(var(--gutter), calc((100vw - var(--max)) / 2 + var(--gutter))); top: 50%; transform: translateY(-50%); width: min(300px, 70vw); }

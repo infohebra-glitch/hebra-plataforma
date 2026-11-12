@@ -1,31 +1,10 @@
 // Escena 3D de la portada: una camisa con su etiqueta colgante de Hebra.
 // Geometría procedural (sin modelos externos). El scroll mueve la cámara de la prenda a la etiqueta.
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const GRANA = 0x8c304b;
-
-function knitTexture() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 256;
-  const g = c.getContext('2d');
-  g.fillStyle = '#808080';
-  g.fillRect(0, 0, 256, 256);
-  // punto de tejido: columnas de "v" muy finas
-  for (let y = 0; y < 256; y += 8) {
-    for (let x = 0; x < 256; x += 8) {
-      const v = 120 + Math.random() * 30;
-      g.fillStyle = `rgb(${v},${v},${v})`;
-      g.beginPath();
-      g.ellipse(x + 2, y + 4, 2.2, 3.6, 0.5, 0, Math.PI * 2);
-      g.ellipse(x + 6, y + 4, 2.2, 3.6, -0.5, 0, Math.PI * 2);
-      g.fill();
-    }
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(5, 5);
-  return t;
-}
 
 function tagTexture(logo) {
   const c = document.createElement('canvas');
@@ -57,82 +36,6 @@ function tagTexture(logo) {
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
   return t;
-}
-
-function shirtShape() {
-  const s = new THREE.Shape();
-  // contorno de una camisa de manga corta, de la sisa izquierda en sentido horario
-  s.moveTo(-0.44, 1.62);
-  s.quadraticCurveTo(0, 1.28, 0.44, 1.62);          // escote
-  s.lineTo(1.08, 1.5);                               // hombro
-  s.quadraticCurveTo(1.55, 1.32, 1.92, 0.9);         // manga arriba
-  s.lineTo(1.6, 0.5);                                // puño
-  s.quadraticCurveTo(1.3, 0.72, 1.08, 0.78);         // bajo manga
-  s.quadraticCurveTo(1.04, -0.4, 1.12, -1.66);       // costado
-  s.quadraticCurveTo(0, -1.74, -1.12, -1.66);        // bajo
-  s.quadraticCurveTo(-1.04, -0.4, -1.08, 0.78);
-  s.quadraticCurveTo(-1.3, 0.72, -1.6, 0.5);
-  s.lineTo(-1.92, 0.9);
-  s.quadraticCurveTo(-1.55, 1.32, -1.08, 1.5);
-  s.lineTo(-0.44, 1.62);
-  return s;
-}
-
-function noise(x, y) {
-  return Math.sin(x * 2.1 + y * 0.7) * 0.5 + Math.sin(x * 0.9 - y * 1.7 + 1.3) * 0.35 + Math.sin(y * 3.3 + 0.4) * 0.15;
-}
-
-// Silueta → máscara en canvas → altura suave (campo difuminado) → plano denso desplazado
-function buildShirt(knit) {
-  const pts = shirtShape().getPoints(40);
-  const minX = -2.05, maxX = 2.05, minY = -1.85, maxY = 1.8;
-  const W = maxX - minX, H = maxY - minY;
-  const R = 1024, RH = Math.round(R * H / W);
-  const toPx = (x, y) => [((x - minX) / W) * R, ((maxY - y) / H) * RH];
-  const mask = document.createElement('canvas'); mask.width = R; mask.height = RH;
-  const mg = mask.getContext('2d');
-  mg.fillStyle = '#000'; mg.fillRect(0, 0, R, RH);
-  mg.fillStyle = '#fff'; mg.beginPath();
-  pts.forEach((p, i) => { const [px, py] = toPx(p.x, p.y); i ? mg.lineTo(px, py) : mg.moveTo(px, py); });
-  mg.closePath(); mg.fill();
-  // campo de altura: el blanco "erosionado" por difuminado
-  const blur = document.createElement('canvas'); blur.width = R; blur.height = RH;
-  const bg = blur.getContext('2d');
-  bg.filter = 'blur(52px)'; bg.drawImage(mask, 0, 0);
-  const blurData = bg.getImageData(0, 0, R, RH).data;
-  const sample = (data, x, y) => {
-    let [px, py] = toPx(x, y);
-    px = Math.max(0, Math.min(R - 1.001, px)); py = Math.max(0, Math.min(RH - 1.001, py));
-    const x0 = Math.floor(px), y0 = Math.floor(py), fx = px - x0, fy = py - y0;
-    const v = (ix, iy) => data[(iy * R + ix) * 4] / 255;
-    return (v(x0, y0) * (1 - fx) + v(x0 + 1, y0) * fx) * (1 - fy) + (v(x0, y0 + 1) * (1 - fx) + v(x0 + 1, y0 + 1) * fx) * fy;
-  };
-  const heightAt = (x, y) => {
-    const b = Math.max(0, (sample(blurData, x, y) - 0.5) / 0.5);
-    const puff = Math.pow(b, 0.75) * 0.22;
-    const folds = (noise(x * 1.3, y * 1.1) * 0.035 + Math.sin(y * 5 + x * 0.6) * 0.008) * b;
-    return puff + folds;
-  };
-  const maskTex = new THREE.CanvasTexture(mask);
-  const material = new THREE.MeshPhysicalMaterial({
-    color: 0xf4f2ef, roughness: 0.95, sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xffffff),
-    bumpMap: knit, bumpScale: 0.35, alphaMap: maskTex, alphaTest: 0.5, alphaToCoverage: true, side: THREE.FrontSide,
-  });
-  const meshes = [1, -1].map((sgn) => {
-    const g = new THREE.PlaneGeometry(W, H, 220, Math.round(220 * H / W));
-    g.translate(minX + W / 2, minY + H / 2, 0);
-    const p = g.attributes.position;
-    for (let i = 0; i < p.count; i++) {
-      const x = p.getX(i), y = p.getY(i);
-      p.setZ(i, heightAt(x, y) * (sgn < 0 ? 0.7 : 1));
-    }
-    g.computeVertexNormals();
-    const m = new THREE.Mesh(g, material);
-    m.scale.z = sgn; // la espalda: la misma superficie reflejada, con las caras hacia atrás
-    m.castShadow = true; m.receiveShadow = true;
-    return m;
-  });
-  return { meshes, material, heightAt };
 }
 
 export function mountGarment(canvas, { reduce, product } = {}) {
@@ -168,44 +71,50 @@ export function mountGarment(canvas, { reduce, product } = {}) {
   const root = new THREE.Group();
   scene.add(root);
 
-  // Camisa: silueta inflada como un cojín (plano denso + máscara), así el tejido se ve suave
-  const knit = knitTexture();
-  const cloth = buildShirt(knit);
-  cloth.meshes.forEach((m) => root.add(m));
-  const hAt = cloth.heightAt;
-
-  // Cuello: un ribete que sigue el escote
-  const collarPts = [];
-  for (let i = 0; i <= 24; i++) {
-    const u = i / 24, x = -0.46 + u * 0.92;
-    const y = 1.6 - Math.sin(u * Math.PI) * 0.31;
-    collarPts.push(new THREE.Vector3(x, y, hAt(x, y - 0.05) + 0.02));
-  }
-  const collar = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(collarPts), 60, 0.035, 10), cloth.material);
-  collar.castShadow = true;
-  root.add(collar);
-
-  // Tapeta y botones: detalle que da escala y lee "camisa"
-  const placketPts = [];
-  for (let i = 0; i <= 30; i++) { const y = 1.28 - i * (2.85 / 30); placketPts.push(new THREE.Vector3(0.0, y, hAt(0, y) + 0.004)); }
-  const placket = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(placketPts), 60, 0.006, 6), new THREE.MeshStandardMaterial({ color: 0xd9d4cf, roughness: 1 }));
-  root.add(placket);
-  const btnMat = new THREE.MeshPhysicalMaterial({ color: 0xf2eee8, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.2 });
-  for (let i = 0; i < 5; i++) {
-    const y = 1.12 - i * 0.6;
-    const bt = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.018, 24), btnMat);
-    bt.rotation.x = Math.PI / 2;
-    bt.position.set(0.06, y, hAt(0.06, y) + 0.012);
-    bt.castShadow = true;
-    root.add(bt);
-  }
-  // Bolsillo de pecho
-  const pocket = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.46, 1, 1), new THREE.MeshStandardMaterial({ color: 0xebe7e2, roughness: 1, transparent: true, opacity: 0.0 }));
-  pocket.visible = false;
+  // Camiseta: modelo 3D real (algodón, punto jersey), comprimido con meshopt
+  const cloth = new THREE.MeshPhysicalMaterial({
+    color: 0xf4f2ef, roughness: 0.9, sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xffffff),
+    side: THREE.DoubleSide, transparent: true, opacity: 0,
+  });
+  const base = canvas.dataset.model || '/3d/';
+  new THREE.TextureLoader().load(base + 'samarreta-normal.jpg', (t) => {
+    t.flipY = false; t.anisotropy = 8; cloth.normalMap = t; cloth.normalScale.set(0.8, 0.8); cloth.needsUpdate = true;
+  });
+  const shirtHolder = new THREE.Group();
+  root.add(shirtHolder);
+  let shownAt = 0;
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  loader.load(base + 'samarreta.glb', (gltf) => {
+    const model = gltf.scene;
+    model.traverse((o) => { if (o.isMesh) { o.material = cloth; o.castShadow = true; o.receiveShadow = true; } });
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+    const k = 3.4 / size.y;
+    model.scale.setScalar(k);
+    model.position.copy(ctr).multiplyScalar(-k);
+    shirtHolder.add(model);
+    model.updateMatrixWorld(true);
+    // la etiqueta cuelga del bajo de la manga derecha
+    const v = new THREE.Vector3(); let maxX = -Infinity; const pts = [];
+    model.traverse((o) => {
+      if (!o.isMesh) return;
+      const pa = o.geometry.attributes.position;
+      for (let i = 0; i < pa.count; i += 3) { v.fromBufferAttribute(pa, i).applyMatrix4(o.matrixWorld); pts.push(v.clone()); if (v.x > maxX) maxX = v.x; }
+    });
+    const tip = pts.filter((q) => q.x > maxX * 0.86);
+    let low = tip[0]; tip.forEach((q) => { if (q.y < low.y) low = q; });
+    tagGroup.position.set(low.x - 0.06, low.y + 0.02, low.z + 0.02);
+    tagGroup.visible = true;
+    // encuadres finales centrados en la etiqueta
+    const ty = low.y - 0.74;
+    wide.to.look.set(low.x - 0.25, ty, 0.3); wide.to.pos.copy(wide.to.look).add(new THREE.Vector3(1.57, 0.4, 6.7));
+    tall.to.look.set(low.x + 0.5, ty - 0.7, 0.3); tall.to.pos.copy(tall.to.look).add(new THREE.Vector3(0.3, 0.4, 7.2));
+    shownAt = performance.now();
+  });
 
   // Etiqueta colgante con el hilo grana
   const tagGroup = new THREE.Group();
-  tagGroup.position.set(1.0, 0.62, hAt(1.0, 0.62) + 0.03);
+  tagGroup.visible = false;
   root.add(tagGroup);
   const tagShape = new THREE.Shape();
   const w = 0.26, h = 0.42, r = 0.04;
@@ -292,6 +201,10 @@ export function mountGarment(canvas, { reduce, product } = {}) {
   function frame(now) {
     const t = (now - t0) / 1000;
     const p = state.progress;
+    if (shownAt && cloth.opacity < 1) {
+      cloth.opacity = Math.min(1, (now - shownAt) / 900);
+      if (cloth.opacity >= 1) { cloth.transparent = false; cloth.needsUpdate = true; }
+    }
     const zoom = ease(Math.min(1, Math.max(0, (p - 0.25) / 0.5)));
     const turn = ease(Math.min(1, p / 0.45));
 

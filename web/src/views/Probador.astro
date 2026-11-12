@@ -1,0 +1,156 @@
+---
+import Base from '../layouts/Base.astro';
+import Report from '../components/Report.astro';
+import Cta from '../components/Cta.astro';
+import { ui, path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: {
+    title: 'Probador', h1: 'Hebra Probador',
+    desc: 'Hebra Probador cuenta qué prendas entran en cada cabina, las cruza con las ventas y recoge por qué no se las llevan. Avisos, informe semanal y pruebas con grupo de control.',
+    lead: 'Cuenta qué prendas entran en cada cabina, las cruza con las ventas y recoge por qué no se las llevan. Lo que hoy no queda en ningún sitio pasa a ser una decisión cada lunes.',
+    stats: [['412', 'pruebas en una semana'], ['27 %', 'acaban en la caja'], ['9', 'tallas pedidas que no había'], ['1', 'acción clara cada lunes']], statsNote: 'Ejemplo de una tienda, no datos reales.',
+    mH: 'Lo que mide.',
+    m: [['Muy probado, poco vendido', 'Las prendas que la gente quiere pero no compra, antes de que lleguen a rebajas.'], ['Demanda perdida', 'La talla o el color que se pide en la cabina y no está.'], ['Por qué no se la lleva', 'Talla, corte, precio, color o calidad, con un toque en la ficha de la prenda.'], ['Tallas probadas y compradas', 'Cuántas M y cuántas L pedir la próxima vez.'], ['Si el origen hace vender', 'La conversión con el origen visible y sin él, con grupo de control.']],
+    rH: 'Cinco informes, cada uno con su momento.',
+    r: [['Avisos, en tiempo real', 'Al móvil de la tienda: tallas pedidas, talla agotada que alguien quiere, prendas olvidadas en la cabina.'], ['Resumen diario', 'Cinco líneas para la encargada: pruebas, ventas, lo más probado y la talla que falta.'], ['Informe del lunes', 'Una página por tienda y producto, con una acción recomendada.'], ['Informe del mes', 'Para dirección y producto: qué se decidió, qué pasó, curva de tallas, stock parado y riesgo de rebaja.'], ['Fin de temporada', 'Antes del próximo pedido: qué repetir, qué cambiar y el efecto del origen.']],
+    xH: 'No opiniones: pruebas.',
+    xL: 'Cuando cambias un precio, cómo expones una prenda o si enseñas su origen, Hebra lo compara con un grupo de control: unas cabinas o unos días con el cambio y otros sin él.',
+    xQ: 'Así sabes si el cambio ha hecho vender, o si ha sido el tiempo, el día de la semana o la campaña.',
+    roH: 'Lo que gana cada persona de la marca.',
+    ro: [['Dirección', 'Una decisión al mes que vale más que la cuota, y saber si el origen que cuentas hace vender.'], ['Producto y compras', 'Quien más saca: curva de tallas, motivo de no compra y qué cambiar en la próxima colección.'], ['Tienda', 'Avisos de talla, prendas olvidadas en la cabina y horas punta del probador.'], ['Marketing', 'Qué contenido de la ficha se mira, en qué idioma y si el origen convierte.'], ['Sostenibilidad', 'Porcentaje de cadena conocida, certificados al día y coste ambiental con datos reales.']],
+    lH: 'Empieza pequeño. Añade el porqué cuando quieras.',
+    lv: [['Básico', 'Toda la zona de probadores, como un conjunto.', ['Pruebas y conversión por categoría y talla', 'Muy probado, poco vendido', 'Stock parado y riesgo de rebaja', 'Prendas olvidadas']], ['Cabina', 'Cada cabina por separado, con la ficha en cada prenda. El que recomendamos.', ['Todo lo del Básico, por cabina', 'Demanda perdida y peticiones de talla', 'Motivo de no compra', 'Pruebas con grupo de control, origen incluido']], ['Experiencia', 'Cabina con una pantalla en el probador, solo si la marca la quiere.', ['Todo lo del nivel Cabina', 'Contenido en la pantalla del probador', '«Combina con», medido']]],
+    rec: 'Recomendado', lNote: 'Los precios los damos en la demo, ajustados al número de tiendas y cabinas.',
+  },
+  ca: {
+    title: 'Emprovador', h1: 'Hebra Emprovador',
+    desc: 'Hebra Emprovador compta quines peces entren a cada cabina, les creua amb les vendes i recull per què no se les enduen. Avisos, informe setmanal i proves amb grup de control.',
+    lead: 'Compta quines peces entren a cada cabina, les creua amb les vendes i recull per què no se les enduen. El que avui no queda enlloc passa a ser una decisió cada dilluns.',
+    stats: [['412', 'proves en una setmana'], ['27 %', 'acaben a la caixa'], ['9', 'talles demanades que no hi eren'], ['1', 'acció clara cada dilluns']], statsNote: 'Exemple d’una botiga, no dades reals.',
+    mH: 'El que mesura.',
+    m: [['Molt emprovat, poc venut', 'Les peces que la gent vol però no compra, abans que arribin a rebaixes.'], ['Demanda perduda', 'La talla o el color que es demana a la cabina i no hi és.'], ['Per què no se l’endú', 'Talla, tall, preu, color o qualitat, amb un toc a la fitxa de la peça.'], ['Talles emprovades i comprades', 'Quantes M i quantes L demanar la propera vegada.'], ['Si l’origen fa vendre', 'La conversió amb l’origen visible i sense, amb grup de control.']],
+    rH: 'Cinc informes, cadascun amb el seu moment.',
+    r: [['Avisos, en temps real', 'Al mòbil de la botiga: talles demanades, talla esgotada que algú vol, peces oblidades a la cabina.'], ['Resum diari', 'Cinc línies per a l’encarregada: proves, vendes, el més emprovat i la talla que falta.'], ['Informe del dilluns', 'Una pàgina per botiga i producte, amb una acció recomanada.'], ['Informe del mes', 'Per a direcció i producte: què es va decidir, què va passar, corba de talles, estoc aturat i risc de rebaixa.'], ['Final de temporada', 'Abans de la propera comanda: què repetir, què canviar i l’efecte de l’origen.']],
+    xH: 'No opinions: proves.',
+    xL: 'Quan canvies un preu, com exposes una peça o si n’ensenyes l’origen, Hebra ho compara amb un grup de control: unes cabines o uns dies amb el canvi i d’altres sense.',
+    xQ: 'Així saps si el canvi ha fet vendre, o si ha estat el temps, el dia de la setmana o la campanya.',
+    roH: 'El que guanya cada persona de la marca.',
+    ro: [['Direcció', 'Una decisió al mes que val més que la quota, i saber si l’origen que expliques fa vendre.'], ['Producte i compres', 'Qui més en treu: corba de talles, motiu de no compra i què canviar a la propera col·lecció.'], ['Botiga', 'Avisos de talla, peces oblidades a la cabina i hores punta de l’emprovador.'], ['Màrqueting', 'Quin contingut de la fitxa es mira, en quin idioma i si l’origen converteix.'], ['Sostenibilitat', 'Percentatge de cadena coneguda, certificats al dia i cost ambiental amb dades reals.']],
+    lH: 'Comença petit. Afegeix el perquè quan vulguis.',
+    lv: [['Bàsic', 'Tota la zona d’emprovadors, com un conjunt.', ['Proves i conversió per categoria i talla', 'Molt emprovat, poc venut', 'Estoc aturat i risc de rebaixa', 'Peces oblidades']], ['Cabina', 'Cada cabina per separat, amb la fitxa a cada peça. El que recomanem.', ['Tot el del Bàsic, per cabina', 'Demanda perduda i peticions de talla', 'Motiu de no compra', 'Proves amb grup de control, origen inclòs']], ['Experiència', 'Cabina amb una pantalla a l’emprovador, només si la marca la vol.', ['Tot el del nivell Cabina', 'Contingut a la pantalla de l’emprovador', '«Combina amb», mesurat']]],
+    rec: 'Recomanat', lNote: 'Els preus els donem a la demo, ajustats al nombre de botigues i cabines.',
+  },
+  en: {
+    title: 'Fitting room', h1: 'Hebra Fitting Room',
+    desc: 'Hebra Fitting Room counts which garments go into each room, matches them with sales and collects why people don’t buy them. Alerts, a weekly report and tests against a control group.',
+    lead: 'Counts which garments go into each room, matches them with sales and collects why people don’t buy them. What is recorded nowhere today becomes a decision every Monday.',
+    stats: [['412', 'try-ons in a week'], ['27 %', 'end up at the till'], ['9', 'sizes requested that weren’t there'], ['1', 'clear action every Monday']], statsNote: 'Example from one store, not real data.',
+    mH: 'What it measures.',
+    m: [['Tried a lot, sold little', 'The garments people want but don’t buy, before they reach the sales.'], ['Lost demand', 'The size or colour asked for in the room that isn’t there.'], ['Why they don’t buy it', 'Size, fit, price, colour or quality, with one tap on the garment page.'], ['Sizes tried and bought', 'How many Ms and how many Ls to order next time.'], ['Whether origin sells', 'Conversion with the origin shown and without it, against a control group.']],
+    rH: 'Five reports, each with its moment.',
+    r: [['Alerts, in real time', 'To the store’s phone: sizes requested, a sold-out size someone wants, garments left in a room.'], ['Daily summary', 'Five lines for the store manager: try-ons, sales, most tried and the missing size.'], ['Monday report', 'One page per store and product, with a recommended action.'], ['Monthly report', 'For management and product: what was decided, what happened, size curve, stuck stock and markdown risk.'], ['End of season', 'Before the next order: what to repeat, what to change and the effect of origin.']],
+    xH: 'Not opinions: evidence.',
+    xL: 'When you change a price, how you display a garment or whether you show its origin, Hebra compares it with a control group: some rooms or days with the change and others without.',
+    xQ: 'So you know whether the change made things sell, or whether it was the weather, the day of the week or the campaign.',
+    roH: 'What each person at the brand gets.',
+    ro: [['Management', 'One decision a month worth more than the fee, and knowing whether the origin story you tell sells.'], ['Product and buying', 'The biggest winners: size curve, reasons for not buying and what to change in the next collection.'], ['Store', 'Size alerts, garments left in rooms and fitting room peak hours.'], ['Marketing', 'Which content on the garment page gets read, in which language, and whether origin converts.'], ['Sustainability', 'Share of supply chain known, certificates up to date and environmental cost with real data.']],
+    lH: 'Start small. Add the why whenever you like.',
+    lv: [['Basic', 'The whole fitting room area, as one.', ['Try-ons and conversion by category and size', 'Tried a lot, sold little', 'Stuck stock and markdown risk', 'Garments left behind']], ['Room', 'Each room separately, with the garment page on every item. Our recommendation.', ['Everything in Basic, per room', 'Lost demand and size requests', 'Reasons for not buying', 'Tests against a control group, origin included']], ['Experience', 'Room level plus a screen in the fitting room, only if the brand wants one.', ['Everything in Room', 'Content on the fitting room screen', '“Goes with”, measured']]],
+    rec: 'Recommended', lNote: 'We share prices in the demo, adjusted to the number of stores and rooms.',
+  },
+}[lang];
+const u = ui[lang];
+---
+<Base title={T.title} lang={lang} route="/probador/" description={T.desc}>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href={path(lang, '/')}>{u.home}</a> / {T.title}</p>
+      <h1 data-split>{T.h1}</h1>
+      <p class="lead">{T.lead}</p>
+      <div class="actions"><a class="btn" href={path(lang, '/contacto/?motivo=demo')}>{u.demo}</a></div>
+    </div>
+  </header>
+
+  <section class="band grana tight">
+    <div class="wrap">
+      <dl class="stats">
+        {T.stats.map(([v, k]) => <div data-reveal><dt>{k}</dt><dd>{v}</dd></div>)}
+      </dl>
+      <p class="small stats-note">{T.statsNote}</p>
+    </div>
+  </section>
+
+  <section class="band perla">
+    <div class="wrap split">
+      <h2 data-reveal>{T.mH}</h2>
+      <ul class="rows" data-reveal>{T.m.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}</ul>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split rev">
+      <div data-reveal><Report lang={lang} /></div>
+      <div data-reveal>
+        <h2>{T.rH}</h2>
+        <ul class="rows stack">{T.r.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}</ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="band blau">
+    <div class="wrap split">
+      <h2 data-reveal>{T.xH}</h2>
+      <div data-reveal>
+        <p class="lead" style="color:#E9EEF4">{T.xL}</p>
+        <p class="quiet">{T.xQ}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2 data-reveal>{T.roH}</h2>
+      <div class="grid-3 roles">{T.ro.map(([h, p]) => <div data-reveal><h3>{h}</h3><p class="quiet">{p}</p></div>)}</div>
+    </div>
+  </section>
+
+  <section class="band perla">
+    <div class="wrap">
+      <h2 data-reveal>{T.lH}</h2>
+      <div class="grid-3 levels">
+        {T.lv.map(([h, p, items], i) => (
+          <div class:list={['level', { rec: i === 1 }]} data-reveal>
+            {i === 1 && <span class="rec-badge">{T.rec}</span>}
+            <h3>{h}</h3>
+            <p class="quiet">{p}</p>
+            <ul>{(items as string[]).map((x) => <li>{x}</li>)}</ul>
+          </div>
+        ))}
+      </div>
+      <p class="note" data-reveal>{T.lNote}</p>
+    </div>
+  </section>
+
+  <Cta lang={lang} />
+</Base>
+
+<style>
+  .stats { display: grid; gap: 1.5rem; grid-template-columns: repeat(2, 1fr); margin: 0; }
+  @media (min-width: 860px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+  .stats div { display: flex; flex-direction: column-reverse; justify-content: flex-end; border-left: 1px solid rgba(249,249,249,.3); padding-left: 1.1rem; }
+  .stats dd { margin: 0; font: 340 clamp(2.6rem, 1.8rem + 3vw, 4.2rem)/1 var(--serif); color: var(--blanc); font-variant-numeric: tabular-nums; }
+  .stats dt { margin-top: .5rem; color: #F3DDE4; }
+  .stats-note { color: #F3DDE4; margin: 1.6rem 0 0; opacity: .8; }
+  .roles { margin-top: 2.5rem; }
+  .roles h3 { color: var(--grana); }
+  .levels { margin: 2.5rem 0; }
+  .level { position: relative; background: #fff; padding: 1.8rem; border-radius: 16px; box-shadow: 0 1px 0 var(--linea); }
+  .level.rec { box-shadow: inset 0 0 0 2px var(--grana); }
+  .rec-badge { position: absolute; top: -.7rem; left: 1.6rem; font: 700 .72rem/1 var(--sans); background: var(--grana); color: var(--blanc); padding: .35rem .6rem; border-radius: 999px; }
+  .level h3 { font-size: var(--step-2); font-weight: 340; font-variation-settings: 'opsz' 96; color: var(--blau); }
+  .level ul { padding-left: 1.1rem; margin: 0; }
+  .level li { margin: .35rem 0; }
+  .level li::marker { color: var(--grana); }
+</style>

@@ -1,33 +1,42 @@
 ---
 // Informe del lunes. Ejemplo ilustrativo, no datos reales.
+import type { Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+const T = {
+  es: { shop: 'Tienda de Gràcia, semana 46', date: 'Lunes 16 de noviembre', k: ['Pruebas', 'Conversión', 'Frente a la semana pasada'], v: ['412', '27 %', '+3 puntos'],
+    items: [['Muy probado, poco vendido.', 'El vestido de viscosa: 38 pruebas y 3 ventas. El resto de vestidos vende 1 de cada 4.'], ['Talla que no cuadra.', 'Los vaqueros en 40 se venden en 1 de cada 3 pruebas; en 38, en 1 de cada 8.'], ['Por qué no se lo llevan.', 'Del vestido de viscosa, 11 de 17 respuestas dicen «corte».'], ['Demanda perdida.', '9 peticiones de tallas que no había; 5 eran la camiseta básica en L.']],
+    ak: 'Acción de esta semana', av: 'Pedir 6 camisetas básicas en L antes del viernes.', ao: 'Responsable: producto', cap: 'Así es un lunes con Hebra. Ejemplo ilustrativo, no datos reales.' },
+  ca: { shop: 'Botiga de Gràcia, setmana 46', date: 'Dilluns 16 de novembre', k: ['Proves', 'Conversió', 'Respecte a la setmana passada'], v: ['412', '27 %', '+3 punts'],
+    items: [['Molt emprovat, poc venut.', 'El vestit de viscosa: 38 proves i 3 vendes. La resta de vestits en ven 1 de cada 4.'], ['Talla que no quadra.', 'Els texans de la 40 es venen en 1 de cada 3 proves; de la 38, en 1 de cada 8.'], ['Per què no se l’enduen.', 'Del vestit de viscosa, 11 de 17 respostes diuen «tall».'], ['Demanda perduda.', '9 peticions de talles que no hi eren; 5 eren la samarreta bàsica en L.']],
+    ak: 'Acció d’aquesta setmana', av: 'Demanar 6 samarretes bàsiques en L abans de divendres.', ao: 'Responsable: producte', cap: 'Així és un dilluns amb Hebra. Exemple il·lustratiu, no dades reals.' },
+  en: { shop: 'Gràcia store, week 46', date: 'Monday 16 November', k: ['Try-ons', 'Conversion', 'Versus last week'], v: ['412', '27 %', '+3 points'],
+    items: [['Tried a lot, sold little.', 'The viscose dress: 38 try-ons and 3 sales. Other dresses sell 1 in 4.'], ['A size that doesn’t add up.', 'Size 40 jeans sell in 1 of 3 try-ons; size 38, in 1 of 8.'], ['Why they don’t buy it.', 'For the viscose dress, 11 of 17 answers say “fit”.'], ['Lost demand.', '9 requests for sizes that weren’t there; 5 were the basic T-shirt in L.']],
+    ak: 'Action for this week', av: 'Order 6 basic T-shirts in L before Friday.', ao: 'Owner: product team', cap: 'This is a Monday with Hebra. Illustrative example, not real data.' },
+}[lang];
 ---
 <figure class="report">
   <div class="r-page">
     <header class="r-head">
       <div>
-        <p class="r-shop">Tienda de Gràcia, semana 46</p>
-        <p class="r-date">Lunes 16 de noviembre</p>
+        <p class="r-shop">{T.shop}</p>
+        <p class="r-date">{T.date}</p>
       </div>
       <img src="/img/logo-blau.png" alt="" width="14" height="20" />
     </header>
     <dl class="r-kpis">
-      <div><dt>Pruebas</dt><dd>412</dd></div>
-      <div><dt>Conversión</dt><dd>27 %</dd></div>
-      <div><dt>Frente a la semana pasada</dt><dd>+3 puntos</dd></div>
+      {T.k.map((k, i) => <div><dt>{k}</dt><dd>{T.v[i]}</dd></div>)}
     </dl>
     <ul class="r-items">
-      <li><b>Muy probado, poco vendido.</b> El vestido de viscosa: 38 pruebas y 3 ventas. El resto de vestidos vende 1 de cada 4.</li>
-      <li><b>Talla que no cuadra.</b> Los vaqueros en 40 se venden en 1 de cada 3 pruebas; en 38, en 1 de cada 8.</li>
-      <li><b>Por qué no se lo llevan.</b> Del vestido de viscosa, 11 de 17 respuestas dicen «corte».</li>
-      <li><b>Demanda perdida.</b> 9 peticiones de tallas que no había; 5 eran la camisa de lino en L.</li>
+      {T.items.map(([b, x]) => <li><b>{b}</b> {x}</li>)}
     </ul>
     <div class="r-action">
-      <p class="r-ak">Acción de esta semana</p>
-      <p class="r-av">Pedir 6 camisas de lino en L antes del viernes.</p>
-      <p class="r-ao">Responsable: producto</p>
+      <p class="r-ak">{T.ak}</p>
+      <p class="r-av">{T.av}</p>
+      <p class="r-ao">{T.ao}</p>
     </div>
   </div>
-  <figcaption class="small quiet">Así es un lunes con Hebra. Ejemplo ilustrativo, no datos reales.</figcaption>
+  <figcaption class="small quiet">{T.cap}</figcaption>
 </figure>
 
 <style>

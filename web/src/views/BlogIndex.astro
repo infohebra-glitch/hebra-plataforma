@@ -1,0 +1,70 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import BlogCover from '../components/BlogCover.astro';
+import Cta from '../components/Cta.astro';
+import { ui, path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: { title: 'Blog', desc: 'Lo que aprendemos sobre probadores, tallas, origen y tiendas de moda.', h1: 'Lo que pasa dentro del probador, y fuera.', lead: 'Notas cortas sobre lo que la caja no ve: pruebas, tallas, motivos y origen. Para quien decide qué pedir la próxima temporada.', read: 'min de lectura', more: 'Leer' },
+  ca: { title: 'Blog', desc: 'El que aprenem sobre emprovadors, talles, origen i botigues de moda.', h1: 'El que passa dins l’emprovador, i fora.', lead: 'Notes curtes sobre el que la caixa no veu: proves, talles, motius i origen. Per a qui decideix què demanar la pròxima temporada.', read: 'min de lectura', more: 'Llegir' },
+  en: { title: 'Blog', desc: 'What we learn about fitting rooms, sizes, origin and fashion stores.', h1: 'What happens inside the fitting room, and outside.', lead: 'Short notes on what the till can’t see: try-ons, sizes, reasons and origin. For whoever decides what to order next season.', read: 'min read', more: 'Read' },
+}[lang];
+const posts = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`))).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const slug = (id: string) => id.split('/').slice(1).join('/');
+const fmt = new Intl.DateTimeFormat({ es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }[lang], { day: 'numeric', month: 'long', year: 'numeric' });
+const [first, ...rest] = posts;
+---
+<Base title={T.title} lang={lang} route="/blog/" description={T.desc}>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / {T.title}</p>
+      <h1 data-split>{T.h1}</h1>
+      <p class="lead">{T.lead}</p>
+    </div>
+  </header>
+
+  <section class="band tight" style="padding-top:0">
+    <div class="wrap">
+      {first && (
+        <a class="post feat" href={path(lang, `/blog/${slug(first.id)}/`)} data-reveal>
+          <BlogCover slug={slug(first.id)} />
+          <div>
+            <p class="kick">{first.data.kicker}</p>
+            <h2>{first.data.title}</h2>
+            <p class="quiet">{first.data.description}</p>
+            <p class="meta">{fmt.format(first.data.date)} · {first.data.minutes} {T.read}</p>
+          </div>
+        </a>
+      )}
+      <div class="grid">
+        {rest.map((p) => (
+          <a class="post" href={path(lang, `/blog/${slug(p.id)}/`)} data-reveal>
+            <BlogCover slug={slug(p.id)} />
+            <p class="kick">{p.data.kicker}</p>
+            <h2>{p.data.title}</h2>
+            <p class="quiet">{p.data.description}</p>
+            <p class="meta">{fmt.format(p.data.date)} · {p.data.minutes} {T.read}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <Cta lang={lang} />
+</Base>
+
+<style>
+  .post { display: block; color: inherit; text-decoration: none; }
+  .post h2 { font-size: var(--step-2); margin: 0 0 .6rem; transition: color .2s; }
+  .post:hover h2 { color: var(--grana); }
+  .post :global(.cover) { transition: transform .5s cubic-bezier(.2,.7,.2,1); }
+  .post:hover :global(.cover) { transform: translateY(-4px); }
+  .post .kick { margin: 1.2rem 0 .5rem; }
+  .meta { font-size: var(--step--1); color: var(--tinta-2); margin: 0; }
+  .feat { display: grid; gap: 1rem 3rem; align-items: center; padding-bottom: 3rem; border-bottom: 1px solid var(--linea); margin-bottom: 3rem; }
+  @media (min-width: 900px) { .feat { grid-template-columns: 7fr 5fr; } .feat h2 { font-size: var(--step-3); } }
+  .grid { display: grid; gap: 3rem 2.5rem; }
+  @media (min-width: 760px) { .grid { grid-template-columns: 1fr 1fr; } }
+</style>

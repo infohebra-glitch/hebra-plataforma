@@ -1,0 +1,179 @@
+---
+import Base from '../layouts/Base.astro';
+import Stage from '../components/Stage.astro';
+import Calculator from '../components/Calculator.astro';
+import DataCards from '../components/DataCards.astro';
+import VideoDemo from '../components/VideoDemo.astro';
+import Report from '../components/Report.astro';
+import Cta from '../components/Cta.astro';
+import { path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: {
+    desc: 'Hebra mide lo que pasa dentro del probador de tu tienda de moda: qué se prueba y no se vende, por qué, y si lo que cambias hace vender. Con una etiqueta inteligente en cada prenda.',
+    pH: 'El probador es donde tu cliente decide. Y tú no ves nada.',
+    pL: 'La caja registra lo que se vende. La web sabe lo que se mira y no se compra. En la tienda física, el momento en que alguien se prueba una prenda y la deja no queda en ningún sitio.',
+    loss: [['Margen que se va en rebajas', 'Una prenda muy probada y poco vendida se descubre cuando ya está rebajada.'], ['Pedidos a ciegas por talla', 'Se compra la curva de tallas de siempre, no la que la gente se prueba.'], ['Tallas que faltan', 'Piden la L, no está, y se van. Nadie lo apunta.'], ['Un origen sin resultado', 'Pagas por conocer tu cadena, pero no sabes si contarlo hace vender.']],
+    cH: '¿Cuánto te cuesta tu probador?', cL: 'Nuestra métrica principal: lo probado y no vendido, en euros por semana y tienda. Mueve las cifras y pon las de tu tienda.',
+    dK: 'Los datos', dH: 'Lo que tu tienda física por fin te cuenta.', dL: 'Nueve datos que hoy no tienes y la decisión que te permite cada uno.',
+    sK: 'Pruébalo tú', sH: 'Lleva una prenda al probador y mira qué ve la marca.', sB: 'Abrir el simulador',
+    piecesH: 'Un sistema, dos piezas. De la fábrica al probador.',
+    p1k: 'En la tienda', p1: 'Cuenta qué prendas entran en cada cabina, las cruza con las ventas y recoge por qué no se las llevan.', p1l: ['Pruebas y conversión por modelo y talla', 'Demanda perdida y peticiones de talla', 'Motivo de no compra', 'Avisos al móvil de la tienda'], p1b: 'Ver Probador',
+    p2k: 'En la cadena', p2: 'La trazabilidad en versión sencilla: las cuatro etapas de cada modelo, sus certificados y el coste ambiental oficial francés.', p2l: ['Porcentaje de cadena conocida por modelo', 'Certificados con aviso de caducidad', 'Coste ambiental con Ecobalyse', 'La ficha de la prenda en el móvil'], p2b: 'Ver Origen',
+    note: 'Juntas responden lo que nadie más responde: qué parte de tu cadena te hace vender y cuál te hace perder ventas.',
+    rH: 'No te damos datos. Te damos una acción cada lunes.', rL: 'Una página por tienda, siempre con los mismos bloques en el mismo sitio. Acaba con una acción, una persona responsable y una fecha.',
+    rl: [['En tiempo real', 'Avisos al móvil de la tienda: tallas pedidas, prendas olvidadas en la cabina.'], ['Cada mañana', 'Cinco líneas para la encargada.'], ['Cada mes y temporada', 'Curva de tallas, stock parado, riesgo de rebaja y qué repetir en la próxima colección.']],
+    tH: 'Lo que medimos, y lo que no mediremos nunca.',
+    tr: [['Sin cámaras', 'Nada graba imagen ni sonido, ni reconoce personas. Medimos prendas, no a quien las lleva.'], ['Ningún dato personal', 'Los toques de la ficha no se ligan a ninguna compra ni a ninguna persona. Tampoco medimos al personal.'], ['Se instala en una visita', 'Sin obras, sin tocar tu wifi ni tu caja. Hardware con marcado CE.'], ['Servidores en la UE', 'Preparamos contigo la evaluación de privacidad y el cartel informativo de la tienda.']],
+    privacy: 'Privacidad',
+  },
+  ca: {
+    desc: 'Hebra mesura el que passa dins l’emprovador de la teva botiga de moda: què s’emprova i no es ven, per què, i si el que canvies fa vendre. Amb una etiqueta intel·ligent a cada peça.',
+    pH: 'L’emprovador és on el teu client decideix. I tu no hi veus res.',
+    pL: 'La caixa registra el que es ven. La web sap el que es mira i no es compra. A la botiga física, el moment en què algú s’emprova una peça i la deixa no queda enlloc.',
+    loss: [['Marge que se’n va en rebaixes', 'Una peça molt emprovada i poc venuda es descobreix quan ja està rebaixada.'], ['Comandes a cegues per talla', 'Es compra la corba de talles de sempre, no la que la gent s’emprova.'], ['Talles que falten', 'Demanen la L, no hi és, i se’n van. Ningú ho apunta.'], ['Un origen sense resultat', 'Pagues per conèixer la teva cadena, però no saps si explicar-ho fa vendre.']],
+    cH: 'Quant et costa el teu emprovador?', cL: 'La nostra mètrica principal: el que s’emprova i no es ven, en euros per setmana i botiga. Mou les xifres i posa-hi les de la teva botiga.',
+    dK: 'Les dades', dH: 'El que la teva botiga física per fi t’explica.', dL: 'Nou dades que avui no tens i la decisió que et permet cadascuna.',
+    sK: 'Prova-ho tu', sH: 'Porta una peça a l’emprovador i mira què veu la marca.', sB: 'Obrir el simulador',
+    piecesH: 'Un sistema, dues peces. De la fàbrica a l’emprovador.',
+    p1k: 'A la botiga', p1: 'Compta quines peces entren a cada cabina, les creua amb les vendes i recull per què no se les enduen.', p1l: ['Proves i conversió per model i talla', 'Demanda perduda i peticions de talla', 'Motiu de no compra', 'Avisos al mòbil de la botiga'], p1b: 'Veure Emprovador',
+    p2k: 'A la cadena', p2: 'La traçabilitat en versió senzilla: les quatre etapes de cada model, els seus certificats i el cost ambiental oficial francès.', p2l: ['Percentatge de cadena coneguda per model', 'Certificats amb avís de caducitat', 'Cost ambiental amb Ecobalyse', 'La fitxa de la peça al mòbil'], p2b: 'Veure Origen',
+    note: 'Juntes responen el que ningú més respon: quina part de la teva cadena et fa vendre i quina et fa perdre vendes.',
+    rH: 'No et donem dades. Et donem una acció cada dilluns.', rL: 'Una pàgina per botiga, sempre amb els mateixos blocs al mateix lloc. Acaba amb una acció, una persona responsable i una data.',
+    rl: [['En temps real', 'Avisos al mòbil de la botiga: talles demanades, peces oblidades a la cabina.'], ['Cada matí', 'Cinc línies per a l’encarregada.'], ['Cada mes i temporada', 'Corba de talles, estoc aturat, risc de rebaixa i què repetir a la propera col·lecció.']],
+    tH: 'El que mesurem, i el que no mesurarem mai.',
+    tr: [['Sense càmeres', 'Res no grava imatge ni so, ni reconeix persones. Mesurem peces, no qui les porta.'], ['Cap dada personal', 'Els tocs de la fitxa no es lliguen a cap compra ni a cap persona. Tampoc mesurem el personal.'], ['S’instal·la en una visita', 'Sense obres, sense tocar el teu wifi ni la teva caixa. Maquinari amb marcatge CE.'], ['Servidors a la UE', 'Preparem amb tu l’avaluació de privacitat i el cartell informatiu de la botiga.']],
+    privacy: 'Privacitat',
+  },
+  en: {
+    desc: 'Hebra measures what happens inside your fashion store’s fitting room: what gets tried on and not sold, why, and whether what you change actually sells. With a smart tag in every garment.',
+    pH: 'The fitting room is where your customer decides. And you see nothing.',
+    pL: 'The till records what sells. Your website knows what gets viewed and not bought. In a physical store, the moment someone tries on a garment and leaves it behind is recorded nowhere.',
+    loss: [['Margin lost to markdowns', 'A garment tried on a lot and sold little is only discovered once it’s already on sale.'], ['Ordering sizes blind', 'You buy the usual size curve, not the one people actually try on.'], ['Missing sizes', 'They ask for an L, it isn’t there, and they leave. Nobody writes it down.'], ['Origin with no payoff', 'You pay to know your supply chain, but you don’t know whether telling it sells.']],
+    cH: 'What is your fitting room costing you?', cL: 'Our core metric: tried on and not sold, in euros per week and per store. Move the figures and use your store’s numbers.',
+    dK: 'The data', dH: 'What your physical store finally tells you.', dL: 'Nine data points you don’t have today, and the decision each one lets you make.',
+    sK: 'Try it yourself', sH: 'Take a garment to the fitting room and see what the brand sees.', sB: 'Open the simulator',
+    piecesH: 'One system, two parts. From the factory to the fitting room.',
+    p1k: 'In the store', p1: 'Counts which garments go into each room, matches them with sales and collects why people don’t buy them.', p1l: ['Try-ons and conversion by style and size', 'Lost demand and size requests', 'Reasons for not buying', 'Alerts to the store’s phone'], p1b: 'See Fitting room',
+    p2k: 'In the supply chain', p2: 'Traceability made simple: the four stages of each style, their certificates and the official French environmental cost.', p2l: ['Share of supply chain known per style', 'Certificates with expiry alerts', 'Environmental cost with Ecobalyse', 'The garment page on the phone'], p2b: 'See Origin',
+    note: 'Together they answer what nobody else does: which part of your supply chain makes you sell, and which part loses you sales.',
+    rH: 'We don’t give you data. We give you an action every Monday.', rL: 'One page per store, always with the same blocks in the same place. It ends with an action, an owner and a date.',
+    rl: [['In real time', 'Alerts to the store’s phone: sizes requested, garments left behind in a room.'], ['Every morning', 'Five lines for the store manager.'], ['Every month and season', 'Size curve, stuck stock, markdown risk and what to repeat in the next collection.']],
+    tH: 'What we measure, and what we will never measure.',
+    tr: [['No cameras', 'Nothing records images or sound, or recognises people. We measure garments, not who wears them.'], ['No personal data', 'Taps on the garment page are never linked to a purchase or a person. We don’t measure staff either.'], ['Installed in one visit', 'No building work, no touching your wifi or your till. CE-marked hardware.'], ['Servers in the EU', 'We prepare the privacy assessment and the in-store notice with you.']],
+    privacy: 'Privacy',
+  },
+}[lang];
+---
+<Base title="Hebra" dark lang={lang} route="/" description={T.desc}>
+  <Stage lang={lang} />
+
+  <section class="band perla" id="problema">
+    <div class="wrap split">
+      <h2 data-reveal>{T.pH}</h2>
+      <div data-reveal>
+        <p class="lead">{T.pL}</p>
+        <ul class="rows loss">
+          {T.loss.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="calculadora">
+    <div class="wrap">
+      <div class="split head-split">
+        <h2 data-reveal>{T.cH}</h2>
+        <p class="lead" data-reveal>{T.cL}</p>
+      </div>
+      <div data-reveal><Calculator lang={lang} /></div>
+    </div>
+  </section>
+
+  <section class="band perla" id="datos">
+    <div class="wrap">
+      <div class="split head-split">
+        <div><p class="kick" data-reveal>{T.dK}</p><h2 data-reveal>{T.dH}</h2></div>
+        <p class="lead" data-reveal>{T.dL}</p>
+      </div>
+      <DataCards lang={lang} />
+    </div>
+  </section>
+
+  <VideoDemo lang={lang} />
+
+  <section class="band grana tight sim-cta">
+    <div class="wrap sim-cta-in">
+      <div data-reveal><p class="kick">{T.sK}</p><h2>{T.sH}</h2></div>
+      <a class="btn" href={path(lang, '/como-funciona/#simulador')} data-reveal>{T.sB}</a>
+    </div>
+  </section>
+
+  <section class="band" id="piezas">
+    <div class="wrap">
+      <h2 data-reveal>{T.piecesH}</h2>
+      <div class="grid-2 pieces">
+        <a class="piece" href={path(lang, '/probador/')} data-reveal>
+          <p class="piece-k">{T.p1k}</p>
+          <h3>Hebra {lang === 'ca' ? 'Emprovador' : lang === 'en' ? 'Fitting Room' : 'Probador'}</h3>
+          <p>{T.p1}</p>
+          <ul>{T.p1l.map((x) => <li>{x}</li>)}</ul>
+          <span class="textlink">{T.p1b}</span>
+        </a>
+        <a class="piece" href={path(lang, '/origen/')} data-reveal>
+          <p class="piece-k">{T.p2k}</p>
+          <h3>Hebra {lang === 'en' ? 'Origin' : 'Origen'}</h3>
+          <p>{T.p2}</p>
+          <ul>{T.p2l.map((x) => <li>{x}</li>)}</ul>
+          <span class="textlink">{T.p2b}</span>
+        </a>
+      </div>
+      <p class="note" data-reveal>{T.note}</p>
+    </div>
+  </section>
+
+  <section class="band perla" id="lunes">
+    <div class="wrap split rev">
+      <div data-reveal><Report lang={lang} /></div>
+      <div data-reveal>
+        <h2>{T.rH}</h2>
+        <p class="lead">{T.rL}</p>
+        <ul class="rows stack">
+          {T.rl.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="confianza">
+    <div class="wrap split">
+      <h2 data-reveal>{T.tH}</h2>
+      <div class="grid-2 trust" data-reveal>
+        {T.tr.map(([h, p], i) => <div><h3>{h}</h3><p class="quiet">{p}{i === 3 && <> <a class="textlink" href={path(lang, '/privacidad/')}>{T.privacy}</a></>}</p></div>)}
+      </div>
+    </div>
+  </section>
+
+  <Cta lang={lang} />
+</Base>
+
+<style>
+  .head-split { align-items: end; margin-bottom: clamp(2rem, 5vw, 3.5rem); }
+  .head-split h2 { margin: 0; }
+  .head-split .lead { margin: 0; }
+  .loss { margin-top: 2rem; }
+  .loss h3 { color: var(--grana); }
+  .pieces { margin: 3rem 0 2.5rem; }
+  .piece { display: block; text-decoration: none; background: #fff; padding: clamp(1.6rem, 3vw, 2.4rem); border-radius: 16px; box-shadow: 0 1px 0 var(--linea), 0 30px 60px -50px rgba(18,38,63,.6); border-top: 4px solid var(--grana); transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s; }
+  .piece:hover { transform: translateY(-6px); box-shadow: 0 1px 0 var(--linea), 0 40px 70px -40px rgba(140,48,75,.45); }
+  .piece-k { color: var(--grana); font-weight: 600; font-size: var(--step--1); margin: 0 0 .6rem; }
+  .piece h3 { font-size: var(--step-2); font-weight: 340; font-variation-settings: 'opsz' 96; color: var(--blau); }
+  .piece ul { padding-left: 1.1rem; margin: 0 0 1.5rem; }
+  .piece li { margin: .3rem 0; }
+  .piece li::marker { color: var(--grana); }
+  .trust { gap: 2rem 2.5rem; }
+  .trust h3 { color: var(--blau); margin-bottom: .3rem; }
+  .sim-cta-in { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2rem; }
+  .sim-cta h2 { margin: 0; max-width: 20ch; font-size: var(--step-2); }
+</style>

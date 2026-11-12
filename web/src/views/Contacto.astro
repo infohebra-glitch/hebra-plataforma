@@ -1,0 +1,125 @@
+---
+import Base from '../layouts/Base.astro';
+import { ui, path, contacts, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: {
+    title: 'Contacto', desc: 'Pide una demo de Hebra o propón un piloto de ocho semanas en tu tienda de moda.',
+    h1: 'Hablemos de tu tienda.', lead: 'Te responde una persona del equipo, no un robot.',
+    nextH: 'Qué pasa después',
+    next: [['Te escribimos', 'Para entender tu tienda, tus probadores y cómo vendes.'], ['Demo de 30 minutos', 'Con la ficha en la mano y un informe de ejemplo.'], ['Propuesta de piloto', 'Una página con alcance, criterios de éxito y fechas.']],
+    mailH: 'Escríbenos directamente', social: 'También en Instagram y TikTok:',
+    need: 'Qué necesitas',
+    opts: [['demo', 'Una demo para mi marca'], ['piloto', 'Un piloto en mi tienda'], ['origen', 'Origen, sin tienda propia'], ['cadena', 'Somos una cadena con muchas tiendas'], ['socio', 'Socio o proveedor'], ['dossier', 'Inversión o prensa: el dossier']],
+    name: 'Nombre', email: 'Email', brand: 'Marca o empresa', phone: 'Teléfono, si prefieres llamada',
+    stores: 'Número de tiendas propias', choose: 'Elige', storeOpts: ['Ninguna, solo online', '1', '2 a 5', '6 a 50', 'Más de 50'],
+    sells: 'Vendéis con', sellOpts: ['Shopify', 'Otra caja o TPV', 'No lo sé'],
+    msg: 'Ciudad de la tienda o comentarios', hp: 'No rellenar',
+    privA: 'He leído la', privL: 'política de privacidad', privB: 'y acepto que Hebra use estos datos para responderme.', send: 'Enviar',
+  },
+  ca: {
+    title: 'Contacte', desc: 'Demana una demo d’Hebra o proposa un pilot de vuit setmanes a la teva botiga de moda.',
+    h1: 'Parlem de la teva botiga.', lead: 'Et respon una persona de l’equip, no un robot.',
+    nextH: 'Què passa després',
+    next: [['T’escrivim', 'Per entendre la teva botiga, els teus emprovadors i com vens.'], ['Demo de 30 minuts', 'Amb la fitxa a la mà i un informe d’exemple.'], ['Proposta de pilot', 'Una pàgina amb abast, criteris d’èxit i dates.']],
+    mailH: 'Escriu-nos directament', social: 'També a Instagram i TikTok:',
+    need: 'Què necessites',
+    opts: [['demo', 'Una demo per a la meva marca'], ['piloto', 'Un pilot a la meva botiga'], ['origen', 'Origen, sense botiga pròpia'], ['cadena', 'Som una cadena amb moltes botigues'], ['socio', 'Soci o proveïdor'], ['dossier', 'Inversió o premsa: el dossier']],
+    name: 'Nom', email: 'Correu', brand: 'Marca o empresa', phone: 'Telèfon, si prefereixes trucada',
+    stores: 'Nombre de botigues pròpies', choose: 'Tria', storeOpts: ['Cap, només en línia', '1', '2 a 5', '6 a 50', 'Més de 50'],
+    sells: 'Veneu amb', sellOpts: ['Shopify', 'Una altra caixa o TPV', 'No ho sé'],
+    msg: 'Ciutat de la botiga o comentaris', hp: 'No omplir',
+    privA: 'He llegit la', privL: 'política de privacitat', privB: 'i accepto que Hebra faci servir aquestes dades per respondre’m.', send: 'Enviar',
+  },
+  en: {
+    title: 'Contact', desc: 'Book a Hebra demo or propose an eight-week pilot in your fashion store.',
+    h1: 'Let’s talk about your store.', lead: 'A person from the team replies, not a robot.',
+    nextH: 'What happens next',
+    next: [['We write to you', 'To understand your store, your fitting rooms and how you sell.'], ['A 30-minute demo', 'With the garment page in hand and an example report.'], ['Pilot proposal', 'One page with scope, success criteria and dates.']],
+    mailH: 'Write to us directly', social: 'Also on Instagram and TikTok:',
+    need: 'What do you need',
+    opts: [['demo', 'A demo for my brand'], ['piloto', 'A pilot in my store'], ['origen', 'Origin, without my own store'], ['cadena', 'We are a chain with many stores'], ['socio', 'Partner or supplier'], ['dossier', 'Investment or press: the deck']],
+    name: 'Name', email: 'Email', brand: 'Brand or company', phone: 'Phone, if you prefer a call',
+    stores: 'Number of own stores', choose: 'Choose', storeOpts: ['None, online only', '1', '2 to 5', '6 to 50', 'More than 50'],
+    sells: 'You sell with', sellOpts: ['Shopify', 'Another till or POS', 'I don’t know'],
+    msg: 'Store city or comments', hp: 'Do not fill in',
+    privA: 'I have read the', privL: 'privacy policy', privB: 'and agree that Hebra may use this data to reply to me.', send: 'Send',
+  },
+}[lang];
+---
+<Base title={T.title} lang={lang} route="/contacto/" description={T.desc}>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / {T.title}</p>
+      <h1 data-split>{T.h1}</h1>
+      <p class="lead">{T.lead}</p>
+    </div>
+  </header>
+
+  <section class="band tight" style="padding-top:0">
+    <div class="wrap split">
+      <aside class="aside">
+        <div class="mailcard">
+          <h2 class="h3like">{T.mailH}</h2>
+          <ul>
+            {contacts.map((c) => <li><span>{c.name}</span><a href={`mailto:${c.email}`}>{c.email}</a></li>)}
+          </ul>
+        </div>
+        <h2 class="h3like" style="margin-top:2.5rem">{T.nextH}</h2>
+        <ol class="rows steps stack">
+          {T.next.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}
+        </ol>
+        <p class="small quiet" style="margin-top:2rem">{T.social} <a class="textlink" href="https://www.instagram.com/hebra.trace/" rel="noopener">@hebra.trace</a></p>
+      </aside>
+
+      <form class="f" name="contacto" method="POST" action={path(lang, '/gracias/')} data-netlify="true" netlify-honeypot="empresa-web">
+        <input type="hidden" name="form-name" value="contacto" />
+        <input type="hidden" name="idioma" value={lang} />
+        <p class="hp"><label>{T.hp} <input name="empresa-web" tabindex="-1" autocomplete="off" /></label></p>
+        <label>{T.need}
+          <select name="motivo" required>
+            {T.opts.map(([v, l]) => <option value={v}>{l}</option>)}
+          </select>
+        </label>
+        <div class="row2">
+          <label>{T.name} <input name="nombre" autocomplete="name" required /></label>
+          <label>{T.email} <input name="email" type="email" autocomplete="email" required /></label>
+        </div>
+        <div class="row2">
+          <label>{T.brand} <input name="marca" autocomplete="organization" required /></label>
+          <label>{T.phone} <input name="telefono" type="tel" autocomplete="tel" /></label>
+        </div>
+        <div class="row2" data-marca-only>
+          <label>{T.stores}
+            <select name="tiendas">
+              <option value="">{T.choose}</option>
+              {T.storeOpts.map((o) => <option>{o}</option>)}
+            </select>
+          </label>
+          <label>{T.sells}
+            <select name="ventas">
+              <option value="">{T.choose}</option>
+              {T.sellOpts.map((o) => <option>{o}</option>)}
+            </select>
+          </label>
+        </div>
+        <label>{T.msg} <textarea name="mensaje" rows="4"></textarea></label>
+        <label class="check"><input type="checkbox" name="privacidad" required /> <span>{T.privA} <a class="textlink" href={path(lang, '/privacidad/')}>{T.privL}</a> {T.privB}</span></label>
+        <div><button class="btn" type="submit">{T.send}</button></div>
+      </form>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .h3like { font-size: var(--step-2); }
+  .aside .rows { margin-top: 1.5rem; }
+  .mailcard { padding: 1.6rem 1.6rem 1.4rem; border-radius: 18px; background: var(--grana); color: var(--blanc); }
+  .mailcard h2 { color: var(--blanc); margin: 0 0 1rem; }
+  .mailcard ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+  .mailcard li { display: flex; flex-wrap: wrap; gap: .2rem .9rem; align-items: baseline; }
+  .mailcard span { min-width: 5rem; color: #F3DDE4; font-size: var(--step--1); }
+  .mailcard a { color: var(--blanc); font-weight: 600; font-size: var(--step-1); text-decoration: underline; text-decoration-color: rgba(249,249,249,.4); text-underline-offset: .25em; word-break: break-all; }
+  .mailcard a:hover { text-decoration-color: var(--blanc); }
+</style>

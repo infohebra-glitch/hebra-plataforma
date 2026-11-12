@@ -1,0 +1,25 @@
+---
+// Lo que ve el cliente en su móvil al tocar la etiqueta. Ejemplo.
+import Base from '../layouts/Base.astro';
+import Ficha from '../components/Ficha.astro';
+import { path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: { title: 'Ficha de ejemplo', desc: 'Así es la ficha que se abre al tocar una prenda con Hebra.', bar: 'Ficha de ejemplo', what: 'Qué es esto' },
+  ca: { title: 'Fitxa d’exemple', desc: 'Així és la fitxa que s’obre en tocar una peça amb Hebra.', bar: 'Fitxa d’exemple', what: 'Què és això' },
+  en: { title: 'Example garment page', desc: 'This is the page that opens when a garment is tapped with Hebra.', bar: 'Example garment page', what: 'What is this' },
+}[lang];
+---
+<Base title={T.title} lang={lang} route="/p/demo/" description={T.desc} bare>
+  <div class="demo">
+    <p class="demo-bar"><span>{T.bar}</span><a href={path(lang, '/ficha/')}>{T.what}</a></p>
+    <Ficha lang={lang} />
+  </div>
+</Base>
+<style>
+  .demo { min-height: 100svh; background: #E9ECF0; display: grid; justify-items: center; align-content: start; }
+  .demo :global(.ficha) { width: min(100%, 480px); box-shadow: 0 0 0 1px rgba(18,38,63,.06), 0 30px 60px -30px rgba(18,38,63,.25); }
+  .demo-bar { width: min(100%, 480px); margin: 0; display: flex; justify-content: space-between; padding: .55rem 1.1rem; font-size: .75rem; color: var(--tinta-2); background: #fff; border-bottom: 1px solid #EEF0F3; }
+  .demo-bar a { color: var(--blau); font-weight: 600; text-decoration: none; }
+</style>

@@ -1,0 +1,148 @@
+---
+import Base from '../layouts/Base.astro';
+import Phone from '../components/Phone.astro';
+import Cta from '../components/Cta.astro';
+import { ui, path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: {
+    title: 'Origen', h1: 'Hebra Origen',
+    desc: 'Hebra Origen: la cadena de cada modelo en cuatro etapas, certificados con aviso de caducidad y coste ambiental oficial francés con Ecobalyse. Pensado para marcas de 1 a 5 tiendas.',
+    lead: 'La cadena de cada modelo en cuatro etapas. El mismo recorrido que hacen las grandes herramientas de trazabilidad, en la versión que una marca de 1 a 5 tiendas puede rellenar en una tarde.',
+    sH: 'Cuatro etapas por modelo.', sQ: 'Si ya usas una herramienta de trazabilidad, importamos lo que tienes y no repites trabajo.',
+    known: 'Cadena conocida de este modelo', knownNote: 'Ejemplo ilustrativo. La métrica se da por modelo y colección, con las etapas que faltan.', missing: 'Falta certificado', barLabel: 'Tres de cuatro etapas completas',
+    stages: [['Materia', 'Fibra o cultivo. País, proveedor y certificado (GOTS, GRS, OCS…).', true], ['Hilatura y tejido', 'Dónde se hacen el hilo y la tela.', true], ['Tintura y acabado', 'Dónde se tiñe y se acaba la tela.', true], ['Confección', 'Dónde se cose la prenda. En este ejemplo aún falta el certificado.', false]],
+    cH: 'Cómo se recogen los datos.',
+    c: [['La marca rellena una plantilla', 'Por modelo, una vez por colección.'], ['Cada proveedor confirma su etapa', 'Recibe un enlace con su etapa ya escrita, la confirma y sube el certificado. Sin crear ninguna cuenta.'], ['Hebra valida y vigila', 'Comprobamos que el certificado está vigente y avisamos 60 días antes de que caduque.']],
+    fH: 'Si vendes en Francia, esto ya va contigo.',
+    fL: 'Desde el 1 de octubre de 2026, cualquier tercero puede calcular y publicar el coste ambiental de tu prenda sin tu permiso. Si faltan datos, la herramienta oficial pone valores por defecto desfavorables, como confección lejana y transporte en avión.',
+    fQ: 'La marca tiene un mes para sustituirlo por el suyo. Con Hebra Origen lo calculas con datos reales antes que nadie, con Ecobalyse, la herramienta oficial, gratuita y de código abierto del Estado francés. No hacemos cálculos propios ni frases de impacto sin base.',
+    fS: 'Fuente: Decreto 2025-957 y ficha del Ministère de la Transition écologique (enero de 2026).',
+    xH: 'Lo que solo hace Hebra: cruzar la cadena con la tienda.', xL: 'Pruebas, conversión, motivos de no compra y devoluciones por proveedor y por origen.',
+    x: [['«¿Vende más lo que hago cerca?»', 'La conversión de los modelos según dónde se confeccionan.'], ['«¿Qué fábrica me genera más “no me lo llevo”?»', 'Los motivos de no compra, agrupados por proveedor.'], ['Preparado para el pasaporte digital', 'La ficha lleva una dirección estándar GS1 por referencia, lista para el pasaporte digital de producto europeo. El registro lo hace la marca; Hebra prepara los datos.']],
+    fichaCap: 'Lo que ve el cliente al tocar la prenda.', fichaLink: 'Abrir la ficha de ejemplo',
+    nH: '¿Sin tienda propia?', nL: 'Origen funciona solo: ficha en el móvil y coste ambiental para marcas que venden online o a otras tiendas. El Probador llega cuando abras tienda.', nB: 'Hablar de Origen',
+  },
+  ca: {
+    title: 'Origen', h1: 'Hebra Origen',
+    desc: 'Hebra Origen: la cadena de cada model en quatre etapes, certificats amb avís de caducitat i cost ambiental oficial francès amb Ecobalyse. Pensat per a marques d’1 a 5 botigues.',
+    lead: 'La cadena de cada model en quatre etapes. El mateix recorregut que fan les grans eines de traçabilitat, en la versió que una marca d’1 a 5 botigues pot omplir en una tarda.',
+    sH: 'Quatre etapes per model.', sQ: 'Si ja fas servir una eina de traçabilitat, importem el que tens i no repeteixes feina.',
+    known: 'Cadena coneguda d’aquest model', knownNote: 'Exemple il·lustratiu. La mètrica es dona per model i col·lecció, amb les etapes que falten.', missing: 'Falta certificat', barLabel: 'Tres de quatre etapes completes',
+    stages: [['Matèria', 'Fibra o cultiu. País, proveïdor i certificat (GOTS, GRS, OCS…).', true], ['Filatura i teixit', 'On es fan el fil i la tela.', true], ['Tintura i acabat', 'On es tenyeix i s’acaba la tela.', true], ['Confecció', 'On es cus la peça. En aquest exemple encara falta el certificat.', false]],
+    cH: 'Com es recullen les dades.',
+    c: [['La marca omple una plantilla', 'Per model, un cop per col·lecció.'], ['Cada proveïdor confirma la seva etapa', 'Rep un enllaç amb la seva etapa ja escrita, la confirma i puja el certificat. Sense crear cap compte.'], ['Hebra valida i vigila', 'Comprovem que el certificat és vigent i avisem 60 dies abans que caduqui.']],
+    fH: 'Si vens a França, això ja va amb tu.',
+    fL: 'Des de l’1 d’octubre de 2026, qualsevol tercer pot calcular i publicar el cost ambiental de la teva peça sense el teu permís. Si falten dades, l’eina oficial posa valors per defecte desfavorables, com confecció llunyana i transport en avió.',
+    fQ: 'La marca té un mes per substituir-lo pel seu. Amb Hebra Origen el calcules amb dades reals abans que ningú, amb Ecobalyse, l’eina oficial, gratuïta i de codi obert de l’Estat francès. No fem càlculs propis ni frases d’impacte sense base.',
+    fS: 'Font: Decret 2025-957 i fitxa del Ministère de la Transition écologique (gener de 2026).',
+    xH: 'El que només fa Hebra: creuar la cadena amb la botiga.', xL: 'Proves, conversió, motius de no compra i devolucions per proveïdor i per origen.',
+    x: [['«Ven més el que faig a prop?»', 'La conversió dels models segons on es confeccionen.'], ['«Quina fàbrica em genera més “no me l’enduc”?»', 'Els motius de no compra, agrupats per proveïdor.'], ['Preparat per al passaport digital', 'La fitxa porta una adreça estàndard GS1 per referència, a punt per al passaport digital de producte europeu. El registre el fa la marca; Hebra prepara les dades.']],
+    fichaCap: 'El que veu el client en tocar la peça.', fichaLink: 'Obrir la fitxa d’exemple',
+    nH: 'Sense botiga pròpia?', nL: 'Origen funciona sol: fitxa al mòbil i cost ambiental per a marques que venen en línia o a altres botigues. L’Emprovador arriba quan obris botiga.', nB: 'Parlar d’Origen',
+  },
+  en: {
+    title: 'Origin', h1: 'Hebra Origin',
+    desc: 'Hebra Origin: each style’s supply chain in four stages, certificates with expiry alerts and the official French environmental cost with Ecobalyse. Built for brands with 1 to 5 stores.',
+    lead: 'Each style’s supply chain in four stages. The same journey the big traceability tools cover, in a version a brand with 1 to 5 stores can fill in over an afternoon.',
+    sH: 'Four stages per style.', sQ: 'If you already use a traceability tool, we import what you have so you don’t repeat the work.',
+    known: 'Known supply chain for this style', knownNote: 'Illustrative example. The metric is given per style and collection, with the missing stages.', missing: 'Certificate missing', barLabel: 'Three of four stages complete',
+    stages: [['Raw material', 'Fibre or crop. Country, supplier and certificate (GOTS, GRS, OCS…).', true], ['Spinning and weaving', 'Where the yarn and fabric are made.', true], ['Dyeing and finishing', 'Where the fabric is dyed and finished.', true], ['Making', 'Where the garment is sewn. In this example the certificate is still missing.', false]],
+    cH: 'How the data is collected.',
+    c: [['The brand fills in a template', 'Per style, once per collection.'], ['Each supplier confirms its stage', 'They get a link with their stage already written, confirm it and upload the certificate. No account needed.'], ['Hebra checks and monitors', 'We check the certificate is valid and alert you 60 days before it expires.']],
+    fH: 'If you sell in France, this already applies to you.',
+    fL: 'Since 1 October 2026, any third party can calculate and publish your garment’s environmental cost without your permission. Where data is missing, the official tool uses unfavourable defaults, such as distant manufacturing and air freight.',
+    fQ: 'The brand has one month to replace it with its own. With Hebra Origin you calculate it with real data before anyone else, using Ecobalyse, the French state’s official, free and open-source tool. We don’t make our own calculations or unsupported impact claims.',
+    fS: 'Source: Decree 2025-957 and the Ministère de la Transition écologique fact sheet (January 2026).',
+    xH: 'What only Hebra does: connect the supply chain with the store.', xL: 'Try-ons, conversion, reasons for not buying and returns by supplier and by origin.',
+    x: [['“Does what I make nearby sell better?”', 'Conversion of styles by where they are made.'], ['“Which factory causes the most ‘not for me’?”', 'Reasons for not buying, grouped by supplier.'], ['Ready for the digital passport', 'The garment page carries a standard GS1 address per item, ready for the EU Digital Product Passport. The brand registers it; Hebra prepares the data.']],
+    fichaCap: 'What the customer sees when they tap the garment.', fichaLink: 'Open the example garment page',
+    nH: 'No store of your own?', nL: 'Origin works on its own: the garment page on the phone and environmental cost for brands that sell online or wholesale. Fitting Room comes when you open a store.', nB: 'Talk about Origin',
+  },
+}[lang];
+const u = ui[lang];
+---
+<Base title={T.title} lang={lang} route="/origen/" description={T.desc}>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href={path(lang, '/')}>{u.home}</a> / {T.title}</p>
+      <h1 data-split>{T.h1}</h1>
+      <p class="lead">{T.lead}</p>
+      <div class="actions"><a class="btn" href={path(lang, '/contacto/?motivo=demo')}>{u.demo}</a></div>
+    </div>
+  </header>
+
+  <section class="band perla">
+    <div class="wrap split">
+      <div data-reveal>
+        <h2>{T.sH}</h2>
+        <p class="quiet">{T.sQ}</p>
+        <div class="known">
+          <p class="known-k">{T.known}</p>
+          <p class="known-v" data-count="75">75 %</p>
+          <div class="bar" role="img" aria-label={T.barLabel}><span style="width:75%"></span></div>
+          <p class="small quiet">{T.knownNote}</p>
+        </div>
+      </div>
+      <ol class="rows steps chain" data-reveal style={`--missing:'${T.missing}'`}>
+        {T.stages.map(([h, p, ok]) => <li class={ok ? '' : 'missing'}><h3>{h}{!ok && <span class="miss">{T.missing}</span>}</h3><p>{p}</p></li>)}
+      </ol>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split">
+      <h2 data-reveal>{T.cH}</h2>
+      <ol class="rows steps" data-reveal>{T.c.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}</ol>
+    </div>
+  </section>
+
+  <section class="band grana">
+    <div class="wrap split">
+      <h2 data-reveal>{T.fH}</h2>
+      <div data-reveal>
+        <p class="lead">{T.fL}</p>
+        <p class="quiet">{T.fQ}</p>
+        <p class="small quiet">{T.fS}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split rev">
+      <div data-reveal>
+        <h2>{T.xH}</h2>
+        <p class="lead">{T.xL}</p>
+        <ul class="rows stack">{T.x.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}</ul>
+      </div>
+      <div class="ficha-col" data-reveal>
+        <div class="ficha-phone"><Phone lang={lang} interactive={false} /></div>
+        <p class="small quiet">{T.fichaCap} <a class="textlink" href={path(lang, '/p/demo/')}>{T.fichaLink}</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band perla tight">
+    <div class="wrap split">
+      <h2 data-reveal>{T.nH}</h2>
+      <div data-reveal>
+        <p class="lead">{T.nL}</p>
+        <div class="actions"><a class="btn" href={path(lang, '/contacto/?motivo=origen')}>{T.nB}</a></div>
+      </div>
+    </div>
+  </section>
+
+  <Cta lang={lang} />
+</Base>
+
+<style>
+  .known { margin-top: 2.5rem; background: #fff; border-radius: 16px; padding: 1.6rem; box-shadow: 0 1px 0 var(--linea); max-width: 26rem; }
+  .known-k { margin: 0; color: var(--tinta-2); }
+  .known-v { font: 340 var(--step-4)/1 var(--serif); color: var(--grana); margin: .3rem 0 1rem; }
+  .bar { height: 6px; background: var(--perla-suave); border-radius: 3px; overflow: hidden; margin-bottom: 1rem; }
+  .bar span { display: block; height: 100%; background: var(--grana); }
+  .miss { margin-left: .8rem; font: 600 .78rem/1 var(--sans); color: var(--grana); border: 1.5px solid var(--grana); border-radius: 999px; padding: .25rem .55rem; vertical-align: middle; white-space: nowrap; }
+  .ficha-col { display: grid; gap: 1.2rem; justify-items: center; align-content: start; }
+  .ficha-phone { width: min(300px, 80vw); }
+</style>

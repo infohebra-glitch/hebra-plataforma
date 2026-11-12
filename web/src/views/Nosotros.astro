@@ -1,0 +1,120 @@
+---
+import Base from '../layouts/Base.astro';
+import Cta from '../components/Cta.astro';
+import { ui, path, contacts, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+// Fotos del equipo: pendientes. Cuando lleguen, ponerlas en public/img/equipo/ y rellenar `foto`.
+const T = {
+  es: {
+    title: 'Nosotros', desc: 'Hebra nace en Barcelona para que las marcas de moda con tienda propia sepan qué pasa en su probador y de dónde viene lo que venden.',
+    h1: 'La prenda ya sabe dónde ha estado. Nosotros hacemos que la marca lo sepa.',
+    whyH: 'Por qué existe Hebra.',
+    why: ['Las grandes cadenas llevan años midiendo su stock prenda a prenda. Las marcas con una a cinco tiendas se quedaron fuera: demasiado caro, demasiado complejo y pensado para contar cajas, no para entender a quien se prueba la ropa.', 'Hebra nace en Barcelona para darles lo que nadie les da: saber qué pasa dentro de su probador y si contar el origen de lo que venden les hace vender más. Sin cámaras, sin obras y con una acción concreta cada semana.'],
+    teamH: 'El equipo.',
+    team: [['Iscle', 'Cofundador y CEO', 'Dirección, marketing y ventas.'], ['Guillem', 'Cofundador, negocio', 'Ventas y desarrollo de negocio.']],
+    photo: 'Foto pendiente: retrato de',
+    notH: 'Lo que no hacemos.',
+    not: ['Cámaras, biometría ni seguimiento de personas.', 'Ningún dato personal del cliente.', 'Medir al personal de la tienda.', 'Inventario de toda la tienda, caja ni antirrobo.', 'Auditar fábricas: mostramos lo que declaran la marca y el proveedor, con certificados vigentes y diciendo de dónde sale cada dato.', 'Prometer porcentajes de mejora antes de medirlos.'],
+    invH: 'Inversores, prensa y aceleradoras.', inv: 'Te enviamos el dossier con la tesis, el modelo y el estado del proyecto.', invCta: 'Pedir el dossier', direct: 'O escríbenos directamente:',
+  },
+  ca: {
+    title: 'Nosaltres', desc: 'Hebra neix a Barcelona perquè les marques de moda amb botiga pròpia sàpiguen què passa al seu emprovador i d’on ve el que venen.',
+    h1: 'La peça ja sap on ha estat. Nosaltres fem que la marca ho sàpiga.',
+    whyH: 'Per què existeix Hebra.',
+    why: ['Les grans cadenes fa anys que mesuren el seu estoc peça a peça. Les marques amb una a cinc botigues s’han quedat fora: massa car, massa complex i pensat per comptar caixes, no per entendre qui s’emprova la roba.', 'Hebra neix a Barcelona per donar-los el que ningú els dona: saber què passa dins del seu emprovador i si explicar l’origen del que venen els fa vendre més. Sense càmeres, sense obres i amb una acció concreta cada setmana.'],
+    teamH: 'L’equip.',
+    team: [['Iscle', 'Cofundador i CEO', 'Direcció, màrqueting i vendes.'], ['Guillem', 'Cofundador, negoci', 'Vendes i desenvolupament de negoci.']],
+    photo: 'Foto pendent: retrat de',
+    notH: 'El que no fem.',
+    not: ['Càmeres, biometria ni seguiment de persones.', 'Cap dada personal del client.', 'Mesurar el personal de la botiga.', 'Inventari de tota la botiga, caixa ni antirobatori.', 'Auditar fàbriques: mostrem el que declaren la marca i el proveïdor, amb certificats vigents i dient d’on surt cada dada.', 'Prometre percentatges de millora abans de mesurar-los.'],
+    invH: 'Inversors, premsa i acceleradores.', inv: 'T’enviem el dossier amb la tesi, el model i l’estat del projecte.', invCta: 'Demanar el dossier', direct: 'O escriu-nos directament:',
+  },
+  en: {
+    title: 'About', desc: 'Hebra was born in Barcelona so that fashion brands with their own stores know what happens in their fitting rooms and where what they sell comes from.',
+    h1: 'The garment already knows where it has been. We let the brand know too.',
+    whyH: 'Why Hebra exists.',
+    why: ['Large chains have measured their stock garment by garment for years. Brands with one to five stores were left out: too expensive, too complex and built to count boxes, not to understand who tries the clothes on.', 'Hebra was born in Barcelona to give them what nobody else does: knowing what happens inside their fitting room and whether telling the origin of what they sell helps them sell more. No cameras, no building work and one concrete action every week.'],
+    teamH: 'The team.',
+    team: [['Iscle', 'Co-founder and CEO', 'Management, marketing and sales.'], ['Guillem', 'Co-founder, business', 'Sales and business development.']],
+    photo: 'Photo pending: portrait of',
+    notH: 'What we don’t do.',
+    not: ['Cameras, biometrics or tracking people.', 'Any personal customer data.', 'Measuring store staff.', 'Whole-store inventory, tills or anti-theft.', 'Auditing factories: we show what the brand and supplier declare, with valid certificates and saying where each data point comes from.', 'Promising improvement percentages before measuring them.'],
+    invH: 'Investors, press and accelerators.', inv: 'We’ll send you the deck with the thesis, the model and where the project stands.', invCta: 'Ask for the deck', direct: 'Or write to us directly:',
+  },
+}[lang];
+const fotos: Record<string, string> = { Iscle: '', Guillem: '' };
+---
+<Base title={T.title} lang={lang} route="/nosotros/" description={T.desc}>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / {T.title}</p>
+      <h1 data-split>{T.h1}</h1>
+    </div>
+  </header>
+
+  <section class="band perla">
+    <div class="wrap split">
+      <h2 data-reveal>{T.whyH}</h2>
+      <div data-reveal>
+        <p class="lead">{T.why[0]}</p>
+        <p>{T.why[1]}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2 data-reveal>{T.teamH}</h2>
+      <div class="team">
+        {T.team.map(([name, role, text]) => {
+          const email = contacts.find((c) => c.name === name)?.email;
+          return (
+            <article class="person" data-reveal>
+              <figure class="photo" style="--ar: 4/5">
+                {fotos[name] ? <img src={fotos[name]} alt={`${name}, ${role}`} loading="lazy" /> : <figcaption>{T.photo} {name}</figcaption>}
+              </figure>
+              <h3>{name}</h3>
+              <p class="role">{role}</p>
+              <p class="quiet">{text}</p>
+              {email && <a class="textlink" href={`mailto:${email}`}>{email}</a>}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+
+  <section class="band grana">
+    <div class="wrap split">
+      <h2 data-reveal>{T.notH}</h2>
+      <ul class="rows stack" data-reveal>
+        {T.not.map((x) => <li><p>{x}</p></li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="band perla tight">
+    <div class="wrap split">
+      <h2 data-reveal>{T.invH}</h2>
+      <div data-reveal>
+        <p class="lead">{T.inv}</p>
+        <div class="actions"><a class="btn" href={path(lang, '/contacto/') + '?motivo=dossier'}>{T.invCta}</a></div>
+        <p class="small quiet" style="margin-top:1.5rem">{T.direct}</p>
+        <ul class="contact-list">{contacts.map((c) => <li><b>{c.name}</b><a class="textlink" href={`mailto:${c.email}`}>{c.email}</a></li>)}</ul>
+      </div>
+    </div>
+  </section>
+
+  <Cta lang={lang} />
+</Base>
+
+<style>
+  .team { display: grid; gap: 2.5rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); margin-top: 2.5rem; max-width: 56rem; }
+  .person h3 { margin: 1.1rem 0 .1rem; font-size: var(--step-2); font-weight: 340; font-variation-settings: 'opsz' 96; }
+  .person .role { margin: 0 0 .4rem; font-weight: 600; color: var(--blau); }
+  .band.grana .rows p { color: var(--blanc); }
+  .contact-list { list-style: none; padding: 0; margin: 1.5rem 0 0; display: grid; gap: .6rem; }
+  .contact-list li { display: flex; gap: .8rem; align-items: baseline; flex-wrap: wrap; }
+  .contact-list b { min-width: 5.5rem; color: var(--blau); }
+</style>

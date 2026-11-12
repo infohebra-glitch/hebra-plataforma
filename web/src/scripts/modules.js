@@ -1,14 +1,17 @@
-const eur = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-const num = new Intl.NumberFormat('es-ES');
+const loc = { es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }[document.documentElement.lang] || 'es-ES';
+const eur = new Intl.NumberFormat(loc, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+const num = new Intl.NumberFormat(loc);
 
 export function init({ gsap, ScrollTrigger, reduce }) {
   calculator();
   stage(gsap, ScrollTrigger, reduce);
   splitHeads(gsap, reduce);
   demoMode();
-  journey(ScrollTrigger);
   ficha();
   contact();
+  simulator(gsap, reduce);
+  dataCards();
+  videoDemo();
 }
 
 // «¿Cuánto te cuesta tu probador?»
@@ -24,7 +27,7 @@ function calculator() {
     const noVendidas = Math.round(p * (1 - c / 100));
     const semana = noVendidas * e;
     out('pruebas').textContent = num.format(p);
-    out('conversion').textContent = `${c} de cada 100`;
+    out('conversion').textContent = (root.dataset.of || '{n} / 100').replace('{n}', c);
     out('precio').textContent = eur.format(e);
     out('semana').textContent = eur.format(semana);
     out('unidades').textContent = num.format(noVendidas);
@@ -109,23 +112,6 @@ function demoMode() {
 }
 
 // Recorrido en 6 pasos: el plano se ilumina según el paso que se lee
-function journey(ScrollTrigger) {
-  const root = document.querySelector('[data-journey]');
-  if (!root) return;
-  const plan = root.querySelector('[data-plan]');
-  root.querySelectorAll('[data-step]').forEach((li) => {
-    ScrollTrigger.create({
-      trigger: li, start: 'top 55%', end: 'bottom 55%',
-      onToggle: (self) => {
-        if (!self.isActive) return;
-        plan.dataset.active = li.dataset.step;
-        root.querySelectorAll('[data-step]').forEach((o) => o.classList.toggle('on', o === li));
-      },
-    });
-  });
-}
-
-// Ficha NFC de ejemplo
 function ficha() {
   document.querySelectorAll('[data-ficha]').forEach(fichaOne);
 }
@@ -134,13 +120,13 @@ function fichaOne(root) {
     b.addEventListener('click', () => {
       root.querySelectorAll('[data-size]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
       const msg = root.querySelector('[data-size-msg]');
-      msg.textContent = `Hecho. Avisamos a la tienda: te llevamos la ${b.dataset.size} a la cabina 2.`;
+      msg.textContent = (b.dataset.ok === '0' ? msg.dataset.outMsg : msg.dataset.okMsg).replace('{s}', b.dataset.size);
     })
   );
   root.querySelectorAll('[data-why]').forEach((b) =>
     b.addEventListener('click', () => {
       root.querySelectorAll('[data-why]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
-      root.querySelector('[data-why-msg]').textContent = 'Gracias. No guardamos quién eres, solo el motivo.';
+      const wm = root.querySelector('[data-why-msg]'); wm.textContent = wm.dataset.msg;
     })
   );
 }
@@ -154,4 +140,141 @@ function contact() {
   const sync = () => document.querySelectorAll('[data-marca-only]').forEach((el) => (el.hidden = !['demo', 'piloto'].includes(sel.value)));
   sel.addEventListener('change', sync);
   sync();
+}
+
+// Simulador del probador
+export function simulator(gsap, reduce) {
+  const root = document.querySelector('[data-sim]');
+  if (!root) return;
+  const T = JSON.parse(root.querySelector('[data-sim-i18n]').textContent);
+  const q = (s) => root.querySelector(s);
+  const qa = (s) => [...root.querySelectorAll(s)];
+  const garments = qa('[data-g]');
+  const hanger = q('[data-hanger]'), empty = q('[data-empty]'), status = q('[data-status]'), timer = q('[data-timer]');
+  const choices = q('[data-choices]'), sizePick = q('[data-sizepick]'), whyPick = q('[data-whypick]');
+  const seed = () => ({ p: [6, 4, 9, 3], v: [3, 2, 1, 1], sizes: [], reasons: Object.fromEntries(T.reasonList.map((r) => [r, 0])), byG: [{}, {}, {}, {}] });
+  let st = seed(), cur = null, busy = false, auto = false;
+  st.reasons[T.reasonList[1]] = 3; st.byG[2][T.reasonList[1]] = 3;
+
+  function render(flash) {
+    qa('[data-row]').forEach((tr, i) => {
+      tr.querySelector('[data-p]').textContent = st.p[i];
+      tr.querySelector('[data-v]').textContent = st.v[i];
+      const c = st.p[i] ? Math.round((st.v[i] / st.p[i]) * 100) : 0;
+      tr.querySelector('[data-bar]').style.width = c + '%';
+      tr.querySelector('[data-c]').textContent = st.p[i] ? c + ' %' : '–';
+      if (flash === i) { tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash'); }
+    });
+    const max = Math.max(1, ...Object.values(st.reasons));
+    qa('[data-reason]').forEach((li) => {
+      const n = st.reasons[li.dataset.reason] || 0;
+      li.querySelector('.sim-bar span').style.width = (n / max) * 100 + '%';
+      li.querySelector('b').textContent = n;
+    });
+    // acción del lunes: la prenda con peor conversión y suficientes pruebas
+    let worst = -1, wc = 2;
+    st.p.forEach((p, i) => { if (p >= 4) { const c = st.v[i] / p; if (c < wc) { wc = c; worst = i; } } });
+    const ins = q('[data-insight]');
+    if (worst < 0) { ins.textContent = T.insightEmpty; return; }
+    const rs = Object.entries(st.byG[worst]).sort((a, b) => b[1] - a[1]);
+    const r = rs.length ? rs[0][0] : Object.entries(st.reasons).sort((a, b) => b[1] - a[1])[0][0];
+    ins.textContent = T.insightText.replace('{g}', T.garments[worst]).replace('{p}', st.p[worst]).replace('{v}', st.v[worst]).replace('{vw}', T.saleWord[st.v[worst] === 1 ? 0 : 1]).replace('{r}', r).replace('{fix}', T.fixes[r] || '');
+  }
+
+  const wait = (ms) => new Promise((res) => setTimeout(res, reduce ? 0 : ms));
+
+  async function take(i) {
+    if (busy) return;
+    busy = true; cur = i;
+    garments.forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.g === i)));
+    empty.hidden = true; hanger.hidden = false; choices.hidden = true; sizePick.hidden = true; whyPick.hidden = true;
+    const path = hanger.querySelector('[data-hanger-path]');
+    path.setAttribute('d', garments[i].dataset.icon); path.setAttribute('fill', garments[i].dataset.color);
+    status.textContent = T.trying;
+    if (!reduce) gsap.fromTo(hanger, { y: -40, opacity: 0, scale: .8 }, { y: 0, opacity: 1, scale: 1, duration: .6, ease: 'back.out(1.6)' });
+    timer.style.transition = 'none'; timer.style.width = '0';
+    void timer.offsetWidth;
+    timer.style.transition = `width ${auto ? 0.5 : 1.6}s linear`; timer.style.width = '100%';
+    await wait(auto ? 500 : 1600);
+    st.p[i]++; status.textContent = T.counted; render(i);
+    busy = false;
+    if (!auto) { choices.hidden = false; if (!reduce) gsap.from(choices, { y: 12, opacity: 0, duration: .4 }); }
+  }
+
+  function finish() {
+    choices.hidden = true; sizePick.hidden = true; whyPick.hidden = true;
+    garments.forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    if (!reduce) gsap.to(hanger, { y: 30, opacity: 0, duration: .4, onComplete: () => { hanger.hidden = true; empty.hidden = false; gsap.set(hanger, { y: 0, opacity: 1 }); } });
+    else { hanger.hidden = true; empty.hidden = false; }
+    cur = null;
+  }
+  function buy(i) { st.v[i]++; render(i); finish(); }
+  function size(i, s) {
+    st.sizes.push(s);
+    const chip = document.createElement('span'); chip.textContent = `${T.garments[i]} · ${s}`;
+    const box = q('[data-sizes]'); box.prepend(chip); while (box.children.length > 8) box.lastChild.remove();
+    const al = q('[data-alert]'); al.hidden = false; q('[data-alert-text]').textContent = T.alertText.replace('{g}', T.garments[i].toLowerCase()).replace('{s}', s);
+    if (!reduce) gsap.fromTo(al, { scale: .96, opacity: 0 }, { scale: 1, opacity: 1, duration: .35 });
+    render(); finish();
+  }
+  function no(i, r) { st.reasons[r] = (st.reasons[r] || 0) + 1; st.byG[i][r] = (st.byG[i][r] || 0) + 1; render(); finish(); }
+
+  garments.forEach((b) => b.addEventListener('click', () => { if (!auto) take(+b.dataset.g); }));
+  root.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
+    if (cur === null) return;
+    const a = b.dataset.act;
+    if (a === 'buy') buy(cur);
+    if (a === 'size') { sizePick.hidden = false; whyPick.hidden = true; }
+    if (a === 'no') { whyPick.hidden = false; sizePick.hidden = true; }
+  }));
+  root.querySelectorAll('[data-s]').forEach((b) => b.addEventListener('click', () => cur !== null && size(cur, b.dataset.s)));
+  root.querySelectorAll('[data-r]').forEach((b) => b.addEventListener('click', () => cur !== null && no(cur, b.dataset.r)));
+
+  // Una tarde entera: 24 pruebas aceleradas, con tendencias realistas por prenda
+  const odds = [[.55, .15, .30], [.35, .30, .35], [.12, .08, .80], [.40, .10, .50]];
+  const reasonBias = [[1, 1, 2, 1, 1], [5, 2, 1, 1, 1], [1, 6, 2, 1, 1], [1, 1, 3, 1, 2]];
+  const pickW = (w) => { const s = w.reduce((a, b) => a + b, 0); let r = Math.random() * s; for (let k = 0; k < w.length; k++) { r -= w[k]; if (r < 0) return k; } return w.length - 1; };
+  q('[data-auto]').addEventListener('click', async (e) => {
+    if (auto) return;
+    auto = true; e.currentTarget.disabled = true;
+    for (let n = 0; n < 24; n++) {
+      const i = pickW([3, 2, 3, 2]);
+      await take(i);
+      const o = pickW(odds[i]);
+      if (o === 0) buy(i);
+      else if (o === 1) size(i, ['S', 'M', 'L', 'XL'][pickW([1, 2, 4, 2])]);
+      else no(i, T.reasonList[pickW(reasonBias[i])]);
+      await wait(380);
+    }
+    auto = false; e.currentTarget.disabled = false;
+  });
+  q('[data-reset]').addEventListener('click', () => {
+    if (auto) return;
+    st = { p: [0, 0, 0, 0], v: [0, 0, 0, 0], sizes: [], reasons: Object.fromEntries(T.reasonList.map((r) => [r, 0])), byG: [{}, {}, {}, {}] };
+    q('[data-sizes]').innerHTML = ''; q('[data-alert]').hidden = true; finish(); render();
+  });
+  render();
+}
+
+// Tarjetas de datos: girar al tocar (en pantallas táctiles)
+export function dataCards() {
+  document.querySelectorAll('[data-card]').forEach((b) =>
+    b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')))
+  );
+}
+
+// Vídeo de demostración: se reproduce al entrar en pantalla y se pausa al salir
+export function videoDemo() {
+  document.querySelectorAll('[data-video]').forEach((wrap) => {
+    const v = wrap.querySelector('video');
+    const btn = wrap.querySelector('[data-video-play]');
+    if (!v) return;
+    btn?.addEventListener('click', () => {
+      wrap.classList.add('playing'); v.muted = false; v.controls = true; v.currentTime = 0; v.play();
+    });
+    new IntersectionObserver(([e]) => {
+      if (wrap.classList.contains('playing')) { if (!e.isIntersecting) v.pause(); return; }
+      if (e.isIntersecting) v.play().catch(() => {}); else v.pause();
+    }, { threshold: 0.35 }).observe(v);
+  });
 }

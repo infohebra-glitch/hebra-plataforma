@@ -1,25 +1,33 @@
 ---
+import type { Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+const T = {
+  es: { a: 'Prendas que entran al probador cada semana', b: 'Cuántas se compran', c: 'Precio medio de la prenda', of: '{n} de cada 100', k: 'Probado y no vendido, esta semana', u: 'prendas. En una temporada de 26 semanas,', foot: 'Con las cifras que elijas, no datos de ninguna marca. No todo se puede recuperar: Hebra te dice qué parte sí y qué hacer con ella.' },
+  ca: { a: 'Peces que entren a l’emprovador cada setmana', b: 'Quantes se’n compren', c: 'Preu mitjà de la peça', of: '{n} de cada 100', k: 'Emprovat i no venut, aquesta setmana', u: 'peces. En una temporada de 26 setmanes,', foot: 'Amb les xifres que triïs, no dades de cap marca. No tot es pot recuperar: Hebra et diu quina part sí i què fer-ne.' },
+  en: { a: 'Garments taken into the fitting room each week', b: 'How many get bought', c: 'Average garment price', of: '{n} in 100', k: 'Tried on and not sold, this week', u: 'garments. Over a 26-week season,', foot: 'With the figures you choose, not any brand’s data. Not everything can be recovered: Hebra tells you which part can, and what to do about it.' },
+}[lang];
 ---
-<div class="calc" data-calc>
+<div class="calc" data-calc data-of={T.of}>
   <div class="calc-in">
     <label>
-      <span>Prendas que entran al probador cada semana <output data-out="pruebas"></output></span>
+      <span>{T.a} <output data-out="pruebas"></output></span>
       <input type="range" name="pruebas" min="50" max="2000" step="10" value="400" />
     </label>
     <label>
-      <span>Cuántas se compran <output data-out="conversion"></output></span>
+      <span>{T.b} <output data-out="conversion"></output></span>
       <input type="range" name="conversion" min="5" max="60" step="1" value="25" />
     </label>
     <label>
-      <span>Precio medio de la prenda <output data-out="precio"></output></span>
+      <span>{T.c} <output data-out="precio"></output></span>
       <input type="range" name="precio" min="15" max="300" step="1" value="69" />
     </label>
   </div>
   <div class="calc-out" aria-live="polite">
-    <p class="calc-k">Probado y no vendido, esta semana</p>
+    <p class="calc-k">{T.k}</p>
     <p class="calc-big" data-out="semana">20.700 €</p>
-    <p class="calc-sub"><span data-out="unidades">300</span> prendas. En una temporada de 26 semanas, <strong data-out="temporada">538.200 €</strong>.</p>
-    <p class="small calc-foot">Con las cifras que elijas, no datos de ninguna marca. No todo se puede recuperar: Hebra te dice qué parte sí y qué hacer con ella.</p>
+    <p class="calc-sub"><span data-out="unidades">300</span> {T.u} <strong data-out="temporada">538.200 €</strong>.</p>
+    <p class="small calc-foot">{T.foot}</p>
   </div>
 </div>
 
@@ -29,15 +37,15 @@
   .calc-in { padding: clamp(1.5rem, 4vw, 2.6rem); display: grid; gap: 2rem; }
   .calc-in label { display: grid; gap: .8rem; }
   .calc-in span { display: flex; justify-content: space-between; gap: 1rem; font-weight: 500; }
-  .calc-in output { font-weight: 700; color: var(--blau); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .calc-in output { font-weight: 700; color: var(--grana); white-space: nowrap; font-variant-numeric: tabular-nums; }
   input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; cursor: pointer; }
   input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--pedra); }
   input[type=range]::-moz-range-track { height: 2px; background: var(--pedra); }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -10px; border-radius: 50%; background: var(--blau); border: 3px solid #fff; box-shadow: 0 0 0 1.5px var(--blau); }
-  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--blau); border: 3px solid #fff; box-shadow: 0 0 0 1.5px var(--blau); }
-  .calc-out { background: var(--blau); color: var(--blanc); padding: clamp(1.5rem, 4vw, 2.6rem); display: flex; flex-direction: column; justify-content: center; }
-  .calc-k { margin: 0; color: #C9D3E0; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -10px; border-radius: 50%; background: var(--grana); border: 3px solid #fff; box-shadow: 0 0 0 1.5px var(--grana); }
+  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--grana); border: 3px solid #fff; box-shadow: 0 0 0 1.5px var(--grana); }
+  .calc-out { background: var(--grana); color: var(--blanc); padding: clamp(1.5rem, 4vw, 2.6rem); display: flex; flex-direction: column; justify-content: center; }
+  .calc-k { margin: 0; color: #F3DDE4; }
   .calc-big { font: 340 clamp(3rem, 2rem + 4vw, 5.2rem)/1 var(--serif); font-variation-settings: 'opsz' 144; margin: .4rem 0 1rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
   .calc-sub { margin: 0 0 1.5rem; }
-  .calc-foot { color: #C9D3E0; margin: 0; padding-top: 1.2rem; border-top: 1px solid rgba(249,249,249,.2); }
+  .calc-foot { color: #F3DDE4; margin: 0; padding-top: 1.2rem; border-top: 1px solid rgba(249,249,249,.2); }
 </style>

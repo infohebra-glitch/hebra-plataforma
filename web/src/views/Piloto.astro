@@ -1,0 +1,136 @@
+---
+import Base from '../layouts/Base.astro';
+import { ui, path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: {
+    title: 'Piloto', desc: 'Ocho semanas en una tienda para demostrar el valor de Hebra con datos: criterios de éxito pactados por escrito, informe cada lunes y grupo de control.',
+    h1: 'Ocho semanas para demostrarlo en tu tienda.',
+    lead: 'Una tienda, una zona de probadores y criterios de éxito pactados por escrito antes de instalar nada. Si funciona, seguimos juntos.',
+    cta: 'Quiero el piloto', wk: 'S', week: 'semana', weeks: 'semanas', to: 'a',
+    tlH: 'Semana a semana.',
+    phases: [[0, 0, 'Acuerdo', 'Una página: alcance, datos, criterios de éxito y quién etiqueta. Evaluación de privacidad y cartel informativo para la tienda.'], [1, 1, 'Instalación', 'Una visita fuera de horario. Prueba con 20 prendas, etiquetado de la categoría y uno o dos días de observación para ajustar.'], [2, 7, 'Medida', 'Ajuste fino las dos primeras semanas; después, medida estable, informe cada lunes y pruebas con grupo de control.'], [8, 8, 'Informe final', 'Resultados frente a los criterios pactados, decisiones tomadas y conversación sobre continuidad.']],
+    usH: 'Lo que pone Hebra.', us: 'Las etiquetas de la categoría, el equipo de tienda, el software, los informes y una visita semanal.',
+    youH: 'Lo que pone la marca.', you: 'Una persona responsable, la exportación de ventas (o Shopify) y la categoría del piloto etiquetada al 100 %.',
+    dayH: 'Desde el primer día.', day: 'La ficha con «pide otra talla» y «¿por qué no te la llevas?», y los avisos al móvil de la tienda. Es lo que más aporta y lo más sencillo de poner en marcha: no hace falta app, ni pantalla, ni integrar la caja.',
+    dayQ: 'El piloto es un éxito si la medida es estable y se toma al menos una decisión con los datos. Después, suscripción con permanencia.',
+    faqH: 'Preguntas frecuentes.',
+    faqs: [['¿Hay que hacer obras?', 'No. Se instala en una visita, fuera del horario de apertura, sin tocar la decoración de la tienda.'], ['¿Usáis nuestro wifi o nuestra red?', 'No. El equipo funciona con su propia conexión, así que no depende de vuestro informático y no puede afectar a la caja.'], ['¿Cómo os llegan las ventas?', 'Con una conexión de solo lectura a Shopify o con un fichero semanal de ventas de la caja.'], ['¿Quién pone las etiquetas?', 'Se pacta en la semana 0. La categoría del piloto tiene que estar etiquetada al 100 %; si no, no damos el dato.'], ['¿Qué pasa con los datos de mis clientes?', 'No captamos ninguno. No hay cámaras, y los toques de la ficha no se ligan a ninguna persona ni a ninguna compra.'], ['¿Y si no funciona?', 'Los criterios de éxito se pactan por escrito antes de instalar. El informe final dice si se han cumplido y qué no podemos afirmar todavía.']],
+    endH: '¿Hablamos de tu tienda?', end: 'Cuéntanos cuántas tiendas tienes y cómo vendes. Te respondemos con una propuesta de piloto.',
+  },
+  ca: {
+    title: 'Pilot', desc: 'Vuit setmanes en una botiga per demostrar el valor d’Hebra amb dades: criteris d’èxit pactats per escrit, informe cada dilluns i grup de control.',
+    h1: 'Vuit setmanes per demostrar-ho a la teva botiga.',
+    lead: 'Una botiga, una zona d’emprovadors i criteris d’èxit pactats per escrit abans d’instal·lar res. Si funciona, seguim junts.',
+    cta: 'Vull el pilot', wk: 'S', week: 'setmana', weeks: 'setmanes', to: 'a',
+    tlH: 'Setmana a setmana.',
+    phases: [[0, 0, 'Acord', 'Una pàgina: abast, dades, criteris d’èxit i qui etiqueta. Avaluació de privacitat i cartell informatiu per a la botiga.'], [1, 1, 'Instal·lació', 'Una visita fora d’horari. Prova amb 20 peces, etiquetatge de la categoria i un o dos dies d’observació per ajustar.'], [2, 7, 'Mesura', 'Ajust fi les dues primeres setmanes; després, mesura estable, informe cada dilluns i proves amb grup de control.'], [8, 8, 'Informe final', 'Resultats davant dels criteris pactats, decisions preses i conversa sobre la continuïtat.']],
+    usH: 'El que posa Hebra.', us: 'Les etiquetes de la categoria, l’equip de botiga, el programari, els informes i una visita setmanal.',
+    youH: 'El que posa la marca.', you: 'Una persona responsable, l’exportació de vendes (o Shopify) i la categoria del pilot etiquetada al 100 %.',
+    dayH: 'Des del primer dia.', day: 'La fitxa amb «demana una altra talla» i «per què no te l’endus?», i els avisos al mòbil de la botiga. És el que més aporta i el més senzill de posar en marxa: no cal app, ni pantalla, ni integrar la caixa.',
+    dayQ: 'El pilot és un èxit si la mesura és estable i es pren almenys una decisió amb les dades. Després, subscripció amb permanència.',
+    faqH: 'Preguntes freqüents.',
+    faqs: [['Cal fer obres?', 'No. S’instal·la en una visita, fora de l’horari d’obertura, sense tocar la decoració de la botiga.'], ['Feu servir el nostre wifi o la nostra xarxa?', 'No. L’equip funciona amb la seva pròpia connexió, així que no depèn del vostre informàtic i no pot afectar la caixa.'], ['Com us arriben les vendes?', 'Amb una connexió de només lectura a Shopify o amb un fitxer setmanal de vendes de la caixa.'], ['Qui posa les etiquetes?', 'Es pacta a la setmana 0. La categoria del pilot ha d’estar etiquetada al 100 %; si no, no donem la dada.'], ['Què passa amb les dades dels meus clients?', 'No en captem cap. No hi ha càmeres, i els tocs de la fitxa no es lliguen a cap persona ni a cap compra.'], ['I si no funciona?', 'Els criteris d’èxit es pacten per escrit abans d’instal·lar. L’informe final diu si s’han complert i què encara no podem afirmar.']],
+    endH: 'Parlem de la teva botiga?', end: 'Explica’ns quantes botigues tens i com vens. Et responem amb una proposta de pilot.',
+  },
+  en: {
+    title: 'Pilot', desc: 'Eight weeks in one store to prove Hebra’s value with data: success criteria agreed in writing, a report every Monday and a control group.',
+    h1: 'Eight weeks to prove it in your store.',
+    lead: 'One store, one fitting room area and success criteria agreed in writing before anything is installed. If it works, we carry on together.',
+    cta: 'I want the pilot', wk: 'W', week: 'week', weeks: 'weeks', to: 'to',
+    tlH: 'Week by week.',
+    phases: [[0, 0, 'Agreement', 'One page: scope, data, success criteria and who tags. Privacy assessment and an information notice for the store.'], [1, 1, 'Installation', 'One visit outside opening hours. A 20-garment test, tagging of the category and one or two days of observation to fine-tune.'], [2, 7, 'Measurement', 'Fine-tuning in the first two weeks; then stable measurement, a report every Monday and tests with a control group.'], [8, 8, 'Final report', 'Results against the agreed criteria, decisions taken and a conversation about continuing.']],
+    usH: 'What Hebra brings.', us: 'Tags for the category, the in-store kit, the software, the reports and a weekly visit.',
+    youH: 'What the brand brings.', you: 'One person in charge, the sales export (or Shopify) and the pilot category 100 % tagged.',
+    dayH: 'From day one.', day: 'The garment page with “ask for another size” and “why aren’t you taking it?”, and alerts on the store’s phone. It adds the most and is the simplest to launch: no app, no screen, no till integration.',
+    dayQ: 'The pilot is a success if measurement is stable and at least one decision is made with the data. Then, a subscription with a minimum term.',
+    faqH: 'Frequently asked questions.',
+    faqs: [['Is there any building work?', 'No. It’s installed in one visit, outside opening hours, without touching the store’s decor.'], ['Do you use our wifi or network?', 'No. The kit runs on its own connection, so it doesn’t depend on your IT person and can’t affect the till.'], ['How do you get the sales?', 'With a read-only connection to Shopify or a weekly sales file from the till.'], ['Who puts the tags on?', 'Agreed in week 0. The pilot category must be 100 % tagged; if not, we don’t report the figure.'], ['What about my customers’ data?', 'We don’t collect any. There are no cameras, and taps on the garment page are never linked to a person or a purchase.'], ['What if it doesn’t work?', 'Success criteria are agreed in writing before installation. The final report says whether they were met and what we can’t claim yet.']],
+    endH: 'Shall we talk about your store?', end: 'Tell us how many stores you have and how you sell. We’ll reply with a pilot proposal.',
+  },
+}[lang];
+const contact = path(lang, '/contacto/') + '?motivo=piloto';
+---
+<Base title={T.title} lang={lang} route="/piloto/" description={T.desc}>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / {T.title}</p>
+      <h1 data-split>{T.h1}</h1>
+      <p class="lead">{T.lead}</p>
+      <div class="actions"><a class="btn" href={contact}>{T.cta}</a></div>
+    </div>
+  </header>
+
+  <section class="band perla">
+    <div class="wrap">
+      <h2 data-reveal>{T.tlH}</h2>
+      <div class="tl" data-reveal role="list">
+        <div class="tl-weeks" aria-hidden="true">
+          {Array.from({ length: 9 }, (_, i) => <span>{T.wk}{i}</span>)}
+        </div>
+        {T.phases.map(([from, to, name, text]) => (
+          <div class="tl-row" role="listitem">
+            <div class="tl-bar" style={`--a:${Number(from) + 1};--b:${Number(to) + 2}`} aria-hidden="true"></div>
+            <div class="tl-text"><h3>{name} <span class="small quiet">{from === to ? `${T.week} ${from}` : `${T.weeks} ${from} ${T.to} ${to}`}</span></h3><p>{text}</p></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap grid-2">
+      <div data-reveal><h2>{T.usH}</h2><p class="lead">{T.us}</p></div>
+      <div data-reveal><h2>{T.youH}</h2><p class="lead">{T.you}</p></div>
+    </div>
+  </section>
+
+  <section class="band grana">
+    <div class="wrap split">
+      <h2 data-reveal>{T.dayH}</h2>
+      <div data-reveal>
+        <p class="lead">{T.day}</p>
+        <p class="quiet">{T.dayQ}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split">
+      <h2 data-reveal>{T.faqH}</h2>
+      <div class="faq" data-reveal>
+        {T.faqs.map(([q, a]) => (<details><summary>{q}</summary><p>{a}</p></details>))}
+      </div>
+    </div>
+  </section>
+
+  <section class="band perla tight">
+    <div class="wrap split">
+      <h2 data-reveal>{T.endH}</h2>
+      <div data-reveal>
+        <p class="lead">{T.end}</p>
+        <div class="actions"><a class="btn" href={contact}>{T.cta}</a></div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .tl { margin-top: 2.5rem; }
+  .tl-weeks, .tl-bar { display: grid; }
+  .tl-weeks { grid-template-columns: repeat(9, 1fr); font-size: var(--step--1); color: var(--tinta-2); font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--pedra); padding-bottom: .5rem; }
+  .tl-row { display: grid; grid-template-columns: repeat(9, 1fr); gap: .6rem 0; padding: 1.2rem 0; border-bottom: 1px solid var(--linea); }
+  .tl-bar { grid-column: var(--a) / var(--b); height: 10px; background: var(--blau); border-radius: 5px; margin: 0 3px; }
+  .tl-row:last-child .tl-bar { background: var(--grana); }
+  .tl-text { grid-column: 1 / -1; }
+  .tl-text h3 { color: var(--blau); margin: .2rem 0 .3rem; }
+  .tl-text h3 span { font-family: var(--sans); margin-left: .5rem; }
+  .tl-text p { margin: 0; color: var(--tinta-2); }
+  .faq details { border-top: 1px solid var(--linea); padding: 1.1rem 0; }
+  .faq details:last-child { border-bottom: 1px solid var(--linea); }
+  .faq summary { cursor: pointer; font: 450 var(--step-1)/1.3 var(--serif); color: var(--blau); list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+  .faq summary::after { content: '+'; font-family: var(--sans); color: var(--grana); transition: transform .25s; }
+  .faq details[open] summary::after { transform: rotate(45deg); }
+  .faq details p { margin: .8rem 0 0; color: var(--tinta-2); }
+</style>

@@ -1,0 +1,120 @@
+---
+// Qué datos obtiene la marca. Cada tarjeta gira: delante el dato, detrás la decisión que permite.
+import type { Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+type Card = { k: string; v: string; d: string; back: string; viz: string };
+const T: Record<Lang, { hint: string; turn: string; cards: Card[] }> = {
+  es: {
+    hint: 'Toca una tarjeta para ver qué decides con ese dato.', turn: 'Qué decides',
+    cards: [
+      { viz: 'bars', k: 'Pruebas por prenda', v: '412', d: 'Por modelo, color y talla, cada día.', back: 'Qué prendas despiertan interés de verdad, más allá de lo que se vende.' },
+      { viz: 'donut', k: 'Del probador a la caja', v: '27 %', d: 'Qué parte de lo probado acaba comprado.', back: 'Detectas lo muy probado y poco vendido antes de que llegue a rebajas.' },
+      { viz: 'clock', k: 'Tiempo en cabina', v: '6 min', d: 'Cuánto dura cada prueba, por prenda.', back: 'Mucho tiempo y ninguna venta suele ser un problema de talla o de patrón.' },
+      { viz: 'chips', k: 'Tallas pedidas', v: '9', d: 'Lo que se pide desde la cabina, haya o no en tienda.', back: 'Repones la talla que falta y ajustas la curva del próximo pedido.' },
+      { viz: 'reasons', k: 'Por qué no se la lleva', v: '5', d: 'Talla, corte, precio, color o calidad.', back: 'Sabes si cambiar el precio, el patrón o el proveedor, sin adivinar.' },
+      { viz: 'pairs', k: 'Prendas que entran juntas', v: '3', d: 'Qué se prueba a la vez en la misma cabina.', back: 'Montas el escaparate y el «combina con» con datos, no con intuición.' },
+      { viz: 'heat', k: 'Horas punta del probador', v: '18 h', d: 'Cuándo se llenan las cabinas, cada día.', back: 'Pones a la persona en el probador en la hora que importa.' },
+      { viz: 'origin', k: 'Interés por el origen', v: '41 %', d: 'Quién abre la cadena de la prenda en la ficha.', back: 'Compruebas si contar de dónde viene hace vender, con grupo de control.' },
+      { viz: 'ab', k: 'Efecto de un cambio', v: '+6 pts', d: 'Antes y después, frente a un grupo de control.', back: 'Sabes si el cambio ha funcionado o si ha sido el tiempo o la campaña.' },
+    ],
+  },
+  ca: {
+    hint: 'Toca una targeta per veure què decideixes amb aquesta dada.', turn: 'Què decideixes',
+    cards: [
+      { viz: 'bars', k: 'Proves per peça', v: '412', d: 'Per model, color i talla, cada dia.', back: 'Quines peces desperten interès de debò, més enllà del que es ven.' },
+      { viz: 'donut', k: 'De l’emprovador a la caixa', v: '27 %', d: 'Quina part del que s’emprova acaba comprat.', back: 'Detectes el que s’emprova molt i es ven poc abans que arribi a rebaixes.' },
+      { viz: 'clock', k: 'Temps a la cabina', v: '6 min', d: 'Quant dura cada prova, per peça.', back: 'Molt de temps i cap venda sol ser un problema de talla o de patró.' },
+      { viz: 'chips', k: 'Talles demanades', v: '9', d: 'El que es demana des de la cabina, n’hi hagi o no a la botiga.', back: 'Reposes la talla que falta i ajustes la corba de la propera comanda.' },
+      { viz: 'reasons', k: 'Per què no se l’endú', v: '5', d: 'Talla, tall, preu, color o qualitat.', back: 'Saps si cal canviar el preu, el patró o el proveïdor, sense endevinar.' },
+      { viz: 'pairs', k: 'Peces que entren juntes', v: '3', d: 'Què s’emprova alhora a la mateixa cabina.', back: 'Muntes l’aparador i el «combina amb» amb dades, no amb intuïció.' },
+      { viz: 'heat', k: 'Hores punta de l’emprovador', v: '18 h', d: 'Quan s’omplen les cabines, cada dia.', back: 'Poses la persona a l’emprovador a l’hora que compta.' },
+      { viz: 'origin', k: 'Interès per l’origen', v: '41 %', d: 'Qui obre la cadena de la peça a la fitxa.', back: 'Comproves si explicar d’on ve fa vendre, amb grup de control.' },
+      { viz: 'ab', k: 'Efecte d’un canvi', v: '+6 pts', d: 'Abans i després, davant d’un grup de control.', back: 'Saps si el canvi ha funcionat o si ha estat el temps o la campanya.' },
+    ],
+  },
+  en: {
+    hint: 'Tap a card to see what you decide with that data.', turn: 'What you decide',
+    cards: [
+      { viz: 'bars', k: 'Try-ons per garment', v: '412', d: 'By style, colour and size, every day.', back: 'Which garments spark real interest, beyond what sells.' },
+      { viz: 'donut', k: 'Fitting room to till', v: '27 %', d: 'How much of what’s tried on gets bought.', back: 'You spot what’s tried a lot and sold little before it hits the sales.' },
+      { viz: 'clock', k: 'Time in the room', v: '6 min', d: 'How long each try-on lasts, per garment.', back: 'Lots of time and no sale usually means a size or pattern problem.' },
+      { viz: 'chips', k: 'Sizes requested', v: '9', d: 'What’s asked for from the room, in stock or not.', back: 'You restock the missing size and adjust the curve of the next order.' },
+      { viz: 'reasons', k: 'Why they don’t buy it', v: '5', d: 'Size, fit, price, colour or quality.', back: 'You know whether to change the price, the pattern or the supplier, without guessing.' },
+      { viz: 'pairs', k: 'Garments tried together', v: '3', d: 'What goes into the same room at the same time.', back: 'You build the window and the “goes with” on data, not hunches.' },
+      { viz: 'heat', k: 'Fitting room peak hours', v: '6 pm', d: 'When the rooms fill up, every day.', back: 'You put staff in the fitting room at the hour that counts.' },
+      { viz: 'origin', k: 'Interest in origin', v: '41 %', d: 'Who opens the garment’s supply chain on its page.', back: 'You test whether telling where it comes from sells, against a control group.' },
+      { viz: 'ab', k: 'Effect of a change', v: '+6 pts', d: 'Before and after, against a control group.', back: 'You know whether the change worked, or whether it was the weather or the campaign.' },
+    ],
+  },
+};
+const t = T[lang];
+const bars = [38, 62, 30, 80, 52, 70, 44];
+const heat = [1, 1, 2, 2, 3, 2, 2, 3, 4, 5, 4, 2];
+---
+<div class="dc" data-cards>
+  <p class="small dc-hint">{t.hint}</p>
+  <ul class="dc-grid">
+    {t.cards.map((c, i) => (
+      <li>
+        <button type="button" class="dc-card" aria-pressed="false" data-card>
+          <span class="dc-face dc-front">
+            <span class="dc-viz" aria-hidden="true">
+              {c.viz === 'bars' && <svg viewBox="0 0 140 60">{bars.map((h, j) => <rect x={j * 20 + 2} y={60 - h * .7} width="12" height={h * .7} rx="2" class={j === 3 ? 'hi' : ''} />)}</svg>}
+              {c.viz === 'donut' && <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" class="trk" /><circle cx="30" cy="30" r="22" class="val" style="stroke-dasharray: 37.3 138.2" transform="rotate(-90 30 30)" /></svg>}
+              {c.viz === 'clock' && <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" class="trk" /><path d="M30 8 A22 22 0 0 1 49 41 L30 30Z" class="fill" /><path d="M30 30 L30 14 M30 30 L40 36" class="hand" /></svg>}
+              {c.viz === 'chips' && <span class="dc-chips"><i>L</i><i>L</i><i>M</i><i>L</i><i>XL</i></span>}
+              {c.viz === 'reasons' && <svg viewBox="0 0 140 60">{[46, 92, 30, 18, 12].map((w, j) => <rect x="0" y={j * 12} width={w * 1.4} height="8" rx="2" class={j === 1 ? 'hi' : ''} />)}</svg>}
+              {c.viz === 'pairs' && <svg viewBox="0 0 140 60"><circle cx="30" cy="30" r="16" class="node" /><circle cx="110" cy="18" r="12" class="node" /><circle cx="100" cy="48" r="9" class="node" /><path d="M46 28 L98 19 M44 38 L91 46" class="link" /></svg>}
+              {c.viz === 'heat' && <span class="dc-heat">{heat.map((h) => <i style={`--h:${h}`}></i>)}</span>}
+              {c.viz === 'origin' && <svg viewBox="0 0 140 60"><path d="M8 50 C 40 50, 40 12, 70 12 S 100 50, 132 30" class="link" /><circle cx="8" cy="50" r="5" class="node" /><circle cx="70" cy="12" r="5" class="node" /><circle cx="132" cy="30" r="6" class="hi" /></svg>}
+              {c.viz === 'ab' && <svg viewBox="0 0 140 60"><path d="M4 44 L36 40 L68 42 L100 38 L136 39" class="ctrl" /><path d="M4 44 L36 40 L68 34 L100 24 L136 20" class="test" /></svg>}
+            </span>
+            <span class="dc-k">{c.k}</span>
+            <span class="dc-v">{c.v}</span>
+            <span class="dc-d">{c.d}</span>
+          </span>
+          <span class="dc-face dc-back">
+            <span class="dc-turn">{t.turn}</span>
+            <span class="dc-b">{c.back}</span>
+            <span class="dc-n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+          </span>
+        </button>
+      </li>
+    ))}
+  </ul>
+</div>
+
+<style>
+  .dc-hint { color: var(--tinta-2); margin-bottom: 1.2rem; }
+  .dc-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .dc-grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1020px) { .dc-grid { grid-template-columns: repeat(3, 1fr); } }
+  .dc-card { position: relative; display: block; width: 100%; min-height: 250px; padding: 0; border: 0; background: none; cursor: pointer; perspective: 1200px; text-align: left; font: inherit; color: inherit; }
+  .dc-face { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 1.4rem 1.5rem; border-radius: 16px; backface-visibility: hidden; transition: transform .7s cubic-bezier(.2,.7,.2,1); }
+  .dc-front { background: #fff; box-shadow: 0 1px 0 var(--linea), 0 24px 40px -36px rgba(18,38,63,.6); }
+  .dc-back { background: var(--grana); color: var(--blanc); transform: rotateY(180deg); justify-content: space-between; }
+  .dc-card[aria-pressed='true'] .dc-front { transform: rotateY(-180deg); }
+  .dc-card[aria-pressed='true'] .dc-back { transform: rotateY(0); }
+  @media (hover: hover) { .dc-card:hover .dc-front { transform: rotateY(-180deg); } .dc-card:hover .dc-back { transform: rotateY(0); } }
+  .dc-card:focus-visible { outline: 2px solid var(--grana); outline-offset: 4px; border-radius: 16px; }
+  .dc-viz { display: block; height: 62px; margin-bottom: 1rem; }
+  .dc-viz svg { height: 62px; width: auto; }
+  .dc-viz rect { fill: #D9DEE5; } .dc-viz rect.hi, .dc-viz .hi { fill: var(--grana); }
+  .dc-viz .trk { fill: none; stroke: #E6E9EE; stroke-width: 8; }
+  .dc-viz .val { fill: none; stroke: var(--grana); stroke-width: 8; stroke-linecap: round; }
+  .dc-viz .fill { fill: rgba(140,48,75,.18); } .dc-viz .hand { stroke: var(--blau); stroke-width: 3; stroke-linecap: round; }
+  .dc-viz .node { fill: #fff; stroke: var(--blau); stroke-width: 2.5; } .dc-viz .link { fill: none; stroke: var(--grana); stroke-width: 2; stroke-dasharray: 4 4; }
+  .dc-viz .ctrl { fill: none; stroke: #B7B3B2; stroke-width: 2.5; } .dc-viz .test { fill: none; stroke: var(--grana); stroke-width: 3; }
+  .dc-chips { display: flex; gap: .3rem; align-items: center; height: 100%; }
+  .dc-chips i { font: 700 .75rem/1 var(--sans); font-style: normal; padding: .35rem .55rem; border-radius: 999px; background: var(--grana-suau); color: var(--grana); }
+  .dc-heat { display: flex; align-items: flex-end; gap: 4px; height: 100%; }
+  .dc-heat i { width: 9px; height: calc(var(--h) * 11px); border-radius: 2px; background: rgba(140,48,75, calc(var(--h) * .19)); }
+  .dc-k { font-weight: 600; color: var(--tinta); }
+  .dc-v { font: 340 2.4rem/1.05 var(--serif); color: var(--blau); margin: .2rem 0 .3rem; font-variant-numeric: tabular-nums; }
+  .dc-d { font-size: .9rem; color: var(--tinta-2); line-height: 1.45; }
+  .dc-turn { font-size: .78rem; font-weight: 600; color: #F3DDE4; }
+  .dc-b { font: 400 1.35rem/1.3 var(--serif); }
+  .dc-n { font: 340 2.6rem/1 var(--serif); color: rgba(249,249,249,.35); align-self: flex-end; }
+  @media (prefers-reduced-motion: reduce) { .dc-face { transition: none; } }
+</style>

@@ -1,0 +1,36 @@
+---
+import Legal from '../components/Legal.astro';
+import { mainEmail, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+---
+{lang === 'es' && (
+<Legal lang={lang} route="/aviso-legal/" title="Aviso legal y cookies" description="Datos del titular de la web de Hebra y uso de cookies.">
+  <h2>Titular</h2>
+  <p>Esta web es de <span class="pend">[pendiente: razón social]</span>, con NIF <span class="pend">[pendiente]</span> y domicilio en <span class="pend">[pendiente]</span>, Barcelona. Web: hebraia.com. Contacto: <a class="textlink" href={`mailto:${mainEmail}`}>{mainEmail}</a>.</p>
+  <h2>Contenido</h2>
+  <p>Los ejemplos de informes, fichas, vídeos y cifras de esta web son ilustrativos y no corresponden a datos de ninguna marca. Las marcas, logotipos y textos de Hebra son de su titular.</p>
+  <h2>Cookies</h2>
+  <p>Esta web no instala cookies propias ni de terceros con fines de analítica o publicidad. Por eso no te mostramos ningún aviso de cookies. Si en el futuro lo cambiamos, te pediremos permiso antes.</p>
+</Legal>
+)}
+{lang === 'ca' && (
+<Legal lang={lang} route="/aviso-legal/" title="Avís legal i galetes" description="Dades del titular de la web d’Hebra i ús de galetes.">
+  <h2>Titular</h2>
+  <p>Aquesta web és de <span class="pend">[pendent: raó social]</span>, amb NIF <span class="pend">[pendent]</span> i domicili a <span class="pend">[pendent]</span>, Barcelona. Web: hebraia.com. Contacte: <a class="textlink" href={`mailto:${mainEmail}`}>{mainEmail}</a>.</p>
+  <h2>Contingut</h2>
+  <p>Els exemples d’informes, fitxes, vídeos i xifres d’aquesta web són il·lustratius i no corresponen a dades de cap marca. Les marques, logotips i textos d’Hebra són del seu titular.</p>
+  <h2>Galetes</h2>
+  <p>Aquesta web no instal·la galetes pròpies ni de tercers amb finalitats d’analítica o publicitat. Per això no et mostrem cap avís de galetes. Si en el futur ho canviem, et demanarem permís abans.</p>
+</Legal>
+)}
+{lang === 'en' && (
+<Legal lang={lang} route="/aviso-legal/" title="Legal notice and cookies" description="Details of the owner of the Hebra website and cookie use.">
+  <h2>Owner</h2>
+  <p>This website belongs to <span class="pend">[pending: company name]</span>, tax ID <span class="pend">[pending]</span>, registered at <span class="pend">[pending]</span>, Barcelona. Website: hebraia.com. Contact: <a class="textlink" href={`mailto:${mainEmail}`}>{mainEmail}</a>.</p>
+  <h2>Content</h2>
+  <p>The example reports, garment pages, videos and figures on this website are illustrative and do not come from any brand’s data. Hebra’s trademarks, logos and texts belong to their owner.</p>
+  <h2>Cookies</h2>
+  <p>This website sets no first- or third-party cookies for analytics or advertising. That is why we show no cookie banner. If that changes, we will ask for your permission first.</p>
+</Legal>
+)}

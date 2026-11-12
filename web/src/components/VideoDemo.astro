@@ -1,0 +1,38 @@
+---
+// Vídeo de demostración (generado por código: escenas animadas, sin voz). Uno por idioma.
+import type { Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+const T = {
+  es: { k: 'Hebra en 40 segundos', h: 'De la percha a la decisión del lunes.', play: 'Verlo desde el principio', label: 'Vídeo: cómo funciona Hebra, de la prenda al informe del lunes' },
+  ca: { k: 'Hebra en 40 segons', h: 'De la perxa a la decisió del dilluns.', play: 'Veure’l des del principi', label: 'Vídeo: com funciona Hebra, de la peça a l’informe del dilluns' },
+  en: { k: 'Hebra in 40 seconds', h: 'From the rail to Monday’s decision.', play: 'Watch from the start', label: 'Video: how Hebra works, from the garment to the Monday report' },
+}[lang];
+---
+<section class="band blau vd" id="video">
+  <div class="wrap">
+    <div class="vd-head">
+      <p class="kick" data-reveal>{T.k}</p>
+      <h2 data-reveal>{T.h}</h2>
+    </div>
+    <figure class="vd-frame" data-video data-reveal>
+      <video muted playsinline loop preload="metadata" poster={`/video/hebra-demo-${lang}.jpg`} aria-label={T.label}>
+        <source src={`/video/hebra-demo-${lang}.mp4`} type="video/mp4" />
+      </video>
+      <button type="button" class="vd-play" data-video-play>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" /></svg>
+        {T.play}
+      </button>
+    </figure>
+  </div>
+</section>
+
+<style>
+  .vd-head { margin-bottom: 2rem; }
+  .vd-head h2 { max-width: 18ch; }
+  .vd-frame { position: relative; margin: 0; border-radius: 20px; overflow: hidden; aspect-ratio: 16 / 9; background: #0E3460; box-shadow: 0 40px 80px -40px rgba(0,0,0,.6); }
+  .vd-frame video { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .vd-play { position: absolute; left: 1.2rem; bottom: 1.2rem; display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1.1rem; border-radius: 999px; border: 0; background: var(--blanc); color: var(--blau); font: 600 .9rem/1 var(--sans); cursor: pointer; box-shadow: 0 10px 30px -10px rgba(0,0,0,.5); transition: transform .2s; }
+  .vd-play:hover { transform: translateY(-2px); }
+  :global(.playing) .vd-play { display: none; }
+</style>

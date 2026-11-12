@@ -1,26 +1,32 @@
 ---
-interface Props { title?: string; text?: string }
-const {
-  title = 'Hablemos de tu marca.',
-  text = 'En media hora te enseñamos la etiqueta, la ficha y los datos con prendas reales. Y vemos juntos por dónde empezar en tu tienda.',
-} = Astro.props;
+import { ui, path, type Lang } from '../i18n';
+interface Props { lang?: Lang; title?: string; text?: string }
+const { lang = 'es' } = Astro.props;
+const t = ui[lang];
+const title = Astro.props.title ?? t.ctaTitle;
+const text = Astro.props.text ?? t.ctaText;
 ---
-<section class="band cta">
+<section class="band grana cta">
+  <div class="cta-thread" aria-hidden="true">
+    <svg viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="M0 150 C 200 40, 380 190, 600 110 S 980 30, 1200 90" fill="none" stroke="rgba(249,249,249,.22)" stroke-width="1.5" /></svg>
+  </div>
   <div class="wrap cta-in">
     <h2 data-reveal>{title}</h2>
     <div data-reveal>
       <p class="lead">{text}</p>
       <div class="actions">
-        <a class="btn" href="/contacto/?motivo=demo">Pedir una demo</a>
-        <a class="btn ghost" href="/ficha/">Ver la ficha</a>
+        <a class="btn" href={path(lang, '/contacto/?motivo=demo')}>{t.demo}</a>
+        <a class="btn ghost" href={path(lang, '/ficha/')}>{t.ctaSecondary}</a>
       </div>
     </div>
   </div>
 </section>
 
 <style>
-  .cta { border-top: 1px solid var(--linea); }
-  .cta-in { display: grid; gap: 2rem; }
+  .cta { position: relative; overflow: hidden; }
+  .cta-thread { position: absolute; inset: auto 0 0; height: 60%; pointer-events: none; }
+  .cta-thread svg { width: 100%; height: 100%; }
+  .cta-in { position: relative; display: grid; gap: 2rem; }
   @media (min-width: 900px) { .cta-in { grid-template-columns: 1fr 1fr; align-items: end; } }
   .cta h2 { margin: 0; max-width: 14ch; }
 </style>
