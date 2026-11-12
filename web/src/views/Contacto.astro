@@ -16,7 +16,8 @@ const T = {
     stores: 'Número de tiendas propias', choose: 'Elige', storeOpts: ['Ninguna, solo online', '1', '2 a 5', '6 a 50', 'Más de 50'],
     sells: 'Vendéis con', sellOpts: ['Shopify', 'Otra caja o TPV', 'No lo sé'],
     msg: 'Ciudad de la tienda o comentarios', hp: 'No rellenar',
-    privA: 'He leído la', privL: 'política de privacidad', privB: 'y acepto que Hebra use estos datos para responderme.', send: 'Enviar',
+    layer: '<strong>Responsable:</strong> [RAZÓN SOCIAL, S.L.]. <strong>Finalidad:</strong> responderte y, si lo pides, prepararte una propuesta. <strong>Base legal:</strong> tu consentimiento. <strong>Destinatarios:</strong> no cedemos tus datos; nuestro proveedor de alojamiento los recibe por encargo nuestro. <strong>Derechos:</strong> acceso, rectificación, supresión y los demás que explicamos en la política de privacidad.',
+    privA: 'He leído la', privL: 'política de privacidad', privB: 'y acepto que Hebra trate mis datos para responderme.', send: 'Enviar',
   },
   ca: {
     title: 'Contacte', desc: 'Demana una demo d’Hebra o proposa un pilot de vuit setmanes a la teva botiga de moda.',
@@ -30,7 +31,8 @@ const T = {
     stores: 'Nombre de botigues pròpies', choose: 'Tria', storeOpts: ['Cap, només en línia', '1', '2 a 5', '6 a 50', 'Més de 50'],
     sells: 'Veneu amb', sellOpts: ['Shopify', 'Una altra caixa o TPV', 'No ho sé'],
     msg: 'Ciutat de la botiga o comentaris', hp: 'No omplir',
-    privA: 'He llegit la', privL: 'política de privacitat', privB: 'i accepto que Hebra faci servir aquestes dades per respondre’m.', send: 'Enviar',
+    layer: '<strong>Responsable:</strong> [RAÓ SOCIAL, S.L.]. <strong>Finalitat:</strong> respondre’t i, si ho demanes, preparar-te una proposta. <strong>Base legal:</strong> el teu consentiment. <strong>Destinataris:</strong> no cedim les teves dades; el nostre proveïdor d’allotjament les rep per encàrrec nostre. <strong>Drets:</strong> accés, rectificació, supressió i els altres que expliquem a la política de privacitat.',
+    privA: 'He llegit la', privL: 'política de privacitat', privB: 'i accepto que Hebra tracti les meves dades per respondre’m.', send: 'Enviar',
   },
   en: {
     title: 'Contact', desc: 'Book a Hebra demo or propose an eight-week pilot in your fashion store.',
@@ -44,7 +46,8 @@ const T = {
     stores: 'Number of own stores', choose: 'Choose', storeOpts: ['None, online only', '1', '2 to 5', '6 to 50', 'More than 50'],
     sells: 'You sell with', sellOpts: ['Shopify', 'Another till or POS', 'I don’t know'],
     msg: 'Store city or comments', hp: 'Do not fill in',
-    privA: 'I have read the', privL: 'privacy policy', privB: 'and agree that Hebra may use this data to reply to me.', send: 'Send',
+    layer: '<strong>Controller:</strong> [COMPANY NAME, S.L.]. <strong>Purpose:</strong> to reply and, if you ask, prepare a proposal. <strong>Legal basis:</strong> your consent. <strong>Recipients:</strong> we do not share your data; our hosting provider receives it on our behalf. <strong>Rights:</strong> access, rectification, erasure and the others explained in the privacy policy.',
+    privA: 'I have read the', privL: 'privacy policy', privB: 'and agree that Hebra may use my data to reply to me.', send: 'Send',
   },
 }[lang];
 ---
@@ -106,6 +109,7 @@ const T = {
         </div>
         <label>{T.msg} <textarea name="mensaje" rows="4"></textarea></label>
         <label class="check"><input type="checkbox" name="privacidad" required /> <span>{T.privA} <a class="textlink" href={path(lang, '/privacidad/')}>{T.privL}</a> {T.privB}</span></label>
+        <p class="layer small quiet" set:html={T.layer.replace(/\[([^\]]+)\]/g, '<span class="pend">[$1]</span>')} />
         <div><button class="btn" type="submit">{T.send}</button></div>
       </form>
     </div>
@@ -113,6 +117,8 @@ const T = {
 </Base>
 
 <style>
+  .layer { font-size: .78rem; line-height: 1.5; margin: 0; }
+  .layer :global(.pend) { background: #F3E6EA; padding: 0 .3em; border-radius: 2px; font-weight: 600; }
   .h3like { font-size: var(--step-2); }
   .aside .rows { margin-top: 1.5rem; }
   .mailcard { padding: 1.6rem 1.6rem 1.4rem; border-radius: 18px; background: var(--deep); color: #fff; }

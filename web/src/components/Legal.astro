@@ -21,4 +21,9 @@ const { title, description, lang = 'es', route } = Astro.props;
   .legal :global(.pend) { background: #F3E6EA; color: var(--deep); padding: 0 .3em; border-radius: 2px; font-weight: 600; }
   .legal :global(ul) { padding-left: 1.2rem; }
   .legal :global(li) { margin: .4rem 0; }
+  .legal :global(.ltable) { overflow-x: auto; margin: 1.2rem 0; -webkit-overflow-scrolling: touch; }
+  .legal :global(table) { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .85rem; line-height: 1.45; }
+  .legal :global(th), .legal :global(td) { text-align: left; vertical-align: top; padding: .55rem .7rem; border-bottom: 1px solid rgba(20,69,125,.15); }
+  .legal :global(th) { font-weight: 600; color: var(--deep); background: rgba(20,69,125,.05); }
+  .legal :global(code) { font-size: .85em; }
 </style>

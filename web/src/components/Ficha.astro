@@ -1,6 +1,6 @@
 ---
 // La ficha que se abre al tocar la prenda con el móvil. Ejemplo ilustrativo.
-import type { Lang } from '../i18n';
+import { ui, path, type Lang } from '../i18n';
 interface Props { compact?: boolean; interactive?: boolean; lang?: Lang }
 const { compact = false, interactive = true, lang = 'es' } = Astro.props;
 const sizes = [
@@ -118,7 +118,7 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
 
   <footer class="fi-foot">
     <span set:html={langs} />
-    <span>{T.by}</span>
+    <span>{T.by} · <a class="fi-priv" href={path(lang, '/privacidad-ficha/')}>{ui[lang].privacy}</a></span>
   </footer>
 </article>
 
@@ -165,6 +165,7 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
   .fi-msg:empty { display: none; }
   .fi-foot { display: flex; justify-content: space-between; padding: .8rem 1.1rem 1rem; font-size: .7rem; color: var(--tinta-2); border-top: 8px solid #F3F4F6; }
   .fi-foot b { color: var(--on-light); }
+  .fi-foot .fi-priv { color: inherit; }
   :global(.en-casa) .fi-cabina { display: none; }
   button:focus-visible { outline: 2px solid var(--deep); outline-offset: 2px; }
 </style>
