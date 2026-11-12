@@ -6,13 +6,14 @@ interface Props {
   description: string;
   current?: string;
   bare?: boolean; // ficha NFC: sin cabecera ni pie de la web
+  dark?: boolean; // la página empieza sobre fondo azul
 }
-const { title, description, current = '', bare = false } = Astro.props;
+const { title, description, current = '', bare = false, dark = false } = Astro.props;
 const nav = [
   { href: '/probador/', label: 'Probador' },
   { href: '/origen/', label: 'Origen' },
+  { href: '/ficha/', label: 'La ficha' },
   { href: '/como-funciona/', label: 'Cómo funciona' },
-  { href: '/piloto/', label: 'Piloto' },
   { href: '/nosotros/', label: 'Nosotros' },
   { href: '/contacto/', label: 'Contacto' },
 ];
@@ -40,10 +41,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 </head>
 <body class={bare ? 'bare' : ''}>
   {!bare && (
-    <header class="top" data-top>
+    <header class:list={['top', { dark }]} data-top>
       <div class="wrap top-in">
         <a class="brand" href="/" aria-label="Hebra, inicio">
-          <img src="/img/logo-blau.png" alt="" width="22" height="32" />
+          <img class="logo-b" src="/img/logo-blau.png" alt="" width="22" height="32" />
+          <img class="logo-w" src="/img/logo-blanc.png" alt="" width="22" height="32" />
           <span>Hebra</span>
         </a>
         <nav class="nav" id="nav" aria-label="Principal">
@@ -72,6 +74,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
           <nav aria-label="Pie">
             <ul>
               {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+              <li><a href="/piloto/">El piloto</a></li>
             </ul>
             <ul>
               <li><a href="/privacidad/">Privacidad y sensores</a></li>
@@ -93,12 +96,28 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 </html>
 
 <style is:global>
-  .top { position: fixed; inset: 0 0 auto; z-index: 50; transition: background .3s, box-shadow .3s, transform .35s; }
+  .top { view-transition-name: top; position: fixed; inset: 0 0 auto; z-index: 50; transition: background .3s, box-shadow .3s, transform .35s; }
   .top.scrolled { background: rgba(249,249,249,.94); backdrop-filter: blur(8px); box-shadow: 0 1px 0 var(--linea); }
   .top.hide { transform: translateY(-100%); }
   .top-in { display: flex; align-items: center; gap: 2rem; height: 76px; }
   .brand { display: flex; align-items: center; gap: .7rem; text-decoration: none; color: var(--blau); font: 400 1.6rem/1 var(--serif); font-variation-settings: 'opsz' 72; letter-spacing: -0.01em; }
   .brand img { height: 32px; width: auto; }
+  .brand .logo-w { display: none; }
+  @media (min-width: 1021px) {
+    .top.dark:not(.scrolled) .brand { color: var(--blanc); }
+    .top.dark:not(.scrolled) .logo-b { display: none; }
+    .top.dark:not(.scrolled) .logo-w { display: block; }
+    .top.dark:not(.scrolled) .nav a { color: #E6ECF3; }
+    .top.dark:not(.scrolled) .nav a:hover, .top.dark:not(.scrolled) .nav a[aria-current] { color: var(--blanc); border-color: #E4B3C1; }
+    .top.dark:not(.scrolled) .top-cta { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+  }
+  @media (max-width: 1020px) {
+    .top.dark:not(.scrolled) .brand { color: var(--blanc); }
+    .top.dark:not(.scrolled) .logo-b { display: none; }
+    .top.dark:not(.scrolled) .logo-w { display: block; }
+    .top.dark:not(.scrolled) .menu i { background: var(--blanc); }
+    .top.dark:not(.scrolled) .top-cta { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+  }
   .nav { margin-left: auto; }
   .nav ul { display: flex; gap: 1.6rem; list-style: none; margin: 0; padding: 0; }
   .nav a { text-decoration: none; font-weight: 500; font-size: .98rem; color: var(--tinta); padding: .3rem 0; border-bottom: 1.5px solid transparent; }

@@ -1,8 +1,8 @@
 ---
 interface Props { title?: string; text?: string }
 const {
-  title = 'Pruébalo ocho semanas en tu tienda.',
-  text = 'Una tienda, una zona de probadores y criterios de éxito pactados por escrito antes de instalar nada. Si funciona, seguimos.',
+  title = 'Hablemos de tu marca.',
+  text = 'En media hora te enseñamos la etiqueta, la ficha y los datos con prendas reales. Y vemos juntos por dónde empezar en tu tienda.',
 } = Astro.props;
 ---
 <section class="band cta">
@@ -11,8 +11,8 @@ const {
     <div data-reveal>
       <p class="lead">{text}</p>
       <div class="actions">
-        <a class="btn" href="/contacto/?motivo=piloto">Quiero el piloto</a>
-        <a class="btn ghost" href="/piloto/">Cómo es el piloto</a>
+        <a class="btn" href="/contacto/?motivo=demo">Pedir una demo</a>
+        <a class="btn ghost" href="/ficha/">Ver la ficha</a>
       </div>
     </div>
   </div>

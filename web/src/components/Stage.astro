@@ -1,0 +1,86 @@
+---
+// Portada: escena 3D fijada mientras se hace scroll. Tres momentos: la prenda, la etiqueta, el móvil.
+import Phone from './Phone.astro';
+---
+<section class="stage" data-stage>
+  <div class="stage-pin" data-stage-pin>
+    <canvas class="stage-canvas" data-garment data-logo="/img/logo-blau.png" aria-hidden="true"></canvas>
+    <div class="stage-fallback" aria-hidden="true"></div>
+    <div class="stage-scrim" data-stage-scrim aria-hidden="true"></div>
+
+    <div class="wrap stage-grid">
+      <div class="stage-copy">
+        <div class="beat b1" data-beat="1">
+          <h1 data-split>Tu ropa sabe cosas. Hebra te las explica.</h1>
+          <p class="lead">Tecnología textil para marcas de moda: una etiqueta inteligente en cada prenda y datos de lo que pasa en tu probador, en tu tienda y en tu cadena.</p>
+          <div class="actions">
+            <a class="btn" href="/contacto/?motivo=demo">Pedir una demo</a>
+            <a class="btn ghost" href="#problema">Descubrir Hebra</a>
+          </div>
+        </div>
+        <div class="beat b2" data-beat="2" aria-hidden="true">
+          <p class="kick">La etiqueta</p>
+          <h2>Dos tecnologías, una sola etiqueta.</h2>
+          <p class="lead">RFID UHF para que la tienda sepa qué se prueba y qué se vende. NFC para que tu cliente la toque con el móvil y vea de dónde viene.</p>
+        </div>
+        <div class="beat b3" data-beat="3" aria-hidden="true">
+          <p class="kick">La ficha</p>
+          <h2>Tu cliente la toca. Tú lo entiendes.</h2>
+          <p class="lead">Composición, cuidado y origen en su idioma, sin app. Y si quiere otra talla o no se la lleva, te lo dice.</p>
+        </div>
+      </div>
+      <div class="stage-phone" data-stage-phone aria-hidden="true">
+        <Phone />
+      </div>
+    </div>
+
+    <div class="stage-progress" aria-hidden="true"><span data-stage-bar></span></div>
+    <p class="stage-hint small" aria-hidden="true" data-stage-hint>Desliza</p>
+  </div>
+</section>
+
+<style>
+  .stage { position: relative; height: 320svh; background: var(--blau); color: var(--blanc); }
+  .stage-pin { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+  .stage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .stage-fallback { display: none; }
+  .stage-canvas[data-failed] + .stage-fallback { display: block; position: absolute; inset: 0; background: radial-gradient(60% 60% at 70% 50%, #1d5797, var(--blau)); }
+  .stage::before { content: ''; position: absolute; inset: 0; background: radial-gradient(70% 70% at 68% 45%, #1e5a9c 0%, var(--blau) 62%); pointer-events: none; }
+
+  .stage-scrim { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: linear-gradient(90deg, rgba(14,52,96,.94) 0%, rgba(14,52,96,.82) 38%, rgba(14,52,96,0) 62%); }
+  @media (max-width: 959px) { .stage-scrim { background: linear-gradient(0deg, rgba(14,52,96,.96) 0%, rgba(14,52,96,.85) 42%, rgba(14,52,96,0) 62%); } }
+  .stage-grid { position: relative; height: 100%; display: grid; align-items: center; grid-template-columns: 1fr; }
+  @media (min-width: 960px) { .stage-grid { grid-template-columns: 1fr 1fr; } }
+  .stage-copy { position: relative; z-index: 2; display: grid; }
+  .beat { grid-area: 1 / 1; max-width: 34rem; }
+  .beat h1, .beat h2 { color: var(--blanc); }
+  .beat h1 { font-size: clamp(2.7rem, 1.8rem + 4vw, 5.6rem); }
+  .beat .lead { color: #DCE4EE; }
+  .beat .btn { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+  .beat .btn.ghost { background: transparent; color: var(--blanc); }
+  .beat .btn.ghost:hover { background: rgba(249,249,249,.12); }
+  .kick { color: #E4B3C1; font-weight: 600; margin-bottom: .8rem; }
+  .js .b2, .js .b3 { opacity: 0; visibility: hidden; }
+
+  .stage-phone { position: absolute; z-index: 3; right: max(var(--gutter), calc((100vw - var(--max)) / 2 + var(--gutter))); top: 50%; transform: translateY(-50%); width: min(300px, 70vw); }
+  .js .stage-phone { opacity: 0; visibility: hidden; }
+
+  .stage-progress { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 1.6rem; height: 1px; background: rgba(249,249,249,.18); max-width: calc(var(--max) - 2 * var(--gutter)); margin: 0 auto; }
+  .stage-progress span { display: block; height: 100%; width: 100%; background: #E4B3C1; transform-origin: left; transform: scaleX(0); }
+  .stage-hint { position: absolute; left: 50%; bottom: 2.4rem; transform: translateX(-50%); color: #C9D3E0; margin: 0; }
+
+  @media (max-width: 959px) {
+    .stage-grid { align-items: end; padding-bottom: 4.5rem; }
+    .beat { max-width: none; }
+    .beat .lead { font-size: var(--step-0); }
+    .stage-phone { top: 84px; transform: none; right: var(--gutter); width: min(168px, 44vw); }
+    .stage-phone :global(.phone) { aspect-ratio: 9 / 16; border-radius: 34px; padding: 7px; }
+    .stage-phone :global(.phone-screen) { border-radius: 28px; }
+    .stage-phone :global(.phone-screen > *) { zoom: .62; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stage { height: auto; }
+    .stage-pin { position: relative; min-height: 100svh; }
+    .js .b2, .js .b3, .js .stage-phone { display: none; }
+  }
+</style>

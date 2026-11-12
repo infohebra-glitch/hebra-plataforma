@@ -1,0 +1,21 @@
+---
+// Marco de móvil con la ficha dentro. La pantalla se puede desplazar.
+import Ficha from './Ficha.astro';
+interface Props { compact?: boolean; interactive?: boolean; tall?: boolean }
+const { compact = true, interactive = false, tall = false } = Astro.props;
+---
+<div class:list={['phone', { tall }]}>
+  <div class="phone-screen" data-lenis-prevent>
+    <div class="phone-bar" aria-hidden="true"><span>10:12</span><i></i><span class="ind">●●● ▮</span></div>
+    <Ficha compact={compact} interactive={interactive} />
+  </div>
+</div>
+
+<style>
+  .phone { position: relative; width: 100%; aspect-ratio: 9 / 18.5; border-radius: 46px; padding: 10px; background: linear-gradient(145deg, #2a3442, #0f1722); box-shadow: 0 0 0 1.5px #3b4656 inset, 0 50px 80px -30px rgba(0,0,0,.55), 0 20px 40px -20px rgba(0,0,0,.35); }
+  .phone-screen { position: relative; height: 100%; border-radius: 37px; overflow-x: hidden; overflow-y: auto; background: #fff; scrollbar-width: none; }
+  .phone-screen::-webkit-scrollbar { display: none; }
+  .phone-bar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; height: 34px; padding: 0 1.4rem; font: 600 .72rem/1 var(--sans); color: var(--tinta); background: rgba(238,241,245,.92); backdrop-filter: blur(8px); }
+  .phone-bar i { width: 74px; height: 22px; border-radius: 999px; background: #0f1722; }
+  .phone-bar .ind { font-size: .5rem; letter-spacing: .05em; }
+</style>

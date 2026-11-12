@@ -1,28 +1,17 @@
 ---
+// Lo que ve el cliente en su móvil al tocar la etiqueta. Ejemplo.
 import Base from '../../layouts/Base.astro';
 import Ficha from '../../components/Ficha.astro';
 ---
 <Base title="Ficha de ejemplo" description="Así es la ficha que se abre al tocar una prenda con Hebra." bare>
   <div class="demo">
-    <div class="demo-bar">
-      <a href="/" class="demo-home"><img src="/img/logo-blau.png" alt="" width="14" height="20" /> Volver a la web de Hebra</a>
-      <label class="demo-where">Simular que estás
-        <select data-where onchange="document.querySelector('[data-ficha]').closest('.demo').classList.toggle('en-casa', this.value==='casa')">
-          <option value="cabina">en la cabina</option>
-          <option value="casa">en casa</option>
-        </select>
-      </label>
-    </div>
+    <p class="demo-bar"><span>Ficha de ejemplo</span><a href="/ficha/">Qué es esto</a></p>
     <Ficha />
-    <p class="small quiet demo-note">Ficha de ejemplo. En una prenda real, se abre al acercar el móvil a la etiqueta. Dentro de una cabina aparecen las tallas y el «por qué no»; en casa, solo composición, cuidado y origen.</p>
   </div>
 </Base>
 <style>
-  .demo { min-height: 100svh; padding: 1rem 1rem 3rem; display: grid; justify-items: center; align-content: start; gap: 1.2rem; background: var(--perla-suave); }
-  .demo-bar { width: min(100%, 360px); display: flex; flex-wrap: wrap; justify-content: space-between; gap: .6rem; font-size: .85rem; }
-  .demo-home { display: inline-flex; align-items: center; gap: .4rem; color: var(--blau); text-decoration: none; font-weight: 600; }
-  .demo-home img { height: 18px; width: auto; }
-  .demo-where select { font: inherit; margin-left: .3rem; border: 1px solid var(--pedra); border-radius: 4px; padding: .2rem .3rem; background: #fff; }
-  .demo-note { max-width: 360px; text-align: center; }
-  .demo :global(.ficha) { width: 100%; }
+  .demo { min-height: 100svh; background: #E9ECF0; display: grid; justify-items: center; align-content: start; }
+  .demo :global(.ficha) { width: min(100%, 480px); box-shadow: 0 0 0 1px rgba(18,38,63,.06), 0 30px 60px -30px rgba(18,38,63,.25); }
+  .demo-bar { width: min(100%, 480px); margin: 0; display: flex; justify-content: space-between; padding: .55rem 1.1rem; font-size: .75rem; color: var(--tinta-2); background: #fff; border-bottom: 1px solid #EEF0F3; }
+  .demo-bar a { color: var(--blau); font-weight: 600; text-decoration: none; }
 </style>
