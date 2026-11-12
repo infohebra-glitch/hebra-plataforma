@@ -1,8 +1,8 @@
 import { defineConfig } from 'astro/config';
 
-// Cambiar `site` cuando tengamos el dominio definitivo.
+// Dominio definitivo (12-11-2026).
 export default defineConfig({
-  site: 'https://hebra.example',
+  site: 'https://hebraia.com',
   build: { format: 'directory' },
   trailingSlash: 'ignore',
 });
