@@ -1,0 +1,105 @@
+---
+import Base from '../layouts/Base.astro';
+import Report from '../components/Report.astro';
+import Cta from '../components/Cta.astro';
+---
+<Base title="Probador" current="/probador/" description="Hebra Probador cuenta qué prendas entran en cada cabina, las cruza con las ventas y recoge por qué no se las llevan. Avisos, informe semanal y pruebas con grupo de control.">
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href="/">Inicio</a> / Probador</p>
+      <h1>Hebra Probador</h1>
+      <p class="lead">Cuenta qué prendas entran en cada cabina, las cruza con las ventas y recoge por qué no se las llevan. Lo que hoy no queda en ningún sitio pasa a ser una decisión cada lunes.</p>
+      <div class="actions"><a class="btn" href="/contacto/?motivo=demo">Pedir una demo</a></div>
+    </div>
+  </header>
+
+  <section class="band perla">
+    <div class="wrap split">
+      <h2 data-reveal>Lo que mide.</h2>
+      <ul class="rows" data-reveal>
+        <li><h3>Muy probado, poco vendido</h3><p>Las prendas que la gente quiere pero no compra, antes de que lleguen a rebajas.</p></li>
+        <li><h3>Demanda perdida</h3><p>La talla o el color que se pide en la cabina y no está.</p></li>
+        <li><h3>Por qué no se la lleva</h3><p>Talla, corte, precio, color o calidad, con un toque en la ficha de la prenda.</p></li>
+        <li><h3>Tallas probadas y compradas</h3><p>Cuántas M y cuántas L pedir la próxima vez.</p></li>
+        <li><h3>Si el origen hace vender</h3><p>La conversión con el origen visible y sin él, con grupo de control.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split rev">
+      <div data-reveal><Report /></div>
+      <div data-reveal>
+        <h2>Seis informes, cada uno con su momento.</h2>
+        <ul class="rows stack">
+          <li><h3>Avisos, en tiempo real</h3><p>Al móvil de la tienda: tallas pedidas, talla agotada que alguien quiere, prendas olvidadas en la cabina.</p></li>
+          <li><h3>Resumen diario</h3><p>Cinco líneas para la encargada: pruebas, ventas, lo más probado y la talla que falta.</p></li>
+          <li><h3>Informe del lunes</h3><p>Una página por tienda y producto, con una acción recomendada.</p></li>
+          <li><h3>Informe del mes</h3><p>Para dirección y producto: qué se decidió, qué pasó, curva de tallas, stock parado y riesgo de rebaja.</p></li>
+          <li><h3>Fin de temporada</h3><p>Antes del próximo pedido: qué repetir, qué cambiar y el efecto del origen.</p></li>
+          <li><h3>Fin del piloto</h3><p>Los criterios pactados y si se han cumplido, las decisiones tomadas y lo que aún no podemos afirmar.</p></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="band blau">
+    <div class="wrap split">
+      <h2 data-reveal>No opiniones: pruebas.</h2>
+      <div data-reveal>
+        <p class="lead" style="color:#E9EEF4">Cuando cambias un precio, cómo expones una prenda o si enseñas su origen, Hebra lo compara con un grupo de control: unas cabinas o unos días con el cambio y otros sin él.</p>
+        <p class="quiet">Así sabes si el cambio ha hecho vender, o si ha sido el tiempo, el día de la semana o la campaña. Ningún proveedor de probadores publica resultados comparados con un control. Nosotros solo publicamos lo que medimos así.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2 data-reveal>Lo que gana cada persona de la marca.</h2>
+      <div class="grid-3 roles">
+        <div data-reveal><h3>Dirección</h3><p class="quiet">Una decisión al mes que vale más que la cuota, y saber si el origen que cuentas hace vender.</p></div>
+        <div data-reveal><h3>Producto y compras</h3><p class="quiet">Quien más saca: curva de tallas, motivo de no compra y qué cambiar en la próxima colección.</p></div>
+        <div data-reveal><h3>Tienda</h3><p class="quiet">Avisos de talla, prendas olvidadas en la cabina y horas punta del probador.</p></div>
+        <div data-reveal><h3>Marketing</h3><p class="quiet">Qué contenido de la ficha se mira, en qué idioma y si el origen convierte.</p></div>
+        <div data-reveal><h3>Sostenibilidad</h3><p class="quiet">Porcentaje de cadena conocida, certificados al día y coste ambiental con datos reales.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band perla">
+    <div class="wrap">
+      <h2 data-reveal>Empieza pequeño. Añade el porqué cuando quieras.</h2>
+      <div class="grid-3 levels">
+        <div class="level" data-reveal>
+          <h3>Básico</h3>
+          <p class="quiet">Un lector para toda la zona de probadores.</p>
+          <ul><li>Pruebas y conversión por categoría y talla</li><li>Muy probado, poco vendido</li><li>Stock parado y riesgo de rebaja</li><li>Prendas olvidadas</li></ul>
+        </div>
+        <div class="level rec" data-reveal>
+          <h3>Cabina</h3>
+          <p class="quiet">Una antena por cabina y ficha NFC en cada prenda. El nivel que recomendamos para el piloto.</p>
+          <ul><li>Todo lo del Básico, por cabina</li><li>Demanda perdida y peticiones de talla</li><li>Motivo de no compra</li><li>Pruebas con grupo de control, origen incluido</li></ul>
+        </div>
+        <div class="level" data-reveal>
+          <h3>Experiencia</h3>
+          <p class="quiet">Cabina con una pantalla en el probador, solo si la marca la quiere.</p>
+          <ul><li>Todo lo del nivel Cabina</li><li>Contenido en la pantalla del probador</li><li>«Combina con», medido</li></ul>
+        </div>
+      </div>
+      <p class="note" data-reveal>Los precios los damos en la demo, ajustados al número de tiendas y cabinas.</p>
+    </div>
+  </section>
+
+  <Cta />
+</Base>
+
+<style>
+  .roles { margin-top: 2.5rem; }
+  .roles h3, .level h3 { color: var(--blau); }
+  .levels { margin: 2.5rem 0; }
+  .level { background: #fff; padding: 1.8rem; border-radius: 6px; box-shadow: 0 1px 0 var(--linea); }
+  .level.rec { box-shadow: inset 0 0 0 2px var(--blau); }
+  .level h3 { font-size: var(--step-2); font-weight: 340; font-variation-settings: 'opsz' 96; }
+  .level ul { padding-left: 1.1rem; margin: 0; }
+  .level li { margin: .35rem 0; }
+</style>

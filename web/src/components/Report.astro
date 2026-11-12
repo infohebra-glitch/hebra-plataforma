@@ -1,0 +1,52 @@
+---
+// Informe del lunes. Ejemplo ilustrativo, no datos reales.
+---
+<figure class="report">
+  <div class="r-page">
+    <header class="r-head">
+      <div>
+        <p class="r-shop">Tienda de Gràcia, semana 46</p>
+        <p class="r-date">Lunes 16 de noviembre</p>
+      </div>
+      <img src="/img/logo-blau.png" alt="" width="14" height="20" />
+    </header>
+    <dl class="r-kpis">
+      <div><dt>Pruebas</dt><dd>412</dd></div>
+      <div><dt>Conversión</dt><dd>27 %</dd></div>
+      <div><dt>Frente a la semana pasada</dt><dd>+3 puntos</dd></div>
+    </dl>
+    <ul class="r-items">
+      <li><b>Muy probado, poco vendido.</b> El vestido de viscosa: 38 pruebas y 3 ventas. El resto de vestidos vende 1 de cada 4.</li>
+      <li><b>Talla que no cuadra.</b> Los vaqueros en 40 se venden en 1 de cada 3 pruebas; en 38, en 1 de cada 8.</li>
+      <li><b>Por qué no se lo llevan.</b> Del vestido de viscosa, 11 de 17 respuestas dicen «corte».</li>
+      <li><b>Demanda perdida.</b> 9 peticiones de tallas que no había; 5 eran la camisa de lino en L.</li>
+    </ul>
+    <div class="r-action">
+      <p class="r-ak">Acción de esta semana</p>
+      <p class="r-av">Pedir 6 camisas de lino en L antes del viernes.</p>
+      <p class="r-ao">Responsable: producto</p>
+    </div>
+  </div>
+  <figcaption class="small quiet">Así es un lunes con Hebra. Ejemplo ilustrativo, no datos reales.</figcaption>
+</figure>
+
+<style>
+  .report { margin: 0; }
+  .r-page { background: #fff; border-radius: 6px; padding: clamp(1.4rem, 3vw, 2.2rem); box-shadow: 0 1px 0 var(--linea), 0 30px 60px -40px rgba(18,38,63,.5); color: var(--tinta); font-size: .95rem; }
+  .r-head { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 1rem; border-bottom: 1px solid var(--linea); }
+  .r-head img { height: 22px; width: auto; }
+  .r-shop { font: 400 1.35rem/1.15 var(--serif); color: var(--blau); margin: 0; font-variation-settings: 'opsz' 48; }
+  .r-date { margin: .2rem 0 0; color: var(--tinta-2); font-size: .85rem; }
+  .r-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.2rem 0; }
+  .r-kpis dt { font-size: .78rem; color: var(--tinta-2); line-height: 1.25; }
+  .r-kpis dd { margin: .2rem 0 0; font: 400 1.7rem/1 var(--serif); color: var(--blau); font-variant-numeric: tabular-nums; }
+  .r-items { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linea); }
+  .r-items li { padding: .75rem 0; border-bottom: 1px solid var(--linea); line-height: 1.45; }
+  .r-items b { color: var(--blau); font-weight: 600; }
+  .r-action { margin-top: 1.2rem; padding: 1rem 1.1rem; background: var(--grana); color: var(--blanc); border-radius: 4px; }
+  .r-action p { margin: 0; }
+  .r-ak { font-size: .8rem; opacity: .85; }
+  .r-av { font: 400 1.2rem/1.25 var(--serif); margin: .25rem 0 !important; }
+  .r-ao { font-size: .8rem; opacity: .85; }
+  figcaption { margin-top: .9rem; }
+</style>

@@ -1,0 +1,26 @@
+---
+interface Props { title?: string; text?: string }
+const {
+  title = 'Pruébalo ocho semanas en tu tienda.',
+  text = 'Una tienda, una zona de probadores y criterios de éxito pactados por escrito antes de instalar nada. Si funciona, seguimos.',
+} = Astro.props;
+---
+<section class="band cta">
+  <div class="wrap cta-in">
+    <h2 data-reveal>{title}</h2>
+    <div data-reveal>
+      <p class="lead">{text}</p>
+      <div class="actions">
+        <a class="btn" href="/contacto/?motivo=piloto">Quiero el piloto</a>
+        <a class="btn ghost" href="/piloto/">Cómo es el piloto</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cta { border-top: 1px solid var(--linea); }
+  .cta-in { display: grid; gap: 2rem; }
+  @media (min-width: 900px) { .cta-in { grid-template-columns: 1fr 1fr; align-items: end; } }
+  .cta h2 { margin: 0; max-width: 14ch; }
+</style>

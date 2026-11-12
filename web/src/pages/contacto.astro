@@ -1,0 +1,72 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Contacto" current="/contacto/" description="Pide una demo de Hebra o propón un piloto de ocho semanas en tu tienda de moda.">
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href="/">Inicio</a> / Contacto</p>
+      <h1>Hablemos de tu tienda.</h1>
+      <p class="lead">Te responde una persona del equipo, no un robot.</p>
+    </div>
+  </header>
+
+  <section class="band tight" style="padding-top:0">
+    <div class="wrap split">
+      <aside class="aside">
+        <h2 class="h3like">Qué pasa después</h2>
+        <ol class="rows steps stack">
+          <li><h3>Te escribimos</h3><p>Para entender tu tienda, tus probadores y cómo vendes.</p></li>
+          <li><h3>Demo de 30 minutos</h3><p>Con la ficha NFC en la mano y un informe de ejemplo.</p></li>
+          <li><h3>Propuesta de piloto</h3><p>Una página con alcance, criterios de éxito y fechas.</p></li>
+        </ol>
+        <p class="small quiet" style="margin-top:2rem">También en Instagram y TikTok: <a class="textlink" href="https://www.instagram.com/hebra.trace/" rel="noopener">@hebra.trace</a></p>
+      </aside>
+
+      <form class="f" name="contacto" method="POST" action="/gracias/" data-netlify="true" netlify-honeypot="empresa-web">
+        <input type="hidden" name="form-name" value="contacto" />
+        <p class="hp"><label>No rellenar <input name="empresa-web" tabindex="-1" autocomplete="off" /></label></p>
+        <label>Qué necesitas
+          <select name="motivo" required>
+            <option value="demo">Una demo para mi marca</option>
+            <option value="piloto">Un piloto en mi tienda</option>
+            <option value="origen">Origen, sin tienda propia</option>
+            <option value="cadena">Soy una cadena con RFID</option>
+            <option value="socio">Socio o proveedor</option>
+            <option value="dossier">Inversión o prensa: el dossier</option>
+          </select>
+        </label>
+        <div class="row2">
+          <label>Nombre <input name="nombre" autocomplete="name" required /></label>
+          <label>Email <input name="email" type="email" autocomplete="email" required /></label>
+        </div>
+        <div class="row2">
+          <label>Marca o empresa <input name="marca" autocomplete="organization" required /></label>
+          <label>Teléfono, si prefieres llamada <input name="telefono" type="tel" autocomplete="tel" /></label>
+        </div>
+        <div class="row2" data-marca-only>
+          <label>Número de tiendas propias
+            <select name="tiendas">
+              <option value="">Elige</option>
+              <option>Ninguna, solo online</option>
+              <option>1</option><option>2 a 5</option><option>6 a 50</option><option>Más de 50</option>
+            </select>
+          </label>
+          <label>Vendéis con
+            <select name="ventas">
+              <option value="">Elige</option>
+              <option>Shopify</option><option>Otra caja o TPV</option><option>No lo sé</option>
+            </select>
+          </label>
+        </div>
+        <label>Ciudad de la tienda o comentarios <textarea name="mensaje" rows="4"></textarea></label>
+        <label class="check"><input type="checkbox" name="privacidad" required /> <span>He leído la <a class="textlink" href="/privacidad/">política de privacidad</a> y acepto que Hebra use estos datos para responderme.</span></label>
+        <div><button class="btn" type="submit">Enviar</button></div>
+      </form>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .h3like { font-size: var(--step-2); }
+  .aside .rows { margin-top: 1.5rem; }
+</style>

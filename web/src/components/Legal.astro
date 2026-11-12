@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+interface Props { title: string; description: string }
+const { title, description } = Astro.props;
+---
+<Base title={title} description={description}>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href="/">Inicio</a> / {title}</p>
+      <h1>{title}</h1>
+    </div>
+  </header>
+  <section class="band tight" style="padding-top:0">
+    <div class="wrap legal"><slot /></div>
+  </section>
+</Base>
+<style>
+  .legal { max-width: 46rem; }
+  .legal :global(h2) { font-size: var(--step-2); margin-top: 2.5rem; }
+  .legal :global(.pend) { background: #F3E6EA; color: var(--grana); padding: 0 .3em; border-radius: 2px; font-weight: 600; }
+  .legal :global(ul) { padding-left: 1.2rem; }
+  .legal :global(li) { margin: .4rem 0; }
+</style>

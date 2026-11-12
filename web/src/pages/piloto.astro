@@ -1,0 +1,110 @@
+---
+import Base from '../layouts/Base.astro';
+const phases = [
+  { from: 0, to: 0, name: 'Acuerdo', text: 'Una página: alcance, datos, criterios de éxito y quién etiqueta. Evaluación de privacidad y cartel RFID.' },
+  { from: 1, to: 1, name: 'Instalación', text: 'Lector, antenas y sensores. Prueba con 20 prendas, etiquetado de la categoría y uno o dos días de observación para calibrar.' },
+  { from: 2, to: 7, name: 'Medida', text: 'Ajuste de lecturas las dos primeras semanas; después, medida estable, informe cada lunes y pruebas con grupo de control.' },
+  { from: 8, to: 8, name: 'Informe final', text: 'Resultados frente a los criterios pactados, decisiones tomadas y conversación sobre continuidad.' },
+];
+const faqs = [
+  ['¿Hay que hacer obras?', 'No. Se instala en una visita: el lector va en el falso techo o en un armario técnico, y las antenas y sensores en el techo de cada cabina.'],
+  ['¿Usáis nuestro wifi o nuestra red?', 'No. Llevamos un router 4G propio, así que la instalación no depende de vuestro informático y no puede afectar a la caja.'],
+  ['¿Cómo os llegan las ventas?', 'Con una conexión de solo lectura a Shopify o con un fichero semanal de ventas de la caja.'],
+  ['¿Quién pone las etiquetas?', 'Se pacta en la semana 0. La categoría del piloto tiene que estar etiquetada al 100 %; si no, no damos el dato.'],
+  ['¿Qué pasa con los datos de mis clientes?', 'No captamos ninguno. No hay cámaras, y los toques de la ficha no se ligan a ninguna persona ni a ninguna compra.'],
+  ['¿Y si no funciona?', 'Los criterios de éxito se pactan por escrito antes de instalar. El informe final dice si se han cumplido y qué no podemos afirmar todavía.'],
+];
+---
+<Base title="Piloto" current="/piloto/" description="Ocho semanas en una tienda para demostrar el valor de Hebra con datos: criterios de éxito pactados por escrito, informe cada lunes y grupo de control.">
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href="/">Inicio</a> / Piloto</p>
+      <h1>Ocho semanas para demostrarlo en tu tienda.</h1>
+      <p class="lead">Una tienda, una zona de probadores y criterios de éxito pactados por escrito antes de instalar nada. Si funciona, seguimos juntos.</p>
+      <div class="actions"><a class="btn" href="/contacto/?motivo=piloto">Quiero el piloto</a></div>
+    </div>
+  </header>
+
+  <section class="band perla">
+    <div class="wrap">
+      <h2 data-reveal>Semana a semana.</h2>
+      <div class="tl" data-reveal role="list">
+        <div class="tl-weeks" aria-hidden="true">
+          {Array.from({ length: 9 }, (_, i) => <span>S{i}</span>)}
+        </div>
+        {phases.map((p) => (
+          <div class="tl-row" role="listitem">
+            <div class="tl-bar" style={`--a:${p.from + 1};--b:${p.to + 2}`} aria-hidden="true"></div>
+            <div class="tl-text"><h3>{p.name} <span class="small quiet">{p.from === p.to ? `semana ${p.from}` : `semanas ${p.from} a ${p.to}`}</span></h3><p>{p.text}</p></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap grid-2">
+      <div data-reveal>
+        <h2>Lo que pone Hebra.</h2>
+        <p class="lead">Lector, antenas, sensores, software, informes y una visita semanal.</p>
+      </div>
+      <div data-reveal>
+        <h2>Lo que pone la marca.</h2>
+        <p class="lead">Una persona responsable, la exportación de ventas (o Shopify) y la categoría del piloto etiquetada al 100 %.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band blau">
+    <div class="wrap split">
+      <h2 data-reveal>Desde el primer día.</h2>
+      <div data-reveal>
+        <p class="lead" style="color:#E9EEF4">La ficha NFC con «pide otra talla» y «¿por qué no te la llevas?», y los avisos al móvil de la tienda. Es lo que más aporta y lo más sencillo de poner en marcha: no hace falta app, ni pantalla, ni integrar la caja.</p>
+        <p class="quiet">El piloto es un éxito si la lectura es estable y se toma al menos una decisión con los datos. Después, suscripción con permanencia.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split">
+      <h2 data-reveal>Preguntas frecuentes.</h2>
+      <div class="faq" data-reveal>
+        {faqs.map(([q, a]) => (
+          <details>
+            <summary>{q}</summary>
+            <p>{a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="band perla tight">
+    <div class="wrap split">
+      <h2 data-reveal>¿Hablamos de tu tienda?</h2>
+      <div data-reveal>
+        <p class="lead">Cuéntanos cuántas tiendas tienes y cómo vendes. Te respondemos con una propuesta de piloto.</p>
+        <div class="actions"><a class="btn" href="/contacto/?motivo=piloto">Quiero el piloto</a></div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .tl { margin-top: 2.5rem; }
+  .tl-weeks, .tl-bar { display: grid; }
+  .tl-weeks { grid-template-columns: repeat(9, 1fr); font-size: var(--step--1); color: var(--tinta-2); font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--pedra); padding-bottom: .5rem; }
+  .tl-row { display: grid; grid-template-columns: repeat(9, 1fr); gap: .6rem 0; padding: 1.2rem 0; border-bottom: 1px solid var(--linea); }
+  .tl-bar { grid-column: var(--a) / var(--b); height: 10px; background: var(--blau); border-radius: 5px; margin: 0 3px; }
+  .tl-row:last-child .tl-bar { background: var(--grana); }
+  .tl-text { grid-column: 1 / -1; }
+  .tl-text h3 { color: var(--blau); margin: .2rem 0 .3rem; }
+  .tl-text h3 span { font-family: var(--sans); margin-left: .5rem; }
+  .tl-text p { margin: 0; color: var(--tinta-2); }
+  .faq details { border-top: 1px solid var(--linea); padding: 1.1rem 0; }
+  .faq details:last-child { border-bottom: 1px solid var(--linea); }
+  .faq summary { cursor: pointer; font: 450 var(--step-1)/1.3 var(--serif); color: var(--blau); list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+  .faq summary::after { content: '+'; font-family: var(--sans); color: var(--grana); transition: transform .25s; }
+  .faq details[open] summary::after { transform: rotate(45deg); }
+  .faq details p { margin: .8rem 0 0; color: var(--tinta-2); }
+</style>

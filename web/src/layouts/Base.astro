@@ -1,0 +1,131 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  current?: string;
+  bare?: boolean; // ficha NFC: sin cabecera ni pie de la web
+}
+const { title, description, current = '', bare = false } = Astro.props;
+const nav = [
+  { href: '/probador/', label: 'Probador' },
+  { href: '/origen/', label: 'Origen' },
+  { href: '/como-funciona/', label: 'Cómo funciona' },
+  { href: '/piloto/', label: 'Piloto' },
+  { href: '/nosotros/', label: 'Nosotros' },
+  { href: '/contacto/', label: 'Contacto' },
+];
+const fullTitle = title === 'Hebra' ? 'Hebra · Lo que pasa dentro del probador' : `${title} · Hebra`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{fullTitle}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#14457D" />
+  <!-- Quitar al lanzar con el dominio definitivo -->
+  <meta name="robots" content="noindex" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={fullTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:locale" content="es_ES" />
+  <script is:inline>document.documentElement.classList.add('js');</script>
+</head>
+<body class={bare ? 'bare' : ''}>
+  {!bare && (
+    <header class="top" data-top>
+      <div class="wrap top-in">
+        <a class="brand" href="/" aria-label="Hebra, inicio">
+          <img src="/img/logo-blau.png" alt="" width="22" height="32" />
+          <span>Hebra</span>
+        </a>
+        <nav class="nav" id="nav" aria-label="Principal">
+          <ul>
+            {nav.map((n) => (
+              <li><a href={n.href} aria-current={current === n.href ? 'page' : undefined}>{n.label}</a></li>
+            ))}
+          </ul>
+        </nav>
+        <a class="btn top-cta" href="/contacto/?motivo=demo">Pedir una demo</a>
+        <button class="menu" aria-expanded="false" aria-controls="nav" data-menu>
+          <span class="visually-hidden">Menú</span><i></i><i></i>
+        </button>
+      </div>
+    </header>
+  )}
+  <main id="main"><slot /></main>
+  {!bare && (
+    <footer class="foot">
+      <div class="wrap">
+        <div class="foot-grid">
+          <div>
+            <p class="foot-claim">La prenda ya sabe dónde ha estado. Hebra hace que la marca lo sepa.</p>
+            <a class="btn" href="/contacto/?motivo=demo">Pedir una demo</a>
+          </div>
+          <nav aria-label="Pie">
+            <ul>
+              {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+            </ul>
+            <ul>
+              <li><a href="/privacidad/">Privacidad y sensores</a></li>
+              <li><a href="/aviso-legal/">Aviso legal y cookies</a></li>
+              <li><a href="/p/demo/">Ver una ficha NFC</a></li>
+              <li><a href="https://www.instagram.com/hebra.trace/" rel="noopener">Instagram</a></li>
+              <li><a href="https://www.tiktok.com/@hebra.trace" rel="noopener">TikTok</a></li>
+            </ul>
+          </nav>
+        </div>
+        <p class="foot-base">Hebra, Barcelona. Trace the truth.</p>
+      </div>
+    </footer>
+  )}
+  <script>
+    import '../scripts/motion.js';
+  </script>
+</body>
+</html>
+
+<style is:global>
+  .top { position: fixed; inset: 0 0 auto; z-index: 50; transition: background .3s, box-shadow .3s, transform .35s; }
+  .top.scrolled { background: rgba(249,249,249,.94); backdrop-filter: blur(8px); box-shadow: 0 1px 0 var(--linea); }
+  .top.hide { transform: translateY(-100%); }
+  .top-in { display: flex; align-items: center; gap: 2rem; height: 76px; }
+  .brand { display: flex; align-items: center; gap: .7rem; text-decoration: none; color: var(--blau); font: 400 1.6rem/1 var(--serif); font-variation-settings: 'opsz' 72; letter-spacing: -0.01em; }
+  .brand img { height: 32px; width: auto; }
+  .nav { margin-left: auto; }
+  .nav ul { display: flex; gap: 1.6rem; list-style: none; margin: 0; padding: 0; }
+  .nav a { text-decoration: none; font-weight: 500; font-size: .98rem; color: var(--tinta); padding: .3rem 0; border-bottom: 1.5px solid transparent; }
+  .nav a:hover, .nav a[aria-current] { border-color: var(--grana); color: var(--blau); }
+  .top-cta { padding: .7em 1.15em; font-size: .95rem; }
+  .menu { display: none; }
+  @media (max-width: 1020px) {
+    .nav { position: fixed; inset: 76px 0 auto; background: var(--blanc); border-bottom: 1px solid var(--linea); padding: 1rem var(--gutter) 2rem; display: none; }
+    .nav.open { display: block; }
+    .nav ul { flex-direction: column; gap: 0; }
+    .nav li a { display: block; padding: 1rem 0; font: 400 var(--step-2)/1 var(--serif); color: var(--blau); border-bottom: 1px solid var(--linea); }
+    .top-cta { margin-left: auto; }
+    .menu { display: grid; gap: 6px; place-content: center; width: 44px; height: 44px; background: none; border: 0; cursor: pointer; }
+    .menu i { display: block; width: 22px; height: 1.5px; background: var(--blau); transition: transform .25s; }
+    .menu[aria-expanded='true'] i:first-of-type { transform: translateY(3.75px) rotate(45deg); }
+    .menu[aria-expanded='true'] i:last-of-type { transform: translateY(-3.75px) rotate(-45deg); }
+  }
+  @media (max-width: 520px) { .top-cta { display: none; } .menu { margin-left: auto; } }
+
+  .foot { background: var(--blau); color: var(--blanc); padding: clamp(4rem, 8vw, 6rem) 0 2rem; }
+  .foot-grid { display: grid; gap: 3rem; }
+  @media (min-width: 860px) { .foot-grid { grid-template-columns: 1.3fr 1fr; } }
+  .foot-claim { font: 340 var(--step-3)/1.08 var(--serif); font-variation-settings: 'opsz' 120; color: var(--blanc); max-width: 18ch; letter-spacing: -0.015em; }
+  .foot .btn { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+  .foot nav { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .foot nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; align-content: start; }
+  .foot nav a { text-decoration: none; color: #D8E0EA; }
+  .foot nav a:hover { color: var(--blanc); text-decoration: underline; text-decoration-color: #E4B3C1; }
+  .foot-base { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid rgba(249,249,249,.18); font-size: var(--step--1); color: #C9D3E0; max-width: none; }
+</style>

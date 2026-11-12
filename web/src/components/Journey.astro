@@ -1,0 +1,106 @@
+---
+interface Props { dark?: boolean }
+const steps = [
+  ['Entra al probador', 'La clienta se lleva tres prendas a la cabina. Cada una lleva la etiqueta doble de Hebra.'],
+  ['Cuenta como prueba', 'El lector del techo ve que la prenda está dentro de la cabina ocupada al menos 60 segundos. Sin cámaras ni datos de personas.'],
+  ['La clienta toca la prenda', 'Con el móvil, sin app. Ve composición y origen, pide otra talla o dice por qué no se la lleva.'],
+  ['La tienda recibe el aviso', '«Cabina 2 pide la camisa de lino en L.» Llega al móvil de la dependienta.'],
+  ['Se cruza con la venta', 'Misma referencia y talla, misma tienda, mismo día. Desde Shopify o un fichero de ventas.'],
+  ['La marca recibe una acción', 'Cada lunes, una página: qué se prueba y no se vende, por qué, y qué hacer esta semana.'],
+];
+---
+<div class="journey" data-journey>
+  <div class="j-plan-wrap">
+    <svg class="j-plan" data-plan data-active="1" viewBox="0 0 480 430" role="img" aria-label="Plano de una zona de probadores con Hebra: tres cabinas, antenas en el techo, pasarela, caja y nube">
+      <rect x="16" y="16" width="448" height="214" rx="6" class="zone" />
+      <text x="30" y="36" class="t">Zona de probadores</text>
+      <g class="cab"><rect x="32" y="50" width="128" height="160" rx="4" /><text x="96" y="200" class="t c">Cabina 1</text></g>
+      <g class="cab on2"><rect x="176" y="50" width="128" height="160" rx="4" /><text x="240" y="200" class="t c">Cabina 2</text></g>
+      <g class="cab"><rect x="320" y="50" width="128" height="160" rx="4" /><text x="384" y="200" class="t c">Cabina 3</text></g>
+
+      <g data-k="2" class="k">
+        <rect x="66" y="58" width="60" height="5" rx="2" /><rect x="210" y="58" width="60" height="5" rx="2" class="hot" /><rect x="354" y="58" width="60" height="5" rx="2" />
+        <path d="M222 72 q18 10 36 0 M214 80 q26 16 52 0" class="wave" />
+      </g>
+      <g data-k="1" class="k">
+        <path d="M214 104 l10 -8 h10 l6 6 l6 -6 h10 l10 8 l-6 8 l-6 -4 v34 h-28 v-34 l-6 4 z" class="garment" />
+        <rect x="236" y="128" width="8" height="10" rx="1" class="tagdot" />
+      </g>
+      <g data-k="3" class="k">
+        <rect x="262" y="128" width="22" height="38" rx="4" class="phone" />
+        <path d="M250 136 q-6 6 0 12" class="wave" />
+      </g>
+
+      <rect x="196" y="250" width="88" height="34" rx="4" class="dev" />
+      <text x="240" y="271" class="t c">Pasarela</text>
+      <path d="M240 230 V250" class="wire" />
+
+      <g data-k="4" class="k">
+        <rect x="40" y="320" width="120" height="70" rx="6" class="dev" />
+        <text x="100" y="346" class="t c">Móvil de tienda</text>
+        <text x="100" y="368" class="t c s">Cabina 2 pide L</text>
+        <path d="M196 270 H100 V320" class="wire hotwire" />
+      </g>
+      <g data-k="5" class="k">
+        <rect x="180" y="320" width="120" height="70" rx="6" class="dev" />
+        <text x="240" y="346" class="t c">Caja o Shopify</text>
+        <text x="240" y="368" class="t c s">Venta en M</text>
+        <path d="M240 284 V320" class="wire hotwire" />
+      </g>
+      <g data-k="6" class="k">
+        <rect x="320" y="320" width="120" height="70" rx="6" class="dev" />
+        <text x="380" y="346" class="t c">Nube Hebra (UE)</text>
+        <text x="380" y="368" class="t c s">Informe del lunes</text>
+        <path d="M284 270 H380 V320" class="wire hotwire" />
+      </g>
+    </svg>
+  </div>
+
+  <ol class="rows steps j-steps">
+    {steps.map(([h, p], i) => (
+      <li data-step={i + 1} class={i === 0 ? 'on' : ''}>
+        <h3>{h}</h3>
+        <p>{p}</p>
+      </li>
+    ))}
+  </ol>
+</div>
+
+<style>
+  .journey { display: grid; gap: 3rem; }
+  @media (min-width: 960px) {
+    .journey { grid-template-columns: 1fr 1fr; align-items: start; }
+    .j-plan-wrap { position: sticky; top: 110px; }
+  }
+  .j-plan { width: 100%; height: auto; }
+  .j-plan .zone { fill: rgba(249,249,249,.06); stroke: rgba(249,249,249,.35); stroke-dasharray: 4 4; }
+  .j-plan .cab rect { fill: none; stroke: rgba(249,249,249,.45); }
+  .j-plan .t { fill: #C9D3E0; font: 500 12px var(--sans); }
+  .j-plan .t.c { text-anchor: middle; }
+  .j-plan .t.s { fill: #E9EEF4; font-weight: 600; }
+  .j-plan .dev { fill: rgba(249,249,249,.08); stroke: rgba(249,249,249,.45); }
+  .j-plan .wire { fill: none; stroke: rgba(249,249,249,.35); stroke-width: 1.25; }
+  .j-plan .k { opacity: .28; transition: opacity .45s; }
+  .j-plan .k rect { fill: #C9D3E0; }
+  .j-plan .k .dev { fill: rgba(249,249,249,.08); }
+  .j-plan .garment { fill: none; stroke: #F9F9F9; stroke-width: 1.5; stroke-linejoin: round; }
+  .j-plan .k .tagdot { fill: #E4B3C1; }
+  .j-plan .k .phone { fill: none; stroke: #F9F9F9; stroke-width: 1.5; }
+  .j-plan .wave { fill: none; stroke: #E4B3C1; stroke-width: 1.5; stroke-linecap: round; }
+  .j-plan .k .hot { fill: #E4B3C1; }
+  .j-plan[data-active='1'] [data-k='1'],
+  .j-plan[data-active='2'] [data-k='1'], .j-plan[data-active='2'] [data-k='2'],
+  .j-plan[data-active='3'] [data-k='1'], .j-plan[data-active='3'] [data-k='3'],
+  .j-plan[data-active='4'] [data-k='4'],
+  .j-plan[data-active='5'] [data-k='5'],
+  .j-plan[data-active='6'] [data-k='6'] { opacity: 1; }
+  .j-plan [data-k] .hotwire { stroke: #E4B3C1; stroke-width: 1.75; }
+
+  @media (min-width: 960px) {
+    .j-steps > li { opacity: .5; transition: opacity .35s; }
+    .j-steps > li.on { opacity: 1; }
+  }
+  :global(.no-js) .j-steps > li { opacity: 1; }
+  @media (min-width: 960px) { .j-steps > li { padding: 2.6rem 0; } .j-steps > li { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .j-steps > li { opacity: 1; } }
+</style>

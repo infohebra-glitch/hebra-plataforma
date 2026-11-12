@@ -1,0 +1,106 @@
+---
+import Base from '../layouts/Base.astro';
+import Journey from '../components/Journey.astro';
+import Cta from '../components/Cta.astro';
+const sensors = [
+  ['Etiqueta de doble frecuencia', 'En cada prenda', 'Un solo tejido con dos chips: UHF para el lector y NFC para el móvil. Guarda un código único GS1 (referencia, color, talla y número de serie). Nada del cliente. Sin batería.'],
+  ['Lector RFID UHF', 'Falso techo o armario técnico', 'Un lector industrial con cuatro salidas de antena, en la banda europea de 865 a 868 MHz. Un solo cable de red le da datos y corriente.'],
+  ['Antena de campo cercano', 'Techo de cada cabina', 'Plana, pequeña y a baja potencia, para leer solo lo que hay dentro de esa cabina y no la de al lado.'],
+  ['Sensor de puerta', 'Puerta de cada cabina', 'Un contacto magnético por cable, como el de una alarma. Si la cabina tiene cortina, basta el de presencia.'],
+  ['Sensor de presencia', 'Techo de cada cabina', 'Un radar de ondas milimétricas con marcado CE. Sabe si hay alguien, sí o no. No ve imagen, cara, cuerpo, edad ni cuántas personas hay.'],
+  ['Pasarela de tienda', 'Armario técnico', 'Un miniordenador que convierte lecturas en sesiones y pruebas. Si cae internet, guarda siete días y lo envía después.'],
+  ['Conexión propia', 'Armario técnico', 'Un router 4G propio. No tocamos la red ni el wifi de la tienda, así que no puede afectar a la caja.'],
+  ['Nube Hebra', 'Servidores en la UE', 'Cruza pruebas, ventas y toques de la ficha, y genera los avisos y los informes. Lee las ventas de Shopify o de un fichero semanal de la caja.'],
+];
+---
+<Base title="Cómo funciona" current="/como-funciona/" description="Una etiqueta NFC + RFID UHF en cada prenda, un lector en el techo del probador y un informe cada lunes. Sin cámaras, sin obras y sin tocar el wifi de la tienda.">
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href="/">Inicio</a> / Cómo funciona</p>
+      <h1>Todo empieza en la etiqueta.</h1>
+      <p class="lead">Dos tecnologías en una sola pieza cosida a la prenda. Un lector en el techo del probador. Y una regla clara antes de contar nada.</p>
+    </div>
+  </header>
+
+  <section class="band perla">
+    <div class="wrap">
+      <div class="grid-3 tech">
+        <div data-reveal>
+          <h3>RFID UHF, para la marca</h3>
+          <p>El lector, escondido en el techo, detecta qué prendas entran en cada cabina y cuánto tiempo están. Es lo que cuenta pruebas y ventas. No hace falta tocar nada.</p>
+        </div>
+        <div data-reveal>
+          <h3>NFC, para el cliente</h3>
+          <p>Acerca el móvil a la prenda y, sin descargar ninguna app, ve composición, cuidado y origen, pide otra talla o dice por qué no se la lleva.</p>
+        </div>
+        <div data-reveal>
+          <h3>Sin código QR</h3>
+          <p>No aporta nada que el NFC no haga mejor y ensucia la prenda. Si tu marca ya tiene etiquetas RFID de inventario, añadimos el NFC emparejado con ellas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band blau">
+    <div class="wrap">
+      <h2 data-reveal>El recorrido de una prenda.</h2>
+      <Journey />
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split">
+      <div data-reveal>
+        <h2>De la lectura a la venta.</h2>
+        <p class="quiet">Que una prenda se lea en la zona de probadores no quiere decir que alguien se la haya probado. Por eso combinamos tres sensores y aplicamos una regla antes de contar nada.</p>
+      </div>
+      <ol class="rows steps" data-reveal>
+        <li><h3>Lectura</h3><p>El lector ve la prenda: código, antena, hora exacta e intensidad de la señal. Miles por hora; solas no significan nada.</p></li>
+        <li><h3>Sesión</h3><p>La cabina está en uso: empieza cuando se cierra la puerta y hay alguien, y acaba cuando se abre y queda vacía.</p></li>
+        <li><h3>Prueba</h3><p>La prenda está dentro de la sesión al menos 60 segundos, con lecturas suficientes y señal por encima del umbral de esa cabina.</p></li>
+        <li><h3>Venta</h3><p>Misma referencia, color y talla, misma tienda y mismo día. Una venta se empareja con una sola prueba; si compra otra talla, se ve como cambio de talla.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="band perla">
+    <div class="wrap">
+      <h2 data-reveal>Lo que se instala, pieza a pieza.</h2>
+      <p class="lead" data-reveal>Hardware comercial con marcado CE, instalado en una visita y sin obras. Hebra no fabrica hardware.</p>
+      <ul class="rows sensors" data-reveal>
+        {sensors.map(([n, w, d]) => (
+          <li><div><h3>{n}</h3><p class="small quiet">{w}</p></div><p>{d}</p></li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split">
+      <h2 data-reveal>Lo que podría fallar, y cómo lo evitamos.</h2>
+      <ul class="rows stack" data-reveal>
+        <li><h3>Que una antena lea la cabina de al lado</h3><p>Antenas de campo cercano a baja potencia, un umbral propio para cada cabina y la regla de la cabina ganadora.</p></li>
+        <li><h3>Espejos, metal o el cuerpo tapando la señal</h3><p>Una prueba con 20 prendas en la instalación y uno o dos días de observación, antes de medir nada.</p></li>
+        <li><h3>Prendas que pasan sin probarse</h3><p>Solo cuentan si están dentro de una sesión de cabina 60 segundos o más.</p></li>
+        <li><h3>Prendas sin etiqueta</h3><p>La categoría del piloto se etiqueta al 100 %. Sin cobertura total, no damos el dato.</p></li>
+        <li><h3>Que se caiga internet</h3><p>La pasarela guarda siete días de lecturas y las envía cuando vuelve la conexión.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="band perla tight">
+    <div class="wrap split">
+      <h2 data-reveal>¿Funciona con mi móvil?</h2>
+      <p data-reveal>Los iPhone desde el XS (2018) leen NFC sin abrir ninguna app, con la pantalla desbloqueada. En Android, el NFC viene activado en la gran mayoría de móviles. En la cabina, un cartel pequeño y un símbolo en la etiqueta dicen «Toca la prenda con el móvil». La ficha se abre en el idioma del teléfono: catalán, castellano, francés o inglés.</p>
+    </div>
+  </section>
+
+  <Cta />
+</Base>
+
+<style>
+  .tech h3 { color: var(--blau); font-size: var(--step-2); font-weight: 340; font-variation-settings: 'opsz' 96; }
+  .sensors { margin-top: 2.5rem; }
+  .sensors h3 { color: var(--blau); }
+  .sensors .small { margin: .2rem 0 0; }
+</style>

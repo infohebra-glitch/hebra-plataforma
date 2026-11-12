@@ -1,0 +1,103 @@
+---
+import Base from '../layouts/Base.astro';
+import Ficha from '../components/Ficha.astro';
+import Cta from '../components/Cta.astro';
+const stages = [
+  ['Materia', 'Fibra o cultivo. País, proveedor y certificado (GOTS, GRS, OCS…).', true],
+  ['Hilatura y tejido', 'Dónde se hacen el hilo y la tela.', true],
+  ['Tintura y acabado', 'Dónde se tiñe y se acaba la tela.', true],
+  ['Confección', 'Dónde se cose la prenda. En este ejemplo aún falta el certificado.', false],
+];
+---
+<Base title="Origen" current="/origen/" description="Hebra Origen: la cadena de cada modelo en cuatro etapas, certificados con aviso de caducidad y coste ambiental oficial francés con Ecobalyse. Pensado para marcas de 1 a 5 tiendas.">
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href="/">Inicio</a> / Origen</p>
+      <h1>Hebra Origen</h1>
+      <p class="lead">La cadena de cada modelo en cuatro etapas. El mismo recorrido que hacen las grandes herramientas de trazabilidad, en la versión que una marca de 1 a 5 tiendas puede rellenar en una tarde.</p>
+      <div class="actions"><a class="btn" href="/contacto/?motivo=demo">Pedir una demo</a></div>
+    </div>
+  </header>
+
+  <section class="band perla">
+    <div class="wrap split">
+      <div data-reveal>
+        <h2>Cuatro etapas por modelo.</h2>
+        <p class="quiet">Si ya usas una herramienta de trazabilidad, importamos lo que tienes y no repites trabajo.</p>
+        <div class="known">
+          <p class="known-k">Cadena conocida de este modelo</p>
+          <p class="known-v">75 %</p>
+          <div class="bar" role="img" aria-label="Tres de cuatro etapas completas"><span style="width:75%"></span></div>
+          <p class="small quiet">Ejemplo ilustrativo. La métrica se da por modelo y colección, con las etapas que faltan.</p>
+        </div>
+      </div>
+      <ol class="rows steps chain" data-reveal>
+        {stages.map(([h, p, ok]) => (
+          <li class={ok ? '' : 'missing'}><h3>{h}</h3><p>{p}</p></li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split">
+      <h2 data-reveal>Cómo se recogen los datos.</h2>
+      <ol class="rows steps" data-reveal>
+        <li><h3>La marca rellena una plantilla</h3><p>Por modelo, una vez por colección.</p></li>
+        <li><h3>Cada proveedor confirma su etapa</h3><p>Recibe un enlace con su etapa ya escrita, la confirma y sube el certificado. Sin crear ninguna cuenta.</p></li>
+        <li><h3>Hebra valida y vigila</h3><p>Comprobamos que el certificado está vigente y avisamos 60 días antes de que caduque.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="band blau">
+    <div class="wrap split">
+      <h2 data-reveal>Si vendes en Francia, esto ya va contigo.</h2>
+      <div data-reveal>
+        <p class="lead" style="color:#E9EEF4">Desde el 1 de octubre de 2026, cualquier tercero puede calcular y publicar el coste ambiental de tu prenda sin tu permiso. Si faltan datos, la herramienta oficial pone valores por defecto desfavorables, como confección lejana y transporte en avión.</p>
+        <p class="quiet">La marca tiene un mes para sustituirlo por el suyo. Con Hebra Origen lo calculas con datos reales antes que nadie, con Ecobalyse, la herramienta oficial, gratuita y de código abierto del Estado francés. No hacemos cálculos propios ni frases de impacto sin base.</p>
+        <p class="small quiet">Fuente: Decreto 2025-957 y ficha del Ministère de la Transition écologique (enero de 2026).</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap split rev">
+      <div data-reveal>
+        <h2>Lo que solo hace Hebra: cruzar la cadena con la tienda.</h2>
+        <p class="lead">Pruebas, conversión, motivos de no compra y devoluciones por proveedor y por origen.</p>
+        <ul class="rows stack">
+          <li><h3>«¿Vende más lo que hago cerca?»</h3><p>La conversión de los modelos según dónde se confeccionan.</p></li>
+          <li><h3>«¿Qué fábrica me genera más “no me lo llevo”?»</h3><p>Los motivos de no compra, agrupados por proveedor.</p></li>
+          <li><h3>Preparado para el pasaporte digital</h3><p>La ficha lleva una dirección estándar GS1 por referencia, lista para el pasaporte digital de producto europeo, previsto hacia 2029. El registro lo hace la marca; Hebra prepara los datos.</p></li>
+        </ul>
+      </div>
+      <div class="ficha-col" data-reveal>
+        <Ficha compact interactive={false} />
+        <p class="small quiet">Lo que ve el cliente al tocar la prenda. <a class="textlink" href="/p/demo/">Abrir la ficha de ejemplo</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band perla tight">
+    <div class="wrap split">
+      <h2 data-reveal>¿Sin tienda propia?</h2>
+      <div data-reveal>
+        <p class="lead">Origen funciona solo: ficha NFC y coste ambiental para marcas que venden online o a otras tiendas. El Probador llega cuando abras tienda.</p>
+        <div class="actions"><a class="btn" href="/contacto/?motivo=origen">Hablar de Origen</a></div>
+      </div>
+    </div>
+  </section>
+
+  <Cta />
+</Base>
+
+<style>
+  .known { margin-top: 2.5rem; background: #fff; border-radius: 6px; padding: 1.6rem; box-shadow: 0 1px 0 var(--linea); max-width: 26rem; }
+  .known-k { margin: 0; color: var(--tinta-2); }
+  .known-v { font: 340 var(--step-4)/1 var(--serif); color: var(--blau); margin: .3rem 0 1rem; }
+  .bar { height: 6px; background: var(--perla-suave); border-radius: 3px; overflow: hidden; margin-bottom: 1rem; }
+  .bar span { display: block; height: 100%; background: var(--blau); }
+  .chain .missing h3::after { content: 'Falta certificado'; margin-left: .8rem; font: 600 .78rem/1 var(--sans); color: var(--grana); border: 1.5px solid var(--grana); border-radius: 999px; padding: .25rem .55rem; vertical-align: middle; }
+  .ficha-col { display: grid; gap: 1rem; justify-items: center; align-content: start; }
+</style>
