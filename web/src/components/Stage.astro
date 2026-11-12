@@ -75,12 +75,12 @@ const T = {
 </section>
 
 <style>
-  .stage { position: relative; height: 320svh; background: var(--blau); color: var(--blanc); }
+  .stage { position: relative; height: 320svh; background: var(--on-light); color: #fff; }
   .stage-pin { position: sticky; top: 0; height: 100svh; overflow: hidden; }
   .stage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .stage-fallback { display: none; }
-  .stage-canvas[data-failed] + .stage-fallback { display: block; position: absolute; inset: 0; background: radial-gradient(60% 60% at 70% 50%, #1d5797, var(--blau)); }
-  .stage::before { content: ''; position: absolute; inset: 0; background: radial-gradient(70% 70% at 68% 45%, #1e5a9c 0%, var(--blau) 62%); pointer-events: none; }
+  .stage-canvas[data-failed] + .stage-fallback { display: block; position: absolute; inset: 0; background: radial-gradient(60% 60% at 70% 50%, #1d5797, var(--on-light)); }
+  .stage::before { content: ''; position: absolute; inset: 0; background: radial-gradient(70% 70% at 68% 45%, #1e5a9c 0%, var(--on-light) 62%); pointer-events: none; }
 
   .stage-scrim { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: linear-gradient(90deg, rgba(14,52,96,.94) 0%, rgba(14,52,96,.82) 38%, rgba(14,52,96,0) 62%); }
   @media (max-width: 959px) { .stage-scrim { background: linear-gradient(0deg, rgba(14,52,96,.96) 0%, rgba(14,52,96,.85) 42%, rgba(14,52,96,0) 62%); } }
@@ -88,12 +88,12 @@ const T = {
   @media (min-width: 960px) { .stage-grid { grid-template-columns: 1fr 1fr; } }
   .stage-copy { position: relative; z-index: 2; display: grid; }
   .beat { grid-area: 1 / 1; max-width: 34rem; }
-  .beat h1, .beat h2 { color: var(--blanc); }
+  .beat h1, .beat h2 { color: #fff; }
   .beat h1 { font-size: clamp(2.7rem, 1.8rem + 4vw, 5.6rem); }
   .beat .lead { color: #DCE4EE; }
-  .beat .btn { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
+  .beat .btn { background: #fff; color: var(--on-light); border-color: #fff; }
   .stage .kick { color: #E4B3C1; }
-  .beat .btn.ghost { background: transparent; color: var(--blanc); }
+  .beat .btn.ghost { background: transparent; color: #fff; }
   .beat .btn.ghost:hover { background: rgba(249,249,249,.12); }
   .js .b2, .js .b3 { opacity: 0; visibility: hidden; }
 

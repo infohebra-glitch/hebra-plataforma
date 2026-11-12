@@ -1,8 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
-import Stage from '../components/Stage.astro';
+import Hero from '../components/Hero.astro';
 import Calculator from '../components/Calculator.astro';
-import DataCards from '../components/DataCards.astro';
+import Process from '../components/Process.astro';
+import Fan from '../components/Fan.astro';
 import VideoDemo from '../components/VideoDemo.astro';
 import Report from '../components/Report.astro';
 import Cta from '../components/Cta.astro';
@@ -65,92 +66,156 @@ const T = {
     privacy: 'Privacy',
   },
 }[lang];
+// Textos nuevos de la v4
+const N = {
+  es: {
+    man: 'Cada día, miles de prendas entran en un probador. Se [prueban], se [comparan] y se quedan en la [percha]. La caja solo ve lo que se [vende]. Hebra ve todo lo demás: las [pruebas], las [tallas] que faltan, los [motivos] y el [tiempo].',
+    vid: 'Medimos prendas. <em>Nunca personas.</em>',
+    vidL: 'Sin cámaras, sin micrófonos, sin datos personales.',
+    pH: 'El probador es donde tu cliente decide. <em>Y tú no ves nada.</em>',
+    dH: 'Lo que tu tienda física <em>por fin</em> te cuenta.',
+    words: ['Pruebas por prenda', 'Del probador a la caja', 'Tiempo en cabina', 'Tallas pedidas', 'Motivos de no compra', 'Prendas que entran juntas', 'Horas punta', 'Interés por el origen', 'Efecto de cada cambio'],
+    xK: 'Explora Hebra',
+    x: [['/probador/', 'Probador', 'Lo que pasa en la cabina', 'cortinas'], ['/origen/', 'Origen', 'La cadena de cada modelo', 'percha'], ['/ficha/', 'La ficha', 'Lo que ve tu cliente en el móvil', 'espejo'], ['/como-funciona/', 'Cómo funciona', 'Simulador y los nueve datos', 'cabinas']],
+    rH: 'No te damos datos. Te damos <em>una acción</em> cada lunes.',
+    tH: 'Lo que medimos, y lo que <em>no mediremos nunca.</em>',
+  },
+  ca: {
+    man: 'Cada dia, milers de peces entren en un emprovador. S’[emproven], es [comparen] i es queden a la [perxa]. La caixa només veu el que es [ven]. Hebra veu tota la resta: les [proves], les [talles] que falten, els [motius] i el [temps].',
+    vid: 'Mesurem peces. <em>Mai persones.</em>',
+    vidL: 'Sense càmeres, sense micròfons, sense dades personals.',
+    pH: 'L’emprovador és on el teu client decideix. <em>I tu no hi veus res.</em>',
+    dH: 'El que la teva botiga física <em>per fi</em> t’explica.',
+    words: ['Proves per peça', 'De l’emprovador a la caixa', 'Temps a la cabina', 'Talles demanades', 'Motius de no compra', 'Peces que entren juntes', 'Hores punta', 'Interès per l’origen', 'Efecte de cada canvi'],
+    xK: 'Explora Hebra',
+    x: [['/probador/', 'Emprovador', 'El que passa a la cabina', 'cortinas'], ['/origen/', 'Origen', 'La cadena de cada model', 'percha'], ['/ficha/', 'La fitxa', 'El que veu el teu client al mòbil', 'espejo'], ['/como-funciona/', 'Com funciona', 'Simulador i les nou dades', 'cabinas']],
+    rH: 'No et donem dades. Et donem <em>una acció</em> cada dilluns.',
+    tH: 'El que mesurem, i el que <em>no mesurarem mai.</em>',
+  },
+  en: {
+    man: 'Every day, thousands of garments go into a fitting room. They get [tried], [compared] and left on the [rail]. The till only sees what [sells]. Hebra sees everything else: the [try-ons], the missing [sizes], the [reasons] and the [time].',
+    vid: 'We measure garments. <em>Never people.</em>',
+    vidL: 'No cameras, no microphones, no personal data.',
+    pH: 'The fitting room is where your customer decides. <em>And you see nothing.</em>',
+    dH: 'What your physical store <em>finally</em> tells you.',
+    words: ['Try-ons per garment', 'Fitting room to till', 'Time in the room', 'Sizes requested', 'Reasons for not buying', 'Garments tried together', 'Peak hours', 'Interest in origin', 'Effect of each change'],
+    xK: 'Explore Hebra',
+    x: [['/probador/', 'Fitting room', 'What happens in the room', 'cortinas'], ['/origen/', 'Origin', 'The supply chain of every style', 'percha'], ['/ficha/', 'The garment page', 'What your customer sees on their phone', 'espejo'], ['/como-funciona/', 'How it works', 'Simulator and the nine data points', 'cabinas']],
+    rH: 'We don’t give you data. We give you <em>an action</em> every Monday.',
+    tH: 'What we measure, and what we <em>will never measure.</em>',
+  },
+}[lang];
+const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
+  part.startsWith('[') ? [{ w: part.slice(1, -1), hot: true }] : part.split(/(\s+)/).filter(Boolean).map((w) => ({ w, hot: false }))
+);
 ---
-<Base title="Hebra" dark lang={lang} route="/" description={T.desc}>
-  <Stage lang={lang} />
+<Base title="Hebra" lang={lang} route="/" description={T.desc}>
+  <Hero lang={lang} />
 
-  <section class="band perla" id="problema">
-    <div class="wrap split">
-      <h2 data-reveal>{T.pH}</h2>
-      <div data-reveal>
-        <p class="lead">{T.pL}</p>
-        <ul class="rows loss">
+  <section class="man" aria-label={T.pH.replace(/<[^>]+>/g, '')}>
+    <div class="wrap">
+      <p class="man-text" data-words>
+        {man.map((m) => m.hot ? <span class="mw" data-w>{m.w}</span> : /\s/.test(m.w) ? ' ' : <span class="mw-plain">{m.w}</span>)}
+      </p>
+    </div>
+  </section>
+
+  <section class="film" data-film>
+    <div class="film-frame" data-film-frame>
+      <video muted playsinline loop autoplay preload="metadata" poster="/video/hero.jpg" aria-hidden="true">
+        <source src="/video/hero.mp4" type="video/mp4" />
+      </video>
+      <div class="film-cap">
+        <h2 data-lines set:html={N.vid} />
+        <p>{N.vidL}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="problema">
+    <div class="wrap">
+      <h2 class="big" data-lines set:html={N.pH} />
+      <div class="split prob">
+        <p class="lead" data-reveal>{T.pL}</p>
+        <ul class="rows loss" data-reveal>
           {T.loss.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}
         </ul>
       </div>
     </div>
   </section>
 
-  <section class="band" id="calculadora">
+  <section class="band perla" id="calculadora">
     <div class="wrap">
       <div class="split head-split">
-        <h2 data-reveal>{T.cH}</h2>
+        <h2 data-lines>{T.cH}</h2>
         <p class="lead" data-reveal>{T.cL}</p>
       </div>
       <div data-reveal><Calculator lang={lang} /></div>
     </div>
   </section>
 
-  <section class="band perla" id="datos">
+  <div class="wipe" data-wipe aria-hidden="true"><i></i></div>
+  <Process lang={lang} />
+
+  <section class="band deep" id="datos">
     <div class="wrap">
       <div class="split head-split">
-        <div><p class="kick" data-reveal>{T.dK}</p><h2 data-reveal>{T.dH}</h2></div>
+        <div><p class="kick">{T.dK}</p><h2 data-lines set:html={N.dH} /></div>
         <p class="lead" data-reveal>{T.dL}</p>
       </div>
-      <DataCards lang={lang} />
+      <Fan lang={lang} />
     </div>
   </section>
+
+  <div class="marquee" data-marquee aria-hidden="true">
+    <div class="marquee-track" data-marquee-track>
+      {[0, 1].map(() => (
+        <div class="marquee-set">
+          {N.words.map((w) => <span>{w}<i></i></span>)}
+        </div>
+      ))}
+    </div>
+  </div>
 
   <VideoDemo lang={lang} />
 
-  <section class="band grana tight sim-cta">
-    <div class="wrap sim-cta-in">
-      <div data-reveal><p class="kick">{T.sK}</p><h2>{T.sH}</h2></div>
-      <a class="btn" href={path(lang, '/como-funciona/#simulador')} data-reveal>{T.sB}</a>
-    </div>
-  </section>
-
-  <section class="band" id="piezas">
+  <section class="band" id="explora">
     <div class="wrap">
-      <h2 data-reveal>{T.piecesH}</h2>
-      <div class="grid-2 pieces">
-        <a class="piece" href={path(lang, '/probador/')} data-reveal>
-          <p class="piece-k">{T.p1k}</p>
-          <h3>Hebra {lang === 'ca' ? 'Emprovador' : lang === 'en' ? 'Fitting Room' : 'Probador'}</h3>
-          <p>{T.p1}</p>
-          <ul>{T.p1l.map((x) => <li>{x}</li>)}</ul>
-          <span class="textlink">{T.p1b}</span>
-        </a>
-        <a class="piece" href={path(lang, '/origen/')} data-reveal>
-          <p class="piece-k">{T.p2k}</p>
-          <h3>Hebra {lang === 'en' ? 'Origin' : 'Origen'}</h3>
-          <p>{T.p2}</p>
-          <ul>{T.p2l.map((x) => <li>{x}</li>)}</ul>
-          <span class="textlink">{T.p2b}</span>
-        </a>
-      </div>
+      <p class="kick">{N.xK}</p>
+      <ul class="xlist" data-xlist>
+        {N.x.map(([href, h, p, img]) => (
+          <li>
+            <a href={path(lang, href)} data-ximg={`/img/foto/${img}.webp`}>
+              <span class="x-h">{h}</span>
+              <span class="x-p">{p}</span>
+              <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span>
+            </a>
+          </li>
+        ))}
+      </ul>
       <p class="note" data-reveal>{T.note}</p>
     </div>
+    <div class="xfloat" data-xfloat aria-hidden="true"><img alt="" /></div>
   </section>
 
   <section class="band perla" id="lunes">
     <div class="wrap split rev">
       <div data-reveal><Report lang={lang} /></div>
-      <div data-reveal>
-        <h2>{T.rH}</h2>
-        <p class="lead">{T.rL}</p>
-        <ul class="rows stack">
+      <div>
+        <h2 data-lines set:html={N.rH} />
+        <p class="lead" data-reveal>{T.rL}</p>
+        <ul class="rows stack" data-reveal>
           {T.rl.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}
         </ul>
       </div>
     </div>
   </section>
 
-  <section class="band" id="confianza">
-    <div class="wrap split">
-      <h2 data-reveal>{T.tH}</h2>
-      <div class="grid-2 trust" data-reveal>
-        {T.tr.map(([h, p], i) => <div><h3>{h}</h3><p class="quiet">{p}{i === 3 && <> <a class="textlink" href={path(lang, '/privacidad/')}>{T.privacy}</a></>}</p></div>)}
+  <section class="band dark" id="confianza">
+    <div class="wrap">
+      <h2 class="big" data-lines set:html={N.tH} />
+      <div class="trust">
+        {T.tr.map(([h, p], i) => <div data-reveal><h3>{h}</h3><p class="quiet">{p}{i === 3 && <> <a class="textlink" href={path(lang, '/privacidad/')}>{T.privacy}</a></>}</p></div>)}
       </div>
     </div>
   </section>
@@ -159,21 +224,58 @@ const T = {
 </Base>
 
 <style>
-  .head-split { align-items: end; margin-bottom: clamp(2rem, 5vw, 3.5rem); }
+  h2.big { font-size: clamp(2.4rem, 1.3rem + 4.4vw, 6.2rem); line-height: .96; letter-spacing: -0.055em; max-width: 16ch; margin-bottom: clamp(2.5rem, 6vw, 5rem); }
+  .head-split { align-items: end; margin-bottom: clamp(2.5rem, 5vw, 4rem); }
   .head-split h2 { margin: 0; }
   .head-split .lead { margin: 0; }
-  .loss { margin-top: 2rem; }
-  .loss h3 { color: var(--grana); }
-  .pieces { margin: 3rem 0 2.5rem; }
-  .piece { display: block; text-decoration: none; background: #fff; padding: clamp(1.6rem, 3vw, 2.4rem); border-radius: 16px; box-shadow: 0 1px 0 var(--linea), 0 30px 60px -50px rgba(18,38,63,.6); border-top: 4px solid var(--grana); transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s; }
-  .piece:hover { transform: translateY(-6px); box-shadow: 0 1px 0 var(--linea), 0 40px 70px -40px rgba(140,48,75,.45); }
-  .piece-k { color: var(--grana); font-weight: 600; font-size: var(--step--1); margin: 0 0 .6rem; }
-  .piece h3 { font-size: var(--step-2); font-weight: 340; font-variation-settings: 'opsz' 96; color: var(--blau); }
-  .piece ul { padding-left: 1.1rem; margin: 0 0 1.5rem; }
-  .piece li { margin: .3rem 0; }
-  .piece li::marker { color: var(--grana); }
-  .trust { gap: 2rem 2.5rem; }
-  .trust h3 { color: var(--blau); margin-bottom: .3rem; }
-  .sim-cta-in { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 2rem; }
-  .sim-cta h2 { margin: 0; max-width: 20ch; font-size: var(--step-2); }
+  .prob { align-items: start; }
+  .loss h3 { color: var(--deep); }
+
+  /* Manifiesto: párrafo grande; una palabra se ilumina cada vez */
+  .man { background: var(--ink); color: var(--on-dark); padding: clamp(5rem, 12vw, 10rem) 0; }
+  .man-text { max-width: 30ch; margin: 0; font: 400 clamp(1.9rem, 1rem + 3.4vw, 4.6rem)/1.08 var(--sans); letter-spacing: -0.05em; color: color-mix(in srgb, var(--on-dark) 38%, transparent); text-wrap: pretty; }
+  .mw { color: var(--on-dark); transition: color .6s var(--ease); }
+  .mw.on { font-family: var(--serif); font-style: italic; font-weight: 300; color: var(--tint); letter-spacing: -0.04em; }
+
+  /* Vídeo a sangre que se abre con el scroll */
+  .film { background: var(--ink); padding-bottom: clamp(2rem, 6vw, 5rem); }
+  .film-frame { position: relative; height: 100svh; overflow: hidden; color: #fff; clip-path: inset(0 var(--gutter) round var(--radius)); }
+  .film video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .film-frame::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,.05) 55%); }
+  .film-cap { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; padding: 0 calc(var(--gutter) * 2) clamp(2.5rem, 6vw, 4.5rem); }
+  .film-cap h2 { font-size: clamp(2.6rem, 1.4rem + 5vw, 7rem); line-height: .95; letter-spacing: -0.055em; max-width: 12ch; margin: 0 0 1rem; }
+  .film-cap p { margin: 0; color: rgba(255,255,255,.8); }
+
+  /* La tinta sube y cubre la sección clara */
+  .wipe { position: relative; height: 22vh; background: var(--paper-2); overflow: hidden; }
+  .wipe i { position: absolute; left: 50%; top: 0; width: 160vmax; aspect-ratio: 1; translate: -50% 0; border-radius: 50%; background: var(--ink); transform: translateY(100%) scale(.3); }
+
+  /* Cinta infinita con los nueve datos */
+  .marquee { background: var(--deep); color: #fff; overflow: hidden; padding: 1.6rem 0; border-top: 1px solid rgba(255,255,255,.18); cursor: grab; touch-action: pan-y; user-select: none; }
+  .marquee-track { display: flex; width: max-content; will-change: transform; }
+  .marquee-set { display: flex; }
+  .marquee span { display: inline-flex; align-items: center; gap: 2.2rem; padding-right: 2.2rem; font: 300 italic clamp(2rem, 1.2rem + 3vw, 4rem)/1 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 100; letter-spacing: -0.04em; white-space: nowrap; }
+  .marquee i { width: .32em; height: .32em; border-radius: 50%; border: 1.5px solid currentColor; opacity: .6; }
+
+  /* Lista para explorar: la foto sigue al ratón */
+  .xlist { list-style: none; margin: 0 0 3rem; padding: 0; border-top: 1px solid var(--rule-light); }
+  .xlist a { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .3rem 2rem; padding: clamp(1.4rem, 3vw, 2.2rem) 0; border-bottom: 1px solid var(--rule-light); text-decoration: none; }
+  @media (min-width: 860px) { .xlist a { grid-template-columns: 1.1fr 1fr auto; } }
+  .x-h { font: 420 clamp(2rem, 1.2rem + 3vw, 4.2rem)/1 var(--sans); letter-spacing: -0.05em; transition: transform .6s var(--ease), color .4s; }
+  .x-p { color: var(--on-light-2); grid-row: 2; }
+  @media (min-width: 860px) { .x-p { grid-row: auto; } }
+  .x-arrow { grid-row: 1 / span 2; width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--rule-light); display: grid; place-items: center; transition: background .5s var(--ease), color .5s, transform .6s var(--ease); }
+  @media (min-width: 860px) { .x-arrow { grid-row: auto; } }
+  .xlist a:hover .x-h { transform: translateX(.6rem); color: var(--deep); font-family: var(--serif); font-style: italic; font-weight: 300; }
+  .xlist a:hover .x-arrow { background: var(--deep); color: #fff; border-color: var(--deep); transform: rotate(-45deg); }
+  .xfloat { position: fixed; left: 0; top: 0; z-index: 40; width: 300px; aspect-ratio: 4 / 5; pointer-events: none; border-radius: 16px; overflow: hidden; opacity: 0; scale: .6; transition: opacity .4s, scale .6s var(--ease); }
+  .xfloat.on { opacity: 1; scale: 1; }
+  .xfloat img { width: 100%; height: 100%; object-fit: cover; }
+  @media (hover: none), (max-width: 860px) { .xfloat { display: none; } }
+
+  .trust { display: grid; gap: 2.5rem; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .trust { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1100px) { .trust { grid-template-columns: repeat(4, 1fr); } }
+  .trust > div { border-top: 1px solid var(--rule-dark); padding-top: 1.2rem; }
+  .trust h3 { margin-bottom: .5rem; }
 </style>

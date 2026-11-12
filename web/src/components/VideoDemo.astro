@@ -30,9 +30,9 @@ const T = {
 <style>
   .vd-head { margin-bottom: 2rem; }
   .vd-head h2 { max-width: 18ch; }
-  .vd-frame { position: relative; margin: 0; border-radius: 20px; overflow: hidden; aspect-ratio: 16 / 9; background: #0E3460; box-shadow: 0 40px 80px -40px rgba(0,0,0,.6); }
+  .vd-frame { position: relative; margin: 0; border-radius: 20px; overflow: hidden; aspect-ratio: 16 / 9; background: var(--ink-2); box-shadow: 0 40px 80px -40px rgba(0,0,0,.6); }
   .vd-frame video { width: 100%; height: 100%; display: block; object-fit: cover; }
-  .vd-play { position: absolute; left: 1.2rem; bottom: 1.2rem; display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1.1rem; border-radius: 999px; border: 0; background: var(--blanc); color: var(--blau); font: 600 .9rem/1 var(--sans); cursor: pointer; box-shadow: 0 10px 30px -10px rgba(0,0,0,.5); transition: transform .2s; }
+  .vd-play { position: absolute; left: 1.2rem; bottom: 1.2rem; display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1.1rem; border-radius: 999px; border: 0; background: #fff; color: var(--on-light); font: 600 .9rem/1 var(--sans); cursor: pointer; box-shadow: 0 10px 30px -10px rgba(0,0,0,.5); transition: transform .2s; }
   .vd-play:hover { transform: translateY(-2px); }
   :global(.playing) .vd-play { display: none; }
 </style>

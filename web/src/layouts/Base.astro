@@ -29,7 +29,7 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
   {langs.map((l) => <link rel="alternate" hreflang={l} href={new URL(path(l, route), Astro.site)} />)}
   <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <meta name="theme-color" content="#14457D" />
+  <meta name="theme-color" content={{ es: '#07121F', ca: '#160810', en: '#121110' }[lang]} />
   <!-- Quitar al lanzar con el dominio definitivo -->
   <meta name="robots" content="noindex" />
   <meta property="og:type" content="website" />
@@ -40,42 +40,45 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
 </head>
 <body class={bare ? 'bare' : ''}>
   {!bare && (
-    <header class:list={['top', { dark }]} data-top>
-      <div class="wrap top-in">
-        <a class="brand" href={path(lang, '/')} aria-label={`Hebra, ${t.home}`}>
-          <img class="logo-b" src="/img/logo-blau.png" alt="" width="22" height="32" />
-          <img class="logo-w" src="/img/logo-blanc.png" alt="" width="22" height="32" />
-          <span>Hebra</span>
-        </a>
-        <nav class="nav" id="nav" aria-label="Principal">
-          <ul>
-            {nav.map((n) => (
-              <li><a href={n.href} aria-current={current === n.route || (n.route !== '/' && current.startsWith(n.route)) ? 'page' : undefined}>{n.label}</a></li>
-            ))}
-          </ul>
-        </nav>
-        <div class="langs" aria-label="Idioma">
+    <>
+      <div class="progress" data-progress aria-hidden="true"><i></i></div>
+      <a class="brand-fixed" href={path(lang, '/')} aria-label={`Hebra, ${t.home}`}>
+        <img src="/img/logo-blanc.png" alt="" width="20" height="29" />
+      </a>
+      <a class="cta-fixed" href={path(lang, '/contacto/?motivo=demo')} data-magnetic>{t.demo}</a>
+      <nav class="dock" aria-label={t.navMain} data-dock>
+        <a class="dock-word" href={path(lang, '/')}>Hebra<sup>®</sup></a>
+        <ul class="dock-links">
+          {nav.map((n) => (
+            <li><a href={n.href} aria-current={current === n.route || (n.route !== '/' && current.startsWith(n.route)) ? 'page' : undefined}>{n.label}</a></li>
+          ))}
+        </ul>
+        <span class="dock-langs" aria-label={t.langLabel}>
           {langs.map((l) => (
             <a href={path(l, route)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} title={langName[l]}>{langShort[l]}</a>
           ))}
+        </span>
+        <button class="dock-menu" type="button" aria-expanded="false" aria-controls="overlay" data-menu data-close={t.close}>{t.menu}</button>
+      </nav>
+      <div class="overlay" id="overlay" data-overlay hidden>
+        <ul>
+          {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+          <li><a href={path(lang, '/contacto/')}>{t.contact}</a></li>
+        </ul>
+        <div class="overlay-foot">
+          <span class="dock-langs">{langs.map((l) => <a href={path(l, route)} hreflang={l} aria-current={l === lang ? 'true' : undefined}>{langName[l]}</a>)}</span>
+          <a class="btn" href={path(lang, '/contacto/?motivo=demo')}>{t.demo}</a>
         </div>
-        <a class="btn top-cta" href={path(lang, '/contacto/?motivo=demo')}>{t.demo}</a>
-        <button class="menu" aria-expanded="false" aria-controls="nav" data-menu>
-          <span class="visually-hidden">{t.menu}</span><i></i><i></i>
-        </button>
       </div>
-    </header>
+      <div class="cursor" aria-hidden="true" data-cursor><span></span></div>
+    </>
   )}
   <main id="main"><slot /></main>
   {!bare && (
     <footer class="foot">
       <div class="wrap">
         <div class="foot-grid">
-          <div>
-            <p class="foot-claim">{t.footClaim}</p>
-            <a class="btn" href={path(lang, '/contacto/?motivo=demo')}>{t.demo}</a>
-          </div>
-          <nav aria-label="Pie">
+          <nav aria-label={t.navFoot}>
             <ul>
               {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
               <li><a href={path(lang, '/piloto/')}>{t.pilot}</a></li>
@@ -86,12 +89,12 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
               <li><a href="https://www.instagram.com/hebra.trace/" rel="noopener">Instagram</a></li>
               <li><a href="https://www.tiktok.com/@hebra.trace" rel="noopener">TikTok</a></li>
               <li><a href={path(lang, '/p/demo/')}>{t.fichaDemo}</a></li>
-              <li><a href={path(lang, '/privacidad/')}>{t.privacy}</a></li>
-              <li><a href={path(lang, '/aviso-legal/')}>{t.legal}</a></li>
             </ul>
           </nav>
+          <p class="foot-claim">{t.footClaim}</p>
         </div>
-        <p class="foot-base"><span>{t.base}</span><span class="foot-langs">{langs.map((l) => <a href={path(l, route)} hreflang={l} aria-current={l === lang ? 'true' : undefined}>{langName[l]}</a>)}</span></p>
+        <p class="foot-word" aria-hidden="true">Hebra</p>
+        <p class="foot-base"><span>{t.base}</span><span class="foot-legal"><a href={path(lang, '/privacidad/')}>{t.privacy}</a><a href={path(lang, '/aviso-legal/')}>{t.legal}</a></span></p>
       </div>
     </footer>
   )}
@@ -102,64 +105,61 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
 </html>
 
 <style is:global>
-  .top { view-transition-name: top; position: fixed; inset: 0 0 auto; z-index: 50; transition: background .3s, box-shadow .3s, transform .35s; }
-  .top.scrolled { background: rgba(249,249,249,.94); backdrop-filter: blur(8px); box-shadow: 0 1px 0 var(--linea); }
-  .top.hide { transform: translateY(-100%); }
-  .top-in { display: flex; align-items: center; gap: 2rem; height: 76px; }
-  .brand { display: flex; align-items: center; gap: .7rem; text-decoration: none; color: var(--blau); font: 400 1.6rem/1 var(--serif); font-variation-settings: 'opsz' 72; letter-spacing: -0.01em; }
-  .brand img { height: 32px; width: auto; }
-  .brand .logo-w { display: none; }
-  @media (min-width: 1021px) {
-    .top.dark:not(.scrolled) .brand { color: var(--blanc); }
-    .top.dark:not(.scrolled) .logo-b { display: none; }
-    .top.dark:not(.scrolled) .logo-w { display: block; }
-    .top.dark:not(.scrolled) .nav a { color: #E6ECF3; }
-    .top.dark:not(.scrolled) .nav a:hover, .top.dark:not(.scrolled) .nav a[aria-current] { color: var(--blanc); border-color: #E4B3C1; }
-    .top.dark:not(.scrolled) .top-cta { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
-  }
-  @media (max-width: 1020px) {
-    .top.dark:not(.scrolled) .brand { color: var(--blanc); }
-    .top.dark:not(.scrolled) .logo-b { display: none; }
-    .top.dark:not(.scrolled) .logo-w { display: block; }
-    .top.dark:not(.scrolled) .menu i { background: var(--blanc); }
-    .top.dark:not(.scrolled) .top-cta { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
-  }
-  .nav { margin-left: auto; }
-  .nav ul { display: flex; gap: 1.6rem; list-style: none; margin: 0; padding: 0; }
-  .nav a { text-decoration: none; font-weight: 500; font-size: .98rem; color: var(--tinta); padding: .3rem 0; border-bottom: 1.5px solid transparent; }
-  .nav a:hover, .nav a[aria-current] { border-color: var(--grana); color: var(--blau); }
-  .top-cta { padding: .7em 1.15em; font-size: .95rem; }
-  .langs { display: flex; gap: .15rem; font-size: .78rem; font-weight: 600; letter-spacing: .02em; }
-  .langs a { text-decoration: none; color: var(--tinta-2); padding: .35rem .4rem; border-radius: 6px; }
-  .langs a:hover { color: var(--grana); }
-  .langs a[aria-current] { color: var(--grana); background: rgba(140,48,75,.08); }
-  .top.dark:not(.scrolled) .langs a { color: #C9D3E0; }
-  .top.dark:not(.scrolled) .langs a[aria-current] { color: var(--blanc); background: rgba(249,249,249,.14); }
-  .menu { display: none; }
-  @media (max-width: 1020px) {
-    .nav { position: fixed; inset: 76px 0 auto; background: var(--blanc); border-bottom: 1px solid var(--linea); padding: 1rem var(--gutter) 2rem; display: none; }
-    .nav.open { display: block; }
-    .nav ul { flex-direction: column; gap: 0; }
-    .nav li a { display: block; padding: 1rem 0; font: 400 var(--step-2)/1 var(--serif); color: var(--blau); border-bottom: 1px solid var(--linea); }
-    .top-cta { margin-left: auto; }
-    .menu { display: grid; gap: 6px; place-content: center; width: 44px; height: 44px; background: none; border: 0; cursor: pointer; }
-    .menu i { display: block; width: 22px; height: 1.5px; background: var(--blau); transition: transform .25s; }
-    .menu[aria-expanded='true'] i:first-of-type { transform: translateY(3.75px) rotate(45deg); }
-    .menu[aria-expanded='true'] i:last-of-type { transform: translateY(-3.75px) rotate(-45deg); }
-  }
-  @media (max-width: 520px) { .top-cta { display: none; } .menu { margin-left: auto; } }
+  .progress { position: fixed; inset: 0 0 auto; height: 3px; z-index: 80; cursor: pointer; }
+  .progress i { display: block; height: 100%; background: var(--tint); transform-origin: left; transform: scaleX(0); }
+  .brand-fixed { position: fixed; top: 1.4rem; left: var(--gutter); z-index: 60; mix-blend-mode: difference; }
+  .brand-fixed img { height: 30px; width: auto; }
+  .cta-fixed { position: fixed; top: 1.1rem; right: var(--gutter); z-index: 60; padding: .75em 1.3em; border-radius: 999px; font: 560 .92rem/1 var(--sans); text-decoration: none; color: var(--ink); background: var(--on-dark); transition: background .4s var(--ease); }
+  .cta-fixed:hover { background: var(--tint); }
 
-  .foot { background: var(--blau); color: var(--blanc); padding: clamp(4rem, 8vw, 6rem) 0 2rem; }
+  /* La barra viaja: empieza arriba, baja con el scroll y se queda abajo en el centro */
+  .dock { position: fixed; left: 50%; bottom: 1.4vh; z-index: 70; display: flex; align-items: center; gap: 2rem; padding: .7rem 1.1rem .7rem 1.3rem; translate: -50% 0; color: #fff; mix-blend-mode: difference; font-size: .9rem; white-space: nowrap; }
+  .dock a { text-decoration: none; }
+  .dock-word { font-weight: 640; letter-spacing: -0.04em; font-size: 1.02rem; }
+  .dock-word sup { font-size: .5em; font-weight: 400; margin-left: 1px; }
+  .dock-links { display: flex; gap: 1.5rem; list-style: none; margin: 0; padding: 0; }
+  .dock-links a { position: relative; opacity: .82; transition: opacity .3s; }
+  .dock-links a:hover, .dock-links a[aria-current] { opacity: 1; }
+  .dock-links a::after { content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .5s var(--ease); }
+  .dock-links a:hover::after, .dock-links a[aria-current]::after { transform: scaleX(1); transform-origin: left; }
+  .dock-langs { display: flex; gap: .7rem; font-size: .78rem; }
+  .dock-langs a { opacity: .55; }
+  .dock-langs a[aria-current], .dock-langs a:hover { opacity: 1; }
+  .dock-menu { display: none; background: none; border: 0; color: inherit; font: 560 .92rem/1 var(--sans); cursor: pointer; padding: .3rem 0; }
+  @media (max-width: 1100px) {
+    .dock { gap: 1.6rem; padding: .8rem 1.2rem; }
+    .dock-links, .dock > .dock-langs { display: none; }
+    .dock-menu { display: block; }
+  }
+  @media (max-width: 520px) { .cta-fixed { font-size: .84rem; padding: .7em 1.1em; } }
+
+  .overlay { position: fixed; inset: 0; z-index: 65; background: var(--ink); color: var(--on-dark); display: grid; align-content: center; padding: 6rem var(--gutter) 7rem; }
+  .overlay ul { list-style: none; margin: 0; padding: 0; }
+  .overlay li a { display: block; padding: .5rem 0; font: 420 clamp(2.2rem, 9vw, 4rem)/1.05 var(--sans); letter-spacing: -0.05em; text-decoration: none; }
+  .overlay li a:hover { font-family: var(--serif); font-style: italic; font-weight: 300; }
+  .overlay-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.5rem; margin-top: 3rem; }
+  .overlay .dock-langs { font-size: .95rem; gap: 1.2rem; }
+  .overlay .btn { background: var(--on-dark); color: var(--ink); border-color: var(--on-dark); }
+
+  .cursor { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; width: 0; height: 0; mix-blend-mode: difference; }
+  .cursor span { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid #fff; display: grid; place-items: center; font: 600 .7rem/1 var(--sans); color: #fff; transition: width .4s var(--ease), height .4s var(--ease), left .4s var(--ease), top .4s var(--ease), background .4s; opacity: 0; }
+  .cursor.on span { opacity: 1; }
+  .cursor.link span { width: 56px; height: 56px; left: -28px; top: -28px; background: #fff; }
+  .cursor.label span { width: 84px; height: 84px; left: -42px; top: -42px; background: #fff; color: #000; }
+  .cursor.label { mix-blend-mode: normal; }
+  @media (hover: none), (max-width: 860px) { .cursor { display: none; } }
+
+  .foot { background: var(--ink); color: var(--on-dark); padding: clamp(4rem, 8vw, 6rem) 0 calc(5.5rem + 2vh); overflow: hidden; }
   .foot-grid { display: grid; gap: 3rem; }
-  @media (min-width: 860px) { .foot-grid { grid-template-columns: 1.3fr 1fr; } }
-  .foot-claim { font: 340 var(--step-3)/1.08 var(--serif); font-variation-settings: 'opsz' 120; color: var(--blanc); max-width: 18ch; letter-spacing: -0.015em; }
-  .foot .btn { background: var(--blanc); color: var(--blau); border-color: var(--blanc); }
-  .foot-langs { display: flex; gap: 1rem; }
-  .foot-langs a { color: #C9D3E0; text-decoration: none; }
-  .foot-langs a[aria-current] { color: var(--blanc); text-decoration: underline; text-decoration-color: #E4B3C1; text-underline-offset: 4px; }
-  .foot nav { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-  .foot nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; align-content: start; }
-  .foot nav a { text-decoration: none; color: #D8E0EA; }
-  .foot nav a:hover { color: var(--blanc); text-decoration: underline; text-decoration-color: #E4B3C1; }
-  .foot-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid rgba(249,249,249,.18); font-size: var(--step--1); color: #C9D3E0; max-width: none; }
+  @media (min-width: 860px) { .foot-grid { grid-template-columns: 1fr 1fr; align-items: end; } }
+  .foot-claim { font: 300 italic var(--step-2)/1.15 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 100; letter-spacing: -0.03em; color: var(--on-dark); max-width: 22ch; margin: 0; justify-self: end; }
+  .foot nav { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; font-size: .95rem; }
+  .foot nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; align-content: start; }
+  .foot nav a { text-decoration: none; color: var(--on-dark-2); transition: color .3s; }
+  .foot nav a:hover { color: var(--on-dark); }
+  .foot-word { margin: clamp(3rem, 7vw, 6rem) 0 0; font: 600 clamp(6rem, 27vw, 26rem)/.78 var(--sans); letter-spacing: -0.075em; color: var(--ink-2); max-width: none; user-select: none; }
+  .foot-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin: 2rem 0 0; font-size: var(--step--1); color: var(--on-dark-2); max-width: none; }
+  .foot-legal { display: flex; gap: 1.5rem; }
+  .foot-legal a { text-decoration: none; }
+  .foot-legal a:hover { color: var(--on-dark); }
 </style>

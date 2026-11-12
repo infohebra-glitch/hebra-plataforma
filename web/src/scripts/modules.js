@@ -2,9 +2,17 @@ const loc = { es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }[document.documentElement.l
 const eur = new Intl.NumberFormat(loc, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 const num = new Intl.NumberFormat(loc);
 
-export function init({ gsap, ScrollTrigger, reduce }) {
+export function init({ gsap, ScrollTrigger, reduce, lenis, fine }) {
   calculator();
-  stage(gsap, ScrollTrigger, reduce);
+  hero(gsap, ScrollTrigger, reduce);
+  words(reduce);
+  film(gsap, reduce);
+  wipe(gsap, reduce);
+  processPin(gsap, ScrollTrigger, reduce);
+  fan(gsap, reduce);
+  marquee(gsap, reduce);
+  explore(gsap, fine, reduce);
+  orb(gsap, reduce);
   splitHeads(gsap, reduce);
   demoMode();
   ficha();
@@ -38,47 +46,6 @@ function calculator() {
 }
 
 // Portada: escena 3D fijada; el scroll lleva de la prenda a la etiqueta y al móvil
-async function stage(gsap, ScrollTrigger, reduce) {
-  const root = document.querySelector('[data-stage]');
-  if (!root) return;
-  const canvas = root.querySelector('[data-garment]');
-  const beats = [...root.querySelectorAll('[data-beat]')];
-  const phone = root.querySelector('[data-stage-phone]');
-  const bar = root.querySelector('[data-stage-bar]');
-  const hint = root.querySelector('[data-stage-hint]');
-  const scrim = root.querySelector('[data-stage-scrim]');
-  let scene = null;
-  try {
-    const { mountGarment } = await import('./garment.js');
-    scene = mountGarment(canvas, { reduce });
-  } catch (e) { canvas.dataset.failed = ''; }
-  if (reduce) { if (scene) scene.progress = 0.5; return; }
-
-  // entrada inicial
-  gsap.from(canvas, { opacity: 0, duration: 1.6, ease: 'power2.out' });
-
-  const tl = gsap.timeline({ defaults: { ease: 'power2.inOut' }, paused: true });
-  tl.to(beats[0], { autoAlpha: 0, y: -40, duration: 0.12 }, 0.2)
-    .fromTo(beats[1], { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.12 }, 0.3)
-    .to(beats[1], { autoAlpha: 0, y: -40, duration: 0.1 }, 0.58)
-    .fromTo(beats[2], { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.12 }, 0.68)
-    .fromTo(phone, { autoAlpha: 0, y: 120, rotate: 6, scale: 0.92 }, { autoAlpha: 1, y: 0, rotate: 0, scale: 1, duration: 0.2, ease: 'power3.out' }, 0.66)
-    .to(hint, { autoAlpha: 0, duration: 0.05 }, 0.04)
-    .to(scrim, { opacity: 1, duration: 0.15 }, 0.55)
-    .to({}, { duration: 0.1 }, 0.9);
-
-  ScrollTrigger.create({
-    trigger: root, start: 'top top', end: 'bottom bottom', scrub: 0.8,
-    onUpdate: (self) => {
-      const p = self.progress;
-      if (scene) scene.progress = p;
-      tl.progress(p);
-      if (bar) bar.style.transform = `scaleX(${p})`;
-      beats.forEach((b, i) => b.setAttribute('aria-hidden', String(i !== (p < 0.28 ? 0 : p < 0.63 ? 1 : 2))));
-    },
-  });
-}
-
 // Titulares que entran palabra a palabra
 function splitHeads(gsap, reduce) {
   const all = document.querySelectorAll('[data-split]');
@@ -276,5 +243,237 @@ export function videoDemo() {
       if (wrap.classList.contains('playing')) { if (!e.isIntersecting) v.pause(); return; }
       if (e.isIntersecting) v.play().catch(() => {}); else v.pause();
     }, { threshold: 0.35 }).observe(v);
+  });
+}
+
+// Portada: visor 3D, píldoras de prenda y ficha que aparece al tocar la etiqueta
+async function hero(gsap, ScrollTrigger, reduce) {
+  const root = document.querySelector('[data-hero]');
+  if (!root) return;
+  const box = root.querySelector('[data-viewer]');
+  const pills = [...root.querySelectorAll('[data-garment-pick]')];
+  const pop = root.querySelector('[data-ficha-pop]');
+  const data = JSON.parse(root.querySelector('[data-ficha-data]').textContent);
+  const ins = root.querySelectorAll('[data-hero-in]');
+  let key = pills[0]?.dataset.garmentPick || 'samarreta';
+
+  if (!reduce) {
+    gsap.from(ins, { y: 24, opacity: 0, duration: 1.2, ease: 'expo.out', stagger: 0.08, delay: 0.7 });
+    gsap.from(box, { opacity: 0, scale: 0.94, duration: 2, ease: 'expo.out', delay: 0.2 });
+    gsap.from(root.querySelector('.hero-glow'), { opacity: 0, scale: 0.6, duration: 2.4, ease: 'expo.out' });
+  }
+
+  const showPop = () => {
+    const [h, ...l] = data[key];
+    pop.querySelector('[data-fp-h]').textContent = h;
+    pop.querySelector('[data-fp-l]').innerHTML = l.map((x) => `<li>${x}</li>`).join('');
+    pop.hidden = false;
+    if (!reduce) gsap.fromTo(pop, { opacity: 0, y: 20, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: 'expo.out' });
+    clearTimeout(showPop.t);
+    showPop.t = setTimeout(() => hidePop(), 6000);
+  };
+  const hidePop = () => {
+    if (pop.hidden) return;
+    if (reduce) { pop.hidden = true; return; }
+    gsap.to(pop, { opacity: 0, y: 10, duration: 0.4, onComplete: () => (pop.hidden = true) });
+  };
+
+  const saveData = navigator.connection?.saveData;
+  let viewer = null;
+  if (!saveData) {
+    try {
+      const { mountViewer } = await import('./viewer.js');
+      viewer = mountViewer(box, { reduce, onTap: showPop });
+    } catch (e) { box.dataset.failed = ''; }
+  } else box.dataset.failed = '';
+  if (viewer) {
+    viewer.show(key);
+    const idle = window.requestIdleCallback || ((f) => setTimeout(f, 2500));
+    idle(() => viewer.preload(pills.map((p) => p.dataset.garmentPick)));
+    if (!reduce) ScrollTrigger.create({ trigger: root, start: 'top top', end: 'bottom top', onUpdate: (s) => (viewer.scroll = s.progress) });
+  }
+  pills.forEach((b) => b.addEventListener('click', () => {
+    key = b.dataset.garmentPick;
+    pills.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    hidePop();
+    viewer?.show(key);
+  }));
+  // teclado: flechas giran, Intro toca la etiqueta
+  const canvas = box.querySelector('canvas');
+  canvas.tabIndex = 0;
+  canvas.addEventListener('keydown', (e) => {
+    if (!viewer) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); viewer.nudge(e.key === 'ArrowLeft' ? -1 : 1); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); viewer.tap(); }
+  });
+}
+
+// Manifiesto: una palabra clave se ilumina cada poco, al azar
+function words(reduce) {
+  const root = document.querySelector('[data-words]');
+  if (!root) return;
+  const ws = [...root.querySelectorAll('[data-w]')];
+  let i = 0, timer = null;
+  const step = () => {
+    ws.forEach((w) => w.classList.remove('on'));
+    let n; do { n = Math.floor(Math.random() * ws.length); } while (n === i && ws.length > 1);
+    i = n; ws[i].classList.add('on');
+  };
+  if (reduce) { ws[0].classList.add('on'); return; }
+  new IntersectionObserver(([e]) => {
+    clearInterval(timer);
+    if (e.isIntersecting) { step(); timer = setInterval(step, 1500); }
+  }).observe(root);
+}
+
+// Vídeo a sangre: al entrar se abre hasta ocupar toda la pantalla
+function film(gsap, reduce) {
+  const f = document.querySelector('[data-film-frame]');
+  if (!f) return;
+  const v = f.querySelector('video');
+  new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause())).observe(f);
+  if (reduce) { f.style.clipPath = 'none'; return; }
+  gsap.fromTo(f, { clipPath: 'inset(9% 14% 9% 14% round 28px)' }, {
+    clipPath: 'inset(0% 0% 0% 0% round 0px)', ease: 'none',
+    scrollTrigger: { trigger: f, start: 'top 95%', end: 'top 5%', scrub: 0.4 },
+  });
+  gsap.fromTo(v, { scale: 1.25 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: f, start: 'top bottom', end: 'bottom top', scrub: true } });
+}
+
+// La tinta sube y tapa la parte clara
+function wipe(gsap, reduce) {
+  document.querySelectorAll('[data-wipe]').forEach((w) => {
+    const i = w.querySelector('i');
+    if (reduce) { gsap.set(i, { yPercent: 0, y: 0, scale: 1 }); return; }
+    gsap.fromTo(i, { y: () => w.offsetHeight, scale: 0.25 }, {
+      y: 0, scale: 1, ease: 'none',
+      scrollTrigger: { trigger: w, start: 'top bottom', end: 'bottom 40%', scrub: 0.3, invalidateOnRefresh: true },
+    });
+  });
+}
+
+// Recorrido fijado: un paso cada vez
+function processPin(gsap, ScrollTrigger, reduce) {
+  const root = document.querySelector('[data-process]');
+  if (!root) return;
+  const steps = [...root.querySelectorAll('[data-step]')];
+  const imgs = [...root.querySelectorAll('[data-step-img]')];
+  const now = root.querySelector('[data-step-now]');
+  const set = (n) => {
+    steps.forEach((s, i) => s.classList.toggle('on', i === n));
+    imgs.forEach((s, i) => s.classList.toggle('on', i <= n));
+    if (now) now.textContent = String(n + 1).padStart(2, '0');
+  };
+  const mm = gsap.matchMedia();
+  mm.add('(min-width: 960px)', () => {
+    let cur = 0;
+    const st = ScrollTrigger.create({
+      trigger: root, pin: root.querySelector('[data-process-pin]'), start: 'top top',
+      end: () => '+=' + window.innerHeight * (reduce ? 1.2 : 2.6),
+      onUpdate: (s) => { const n = Math.min(steps.length - 1, Math.floor(s.progress * steps.length * 0.999)); if (n !== cur) { cur = n; set(n); } },
+    });
+    return () => st.kill();
+  });
+}
+
+// Abanico de cartas
+function fan(gsap, reduce) {
+  const root = document.querySelector('[data-fan]');
+  if (!root) return;
+  const stage = root.querySelector('[data-fan-stage]');
+  const cards = [...root.querySelectorAll('[data-fan-card]')];
+  const backs = JSON.parse(root.querySelector('[data-fan-data]').textContent);
+  const backEl = root.querySelector('[data-fan-back]');
+  const nowEl = root.querySelector('[data-fan-now]');
+  const n = cards.length;
+  let cur = 0;
+  const pose = (d) => {
+    const a = Math.abs(d), s = Math.sign(d);
+    if (a === 0) return { xPercent: 0, rotation: 0, scale: 1, opacity: 1, zIndex: 50 };
+    if (a === 1) return { xPercent: s * 32, rotation: s * 8, scale: 0.9, opacity: 1, zIndex: 40 };
+    if (a === 2) return { xPercent: s * 58, rotation: s * 14, scale: 0.8, opacity: 0.85, zIndex: 30 };
+    return { xPercent: s * 70, rotation: s * 18, scale: 0.7, opacity: 0, zIndex: 10 };
+  };
+  const render = (instant) => {
+    cards.forEach((c, i) => {
+      let d = i - cur;
+      if (d > n / 2) d -= n; if (d < -n / 2) d += n;
+      const p = pose(d);
+      c.setAttribute('aria-hidden', String(d !== 0));
+      c.style.zIndex = p.zIndex;
+      gsap.to(c, { ...p, zIndex: undefined, duration: instant || reduce ? 0 : 0.9, ease: 'expo.out', overwrite: true });
+    });
+    nowEl.textContent = cur + 1;
+    backEl.textContent = backs[cur];
+    if (!instant && !reduce) gsap.fromTo(backEl, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.6, ease: 'expo.out' });
+  };
+  const go = (k) => { cur = (k + n) % n; render(); };
+  root.querySelector('[data-fan-prev]').addEventListener('click', () => go(cur - 1));
+  root.querySelector('[data-fan-next]').addEventListener('click', () => go(cur + 1));
+  cards.forEach((c, i) => c.addEventListener('click', () => { if (!dragMoved && i !== cur) go(i); }));
+  root.tabIndex = 0;
+  root.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') go(cur - 1); if (e.key === 'ArrowRight') go(cur + 1); });
+  let x0 = null, dragMoved = false;
+  stage.addEventListener('pointerdown', (e) => { x0 = e.clientX; dragMoved = false; });
+  window.addEventListener('pointermove', (e) => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0;
+    if (Math.abs(dx) > 6) dragMoved = true;
+    gsap.set(cards[cur], { x: dx * 0.6, rotation: dx * 0.03 });
+  });
+  window.addEventListener('pointerup', (e) => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0; x0 = null;
+    gsap.to(cards[cur], { x: 0, duration: 0.6, ease: 'expo.out' });
+    if (dx < -60) go(cur + 1); else if (dx > 60) go(cur - 1); else render(true);
+  });
+  render(true);
+}
+
+// Cinta infinita que se puede arrastrar
+function marquee(gsap, reduce) {
+  document.querySelectorAll('[data-marquee]').forEach((root) => {
+    const track = root.querySelector('[data-marquee-track]');
+    const half = () => track.scrollWidth / 2;
+    let x = 0, v = -0.6, drag = null, last = 0, visible = false;
+    if (reduce) return;
+    new IntersectionObserver(([e]) => (visible = e.isIntersecting)).observe(root);
+    root.addEventListener('pointerdown', (e) => { drag = e.clientX; last = e.clientX; root.setPointerCapture(e.pointerId); });
+    root.addEventListener('pointermove', (e) => { if (drag === null) return; const dx = e.clientX - last; last = e.clientX; x += dx; v = dx; });
+    const end = () => { drag = null; if (Math.abs(v) < 0.6) v = v < 0 ? -0.6 : 0.6; };
+    root.addEventListener('pointerup', end); root.addEventListener('pointercancel', end);
+    gsap.ticker.add(() => {
+      if (!visible) return;
+      if (drag === null) { x += v; v += ((v < 0 ? -0.6 : 0.6) - v) * 0.04; }
+      const h = half();
+      if (x <= -h) x += h; if (x > 0) x -= h;
+      track.style.transform = `translate3d(${x}px,0,0)`;
+    });
+  });
+}
+
+// Lista «Explora»: una foto sigue al ratón
+function explore(gsap, fine, reduce) {
+  const list = document.querySelector('[data-xlist]');
+  const fl = document.querySelector('[data-xfloat]');
+  if (!list || !fl || !fine) return;
+  const img = fl.querySelector('img');
+  const xTo = gsap.quickTo(fl, 'x', { duration: reduce ? 0 : 0.6, ease: 'power3' });
+  const yTo = gsap.quickTo(fl, 'y', { duration: reduce ? 0 : 0.6, ease: 'power3' });
+  list.querySelectorAll('a').forEach((a) => {
+    a.addEventListener('pointerenter', () => { img.src = a.dataset.ximg; fl.classList.add('on'); });
+    a.addEventListener('pointerleave', () => fl.classList.remove('on'));
+  });
+  list.addEventListener('pointermove', (e) => { xTo(e.clientX + 30); yTo(e.clientY - 190); });
+}
+
+// Orbe de cierre: sube con el scroll
+function orb(gsap, reduce) {
+  document.querySelectorAll('[data-orb]').forEach((o) => {
+    if (reduce) return;
+    gsap.fromTo(o, { yPercent: 30, scale: 0.8 }, {
+      yPercent: -8, scale: 1, ease: 'none',
+      scrollTrigger: { trigger: o.closest('[data-orb-scope]'), start: 'top bottom', end: 'bottom bottom', scrub: 0.4 },
+    });
   });
 }

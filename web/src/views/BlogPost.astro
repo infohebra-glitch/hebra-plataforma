@@ -54,9 +54,9 @@ const others = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`) &
   .prose :global(p) { margin: 0 0 1.2em; }
   .prose :global(ul) { padding-left: 1.2rem; margin: 0 0 1.4em; }
   .prose :global(li) { margin: .5rem 0; }
-  .prose :global(li::marker) { color: var(--grana); }
-  .prose :global(strong) { color: var(--blau); }
+  .prose :global(li::marker) { color: var(--deep); }
+  .prose :global(strong) { color: var(--on-light); }
   .prose > :global(p:first-child) { font-size: var(--step-1); line-height: 1.55; }
-  .rows h3 a { color: var(--blau); text-decoration: none; }
-  .rows h3 a:hover { color: var(--grana); }
+  .rows h3 a { color: var(--on-light); text-decoration: none; }
+  .rows h3 a:hover { color: var(--deep); }
 </style>
