@@ -15,6 +15,8 @@ const T = {
   es: {
     desc: 'Hebra mide lo que pasa dentro del probador de tu tienda de moda: qué se prueba y no se vende, por qué, y si lo que cambias hace vender. Con una etiqueta inteligente en cada prenda.',
     pH: 'El probador es donde tu cliente decide. Y tú no ves nada.',
+    evH: 'Lo que dicen los datos',
+    ev: [['67 %', 'de quien entra al probador acaba comprando. Sin pasar por él, el 10 %.', 'Alert Technologies', 'https://alerttech.net/increase-retail-apparel-sales-turning-shoppers-customers/'], ['1 de 3', 'sale del probador sin comprar. La tienda no sabe qué prenda ni por qué.', 'A partir del mismo dato', ''], ['2 %', 'de las veces funciona llamar a la puerta para ofrecer otra talla.', 'Marge Laney, Alert Technologies', 'https://www.retaildoc.com/blog/apparel-stores-use-fitting-room-to-fight-online-retailers'], ['7 %', 'de los compradores dice que disfruta del probador.', 'Estudio de Indyme', 'https://boutique-magazine.co.uk/how-your-fitting-room-experience-could-be-affecting-your-bottom-line/']],
     pL: 'La caja registra lo que se vende. La web sabe lo que se mira y no se compra. En la tienda física, el momento en que alguien se prueba una prenda y la deja no queda en ningún sitio.',
     loss: [['Margen que se va en rebajas', 'Una prenda muy probada y poco vendida se descubre cuando ya está rebajada.'], ['Pedidos a ciegas por talla', 'Se compra la curva de tallas de siempre, no la que la gente se prueba.'], ['Tallas que faltan', 'Piden la L, no está, y se van. Nadie lo apunta.'], ['Un origen sin resultado', 'Pagas por conocer tu cadena, pero no sabes si contarlo hace vender.']],
     cH: '¿Cuánto te cuesta tu probador?', cL: 'Nuestra métrica principal: lo probado y no vendido, en euros por semana y tienda. Mueve las cifras y pon las de tu tienda.',
@@ -33,6 +35,8 @@ const T = {
   ca: {
     desc: 'Hebra mesura el que passa dins l’emprovador de la teva botiga de moda: què s’emprova i no es ven, per què, i si el que canvies fa vendre. Amb una etiqueta intel·ligent a cada peça.',
     pH: 'L’emprovador és on el teu client decideix. I tu no hi veus res.',
+    evH: 'El que diuen les dades',
+    ev: [['67 %', 'de qui entra a l’emprovador acaba comprant. Sense passar-hi, el 10 %.', 'Alert Technologies', 'https://alerttech.net/increase-retail-apparel-sales-turning-shoppers-customers/'], ['1 de 3', 'surt de l’emprovador sense comprar. La botiga no sap quina peça ni per què.', 'A partir de la mateixa dada', ''], ['2 %', 'de les vegades funciona trucar a la porta per oferir una altra talla.', 'Marge Laney, Alert Technologies', 'https://www.retaildoc.com/blog/apparel-stores-use-fitting-room-to-fight-online-retailers'], ['7 %', 'dels compradors diu que gaudeix de l’emprovador.', 'Estudi d’Indyme', 'https://boutique-magazine.co.uk/how-your-fitting-room-experience-could-be-affecting-your-bottom-line/']],
     pL: 'La caixa registra el que es ven. La web sap el que es mira i no es compra. A la botiga física, el moment en què algú s’emprova una peça i la deixa no queda enlloc.',
     loss: [['Marge que se’n va en rebaixes', 'Una peça molt emprovada i poc venuda es descobreix quan ja està rebaixada.'], ['Comandes a cegues per talla', 'Es compra la corba de talles de sempre, no la que la gent s’emprova.'], ['Talles que falten', 'Demanen la L, no hi és, i se’n van. Ningú ho apunta.'], ['Un origen sense resultat', 'Pagues per conèixer la teva cadena, però no saps si explicar-ho fa vendre.']],
     cH: 'Quant et costa el teu emprovador?', cL: 'La nostra mètrica principal: el que s’emprova i no es ven, en euros per setmana i botiga. Mou les xifres i posa-hi les de la teva botiga.',
@@ -51,6 +55,8 @@ const T = {
   en: {
     desc: 'Hebra measures what happens inside your fashion store’s fitting room: what gets tried on and not sold, why, and whether what you change actually sells. With a smart tag in every garment.',
     pH: 'The fitting room is where your customer decides. And you see nothing.',
+    evH: 'What the data says',
+    ev: [['67%', 'of shoppers who enter the fitting room end up buying. Without it, 10%.', 'Alert Technologies', 'https://alerttech.net/increase-retail-apparel-sales-turning-shoppers-customers/'], ['1 in 3', 'leaves the fitting room without buying. The store doesn’t know which garment or why.', 'Derived from the same figure', ''], ['2%', 'of the time, knocking on the door to offer another size works.', 'Marge Laney, Alert Technologies', 'https://www.retaildoc.com/blog/apparel-stores-use-fitting-room-to-fight-online-retailers'], ['7%', 'of shoppers say they enjoy the fitting room.', 'Indyme study', 'https://boutique-magazine.co.uk/how-your-fitting-room-experience-could-be-affecting-your-bottom-line/']],
     pL: 'The till records what sells. Your website knows what gets viewed and not bought. In a physical store, the moment someone tries on a garment and leaves it behind is recorded nowhere.',
     loss: [['Margin lost to markdowns', 'A garment tried on a lot and sold little is only discovered once it’s already on sale.'], ['Ordering sizes blind', 'You buy the usual size curve, not the one people actually try on.'], ['Missing sizes', 'They ask for an L, it isn’t there, and they leave. Nobody writes it down.'], ['Origin with no payoff', 'You pay to know your supply chain, but you don’t know whether telling it sells.']],
     cH: 'What is your fitting room costing you?', cL: 'Our core metric: tried on and not sold, in euros per week and per store. Move the figures and use your store’s numbers.',
@@ -121,7 +127,7 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
     </div>
   </section>
 
-  <Film src="/video/proceso.mp4" poster="/video/proceso.jpg" title={N.vid} text={N.vidL} />
+  <Film src="/video/etiquetas.mp4" poster="/video/etiquetas.jpg" title={N.vid} text={N.vidL} />
 
   <section class="band" id="problema">
     <div class="wrap">
@@ -130,6 +136,18 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
         <p class="lead" data-reveal>{T.pL}</p>
         <ul class="rows loss" data-reveal>
           {T.loss.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}
+        </ul>
+      </div>
+      <div class="ev" data-reveal>
+        <h3 class="ev-h">{T.evH}</h3>
+        <ul class="ev-grid">
+          {T.ev.map(([n, d, src, url]) => (
+            <li>
+              <p class="ev-n">{n}</p>
+              <p class="ev-d">{d}</p>
+              <p class="ev-s">{url ? <a href={url} rel="noopener" target="_blank">{src}</a> : src}</p>
+            </li>
+          ))}
         </ul>
       </div>
     </div>
@@ -220,6 +238,13 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
   .head-split h2 { margin: 0; }
   .head-split .lead { margin: 0; }
   .prob { align-items: start; }
+  .ev { margin-top: clamp(4rem, 9vw, 7rem); }
+  .ev-h { margin: 0 0 1.4rem; font-size: var(--step--1); font-weight: 500; color: var(--on-light-2); }
+  .ev-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 2.4rem 2rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); border-top: 1px solid var(--rule-light); padding-top: 2rem; }
+  .ev-n { margin: 0 0 .8rem; font: 300 clamp(3.4rem, 2.4rem + 3vw, 5.4rem)/.9 var(--serif); letter-spacing: -0.05em; color: var(--deep); font-variant-numeric: tabular-nums; }
+  .ev-d { margin: 0 0 .9rem; max-width: 26ch; line-height: 1.45; }
+  .ev-s { margin: 0; font-size: .78rem; color: var(--on-light-2); }
+  .ev-s a { color: inherit; text-underline-offset: .2em; }
   .loss h3 { color: var(--deep); }
 
   /* Manifiesto: párrafo grande; una palabra se ilumina cada vez */

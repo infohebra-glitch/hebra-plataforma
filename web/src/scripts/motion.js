@@ -86,6 +86,9 @@ if (cursor && fine && !reduce) {
   const yTo = gsap.quickTo(cursor, 'y', { duration: 0.45, ease: 'power3' });
   window.addEventListener('pointermove', (e) => { xTo(e.clientX); yTo(e.clientY); cursor.classList.add('on'); }, { passive: true });
   document.addEventListener('pointerleave', () => cursor.classList.remove('on'));
+  window.addEventListener('pointerdown', () => cursor.classList.add('down'), { passive: true });
+  window.addEventListener('pointerup', () => cursor.classList.remove('down'), { passive: true });
+  window.addEventListener('blur', () => cursor.classList.remove('down', 'on'));
   document.addEventListener('pointerover', (e) => {
     const lab = e.target.closest('[data-cursor-label]');
     const link = e.target.closest('a, button, input[type=range], label, select');

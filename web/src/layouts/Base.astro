@@ -154,12 +154,12 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
   .overlay .dock-langs { font-size: .95rem; gap: 1.2rem; }
   .overlay .btn { background: var(--on-dark); color: var(--ink); border-color: var(--on-dark); }
 
-  .cursor { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; width: 0; height: 0; mix-blend-mode: difference; }
-  .cursor span { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid #fff; display: grid; place-items: center; font: 600 .7rem/1 var(--sans); color: #fff; transition: width .4s var(--ease), height .4s var(--ease), left .4s var(--ease), top .4s var(--ease), background .4s; opacity: 0; }
+  .cursor { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; width: 0; height: 0; }
+  .cursor span { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.18), inset 0 0 0 1px rgba(0,0,0,.12); display: grid; place-items: center; font: 600 .7rem/1 var(--sans); color: var(--ink); transition: width .35s var(--ease), height .35s var(--ease), left .35s var(--ease), top .35s var(--ease), background .35s, transform .2s var(--ease), opacity .3s; opacity: 0; }
   .cursor.on span { opacity: 1; }
-  .cursor.link span { width: 56px; height: 56px; left: -28px; top: -28px; background: #fff; }
-  .cursor.label span { width: 84px; height: 84px; left: -42px; top: -42px; background: #fff; color: #000; }
-  .cursor.label { mix-blend-mode: normal; }
+  .cursor.link span { width: 34px; height: 34px; left: -17px; top: -17px; background: rgba(255,255,255,.18); backdrop-filter: blur(2px); }
+  .cursor.label span { width: 72px; height: 72px; left: -36px; top: -36px; background: #fff; border-color: #fff; }
+  .cursor.down span { transform: scale(.6); }
   @media (hover: none), (max-width: 860px) { .cursor { display: none; } }
 
   .foot { background: var(--ink); color: var(--on-dark); padding: clamp(4rem, 8vw, 6rem) 0 calc(5.5rem + 2vh); overflow: hidden; }
