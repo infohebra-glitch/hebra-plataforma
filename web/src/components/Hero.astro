@@ -1,5 +1,5 @@
 ---
-// Portada: la prenda en 3D, que se gira con el dedo o el ratón. Tocar la etiqueta abre su ficha.
+// Portada: vídeo real a sangre, con el titular encima.
 import { path, type Lang } from '../i18n';
 interface Props { lang?: Lang }
 const { lang = 'es' } = Astro.props;
@@ -8,58 +8,32 @@ const T = {
     h1: 'Tu ropa sabe lo que pasa en el <em>probador.</em>',
     lead: 'Hebra pone una etiqueta inteligente en cada prenda y le cuenta a la marca qué se prueba, qué no se vende y por qué.',
     demo: 'Pedir una demo', more: 'Cómo funciona',
-    g: [['samarreta', 'Camiseta'], ['blusa', 'Blusa'], ['americana', 'Americana']],
-    hint: 'Arrastra para girarla. Toca la etiqueta.', drag: 'Gira',
-    pick: 'Elige una prenda',
-    ficha: {
-      samarreta: ['Camiseta de punto', '100 % algodón orgánico', 'Hilado y tejido en Portugal', 'Probada 38 veces esta semana'],
-      blusa: ['Blusa de manga corta', '70 % viscosa, 30 % lino', 'Confeccionada en Barcelona', 'Piden la talla M desde la cabina'],
-      americana: ['Americana de lana', '96 % lana, 4 % elastano', 'Tejido en Biella, Italia', 'Mucho probada, poco vendida: revisar el patrón'],
-    },
-    tapped: 'Ficha abierta en el móvil', close: 'Cerrar',
     meta: ['Barcelona', 'Para marcas de moda con tienda física'],
-    scroll: 'Desliza',
+    scroll: 'Desliza', pause: 'Pausar el vídeo', play: 'Reproducir el vídeo',
   },
   ca: {
     h1: 'La teva roba sap què passa a l’<em>emprovador.</em>',
     lead: 'Hebra posa una etiqueta intel·ligent a cada peça i explica a la marca què s’emprova, què no es ven i per què.',
     demo: 'Demanar una demo', more: 'Com funciona',
-    g: [['samarreta', 'Samarreta'], ['blusa', 'Brusa'], ['americana', 'Americana']],
-    hint: 'Arrossega per girar-la. Toca l’etiqueta.', drag: 'Gira',
-    pick: 'Tria una peça',
-    ficha: {
-      samarreta: ['Samarreta de punt', '100 % cotó orgànic', 'Filat i teixit a Portugal', 'Emprovada 38 vegades aquesta setmana'],
-      blusa: ['Brusa de màniga curta', '70 % viscosa, 30 % lli', 'Confeccionada a Barcelona', 'Demanen la talla M des de la cabina'],
-      americana: ['Americana de llana', '96 % llana, 4 % elastà', 'Teixida a Biella, Itàlia', 'Molt emprovada, poc venuda: revisar el patró'],
-    },
-    tapped: 'Fitxa oberta al mòbil', close: 'Tancar',
     meta: ['Barcelona', 'Per a marques de moda amb botiga física'],
-    scroll: 'Llisca',
+    scroll: 'Llisca', pause: 'Pausar el vídeo', play: 'Reproduir el vídeo',
   },
   en: {
     h1: 'Your clothes know what happens in the <em>fitting room.</em>',
     lead: 'Hebra puts a smart tag in every garment and tells the brand what gets tried on, what doesn’t sell, and why.',
     demo: 'Book a demo', more: 'How it works',
-    g: [['samarreta', 'T-shirt'], ['blusa', 'Blouse'], ['americana', 'Blazer']],
-    hint: 'Drag to turn it. Tap the tag.', drag: 'Turn',
-    pick: 'Choose a garment',
-    ficha: {
-      samarreta: ['Jersey T-shirt', '100% organic cotton', 'Spun and knitted in Portugal', 'Tried on 38 times this week'],
-      blusa: ['Short-sleeve blouse', '70% viscose, 30% linen', 'Made in Barcelona', 'Size M requested from the room'],
-      americana: ['Wool blazer', '96% wool, 4% elastane', 'Woven in Biella, Italy', 'Tried on a lot, sold little: check the pattern'],
-    },
-    tapped: 'Garment page open on the phone', close: 'Close',
     meta: ['Barcelona', 'For fashion brands with physical stores'],
-    scroll: 'Scroll',
+    scroll: 'Scroll', pause: 'Pause the video', play: 'Play the video',
   },
 }[lang];
 ---
 <section class="hero" data-hero>
-  <div class="hero-glow" aria-hidden="true"></div>
-  <div class="hero-viewer" data-viewer data-logo="/img/logo-blau.png" data-model="/3d/" data-cursor-label={T.drag}>
-    <canvas aria-label={T.hint}></canvas>
-    <button type="button" class="hero-fallback" data-fallback aria-label={T.hint}><img src="/img/3d/samarreta.webp" alt="" /></button>
+  <div class="hero-media" aria-hidden="true">
+    <video data-hero-video autoplay muted loop playsinline preload="metadata" poster="/video/hero.jpg">
+      <source src="/video/hero.mp4" type="video/mp4" />
+    </video>
   </div>
+  <div class="hero-shade" aria-hidden="true"></div>
 
   <div class="wrap hero-grid">
     <div class="hero-copy">
@@ -70,89 +44,45 @@ const T = {
         <a class="btn ghost" href={path(lang, '/como-funciona/')}>{T.more}</a>
       </div>
     </div>
-
-    <div class="hero-side">
-      <div class="pills" role="group" aria-label={T.pick} data-hero-in>
-        {T.g.map(([k, label], i) => <button type="button" data-garment-pick={k} aria-pressed={i === 0 ? 'true' : 'false'}>{label}</button>)}
-      </div>
-      <p class="hero-hint" data-hero-in>{T.hint}</p>
-    </div>
-
-    <aside class="ficha-pop" data-ficha-pop aria-live="polite" hidden>
-      <button type="button" class="fp-x" data-fp-close aria-label={T.close}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" /></svg></button>
-      <p class="fp-k">{T.tapped}</p>
-      <p class="fp-h" data-fp-h></p>
-      <ul data-fp-l></ul>
-    </aside>
-    <script type="application/json" data-ficha-data set:html={JSON.stringify(T.ficha)} />
-
     <div class="hero-meta" data-hero-in>
       {T.meta.map((m) => <span>{m}</span>)}
+      <button type="button" class="hero-play" data-hero-play data-pause={T.pause} data-play={T.play} aria-label={T.pause}><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path class="i-pause" d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="2" /><path class="i-play" d="M7 5l12 7-12 7z" fill="currentColor" /></svg></button>
       <span class="hero-scroll" aria-hidden="true">{T.scroll}<i></i></span>
     </div>
   </div>
 </section>
 
 <style>
-  .hero { position: relative; min-height: 100svh; background: var(--ink); color: var(--on-dark); overflow: hidden; isolation: isolate; }
-  .hero-glow { position: absolute; z-index: -1; left: 50%; top: 52%; width: min(110vw, 1300px); aspect-ratio: 1; translate: -50% -50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 70%, transparent), color-mix(in srgb, var(--glow) 18%, transparent) 55%, transparent); filter: blur(10px); opacity: .85; }
-  .hero-viewer { position: absolute; inset: 0; z-index: 0; cursor: grab; }
-  .hero-viewer.grab { cursor: grabbing; }
-  .hero-viewer canvas { width: 100%; height: 100%; display: block; }
-  .hero-viewer canvas:focus-visible { outline: none; }
-  .hero:has(canvas:focus-visible) .hero-hint { color: var(--tint); text-decoration: underline; text-underline-offset: .3em; }
-  .hero-fallback { display: none; position: absolute; inset: 0; place-items: center; background: none; border: 0; padding: 0; cursor: pointer; }
-  .hero-fallback img { max-height: 62vh; max-width: 80%; width: auto; height: auto; mix-blend-mode: screen; animation: float 6s ease-in-out infinite; }
-  @keyframes float { 50% { transform: translateY(-12px) rotate(-1deg); } }
-  .hero-viewer[data-failed] .hero-fallback { display: grid; }
-  .hero-viewer[data-loading]::after { content: ''; position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px; border-radius: 50%; border: 1px solid var(--rule-dark); border-top-color: var(--tint); animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(1turn); } }
-
-  .hero-grid { position: relative; z-index: 1; min-height: 100svh; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr auto auto; padding-top: 7rem; padding-bottom: 6.5rem; pointer-events: none; }
-  .hero-grid :is(a, button, .ficha-pop) { pointer-events: auto; }
-  .hero-copy { align-self: end; max-width: 40rem; }
-  .hero h1 { font-size: clamp(2.9rem, 1.4rem + 5.4vw, 7.4rem); line-height: .94; letter-spacing: -0.055em; margin: 0; max-width: 11ch; }
-  .hero h1 :global(em) { color: var(--tint); }
-  .hero-lead { color: var(--on-dark-2); margin: 1.6rem 0 0; max-width: 34ch; }
-  .hero .btn { background: var(--on-dark); color: var(--ink); border-color: var(--on-dark); }
+  .hero { position: relative; min-height: 100svh; background: var(--ink); color: #fff; overflow: hidden; isolation: isolate; }
+  .hero-media { position: absolute; inset: 0; z-index: -2; }
+  .hero-media video { width: 100%; height: 100%; object-fit: cover; object-position: 60% 30%; display: block; transform-origin: 60% 40%; }
+  .hero-shade { position: absolute; inset: 0; z-index: -1; background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ink) 75%, transparent) 0%, transparent 28%, transparent 45%, color-mix(in srgb, var(--ink) 88%, transparent) 100%),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 70%, transparent) 0%, transparent 60%); }
+  .hero-grid { position: relative; min-height: 100svh; display: grid; grid-template-rows: 1fr auto; padding-top: 7rem; padding-bottom: 6.5rem; }
+  .hero-copy { align-self: end; max-width: 44rem; }
+  .hero h1 { font-size: clamp(2.9rem, 1.4rem + 5.4vw, 7.4rem); line-height: .94; letter-spacing: -0.055em; margin: 0; max-width: 11ch; color: #fff; text-shadow: 0 2px 40px rgba(0,0,0,.25); }
+  .hero h1 :global(em) { color: color-mix(in srgb, var(--tint) 70%, #fff); }
+  .hero-lead { color: rgba(255,255,255,.86); margin: 1.6rem 0 0; max-width: 34ch; }
+  .hero .btn { background: #fff; color: var(--ink); border-color: #fff; }
   .hero .btn::before { background: var(--tint); }
   .hero .btn:hover { color: var(--ink); border-color: var(--tint); }
-  .hero .btn.ghost { background: color-mix(in srgb, var(--ink) 40%, transparent); color: var(--on-dark); border-color: var(--rule-dark); backdrop-filter: blur(10px); }
-
-  .hero-side { display: flex; flex-direction: column; gap: .8rem; margin-top: 2.2rem; }
-  .pills { display: inline-flex; gap: .3rem; padding: .3rem; border-radius: 999px; background: color-mix(in srgb, var(--ink-2) 70%, transparent); border: 1px solid var(--rule-dark); backdrop-filter: blur(12px); width: max-content; }
-  .pills button { font: 540 .9rem/1 var(--sans); color: var(--on-dark-2); background: none; border: 0; padding: .7rem 1rem; border-radius: 999px; cursor: pointer; transition: color .4s, background .4s var(--ease); }
-  .pills button:hover { color: var(--on-dark); }
-  .pills button[aria-pressed='true'] { background: var(--on-dark); color: var(--ink); }
-  .hero-hint { margin: 0; font-size: var(--step--1); color: var(--on-dark-2); }
-
-  .hero-meta { display: flex; flex-wrap: wrap; gap: .4rem 2rem; margin-top: 2.6rem; padding-top: 1.1rem; border-top: 1px solid var(--rule-dark); font-size: var(--step--1); color: var(--on-dark-2); }
-  .hero-scroll { margin-left: auto; display: inline-flex; align-items: center; gap: .6rem; }
-  .hero-scroll i { width: 1px; height: 22px; background: var(--rule-dark); position: relative; overflow: hidden; }
-  .hero-scroll i::after { content: ''; position: absolute; inset: 0; background: var(--tint); animation: drip 1.8s var(--ease) infinite; }
+  .hero .btn.ghost { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.4); backdrop-filter: blur(10px); }
+  .hero-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 2rem; margin-top: 2.6rem; padding-top: 1.1rem; border-top: 1px solid rgba(255,255,255,.25); font-size: var(--step--1); color: rgba(255,255,255,.78); }
+  .hero-play { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); background: none; color: #fff; display: grid; place-items: center; cursor: pointer; }
+  .hero-play:hover { background: #fff; color: var(--ink); }
+  .hero-play .i-play { display: none; }
+  .hero-play[aria-pressed='true'] .i-play { display: block; }
+  .hero-play[aria-pressed='true'] .i-pause { display: none; }
+  .hero-scroll { display: inline-flex; align-items: center; gap: .6rem; }
+  .hero-scroll i { width: 1px; height: 22px; background: rgba(255,255,255,.3); position: relative; overflow: hidden; }
+  .hero-scroll i::after { content: ''; position: absolute; inset: 0; background: #fff; animation: drip 1.8s var(--ease) infinite; }
   @keyframes drip { from { transform: translateY(-100%); } to { transform: translateY(100%); } }
-
-  .ficha-pop { position: absolute; right: var(--gutter); top: 50%; translate: 0 -50%; width: min(19rem, 80vw); padding: 1.2rem 1.3rem 1.1rem; border-radius: 18px; background: color-mix(in srgb, var(--on-dark) 92%, transparent); color: var(--on-light); backdrop-filter: blur(14px); box-shadow: 0 30px 60px -30px rgba(0,0,0,.6); }
-  .fp-x { position: absolute; top: .6rem; right: .6rem; width: 32px; height: 32px; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--on-light) 8%, transparent); color: var(--on-light); display: grid; place-items: center; cursor: pointer; }
-  .fp-x:hover { background: var(--on-light); color: #fff; }
-  .fp-k { font-size: .75rem; color: var(--on-light-2); margin: 0 0 .5rem; display: flex; gap: .45rem; align-items: center; }
-  .fp-k::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--deep); box-shadow: 0 0 0 4px color-mix(in srgb, var(--deep) 20%, transparent); }
-  .fp-h { font: 300 italic 1.5rem/1.1 var(--serif); letter-spacing: -0.03em; margin: 0 0 .7rem; }
-  .ficha-pop ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule-light); font-size: .9rem; }
-  .ficha-pop li { padding: .5rem 0; border-bottom: 1px solid var(--rule-light); }
-  .ficha-pop li:last-child { border: 0; color: var(--deep); font-weight: 560; }
-
-  @media (min-width: 960px) {
-    .hero-grid { grid-template-columns: 1fr auto; grid-template-rows: 1fr auto; column-gap: 3rem; padding-bottom: 7.5rem; }
-    .hero-copy { grid-column: 1; grid-row: 1; }
-    .hero-side { grid-column: 2; grid-row: 1; align-self: end; align-items: flex-end; text-align: right; margin: 0; }
-    .hero-meta { grid-column: 1 / -1; }
-    .hero-viewer { left: 28%; }
-  }
   @media (max-width: 959px) {
-    .hero-viewer { inset: 0 0 auto 0; height: 58svh; }
-    .hero-grid { padding-top: 54svh; padding-bottom: 5.5rem; }
+    .hero-media video { object-position: 62% 30%; }
+    .hero-grid { padding-bottom: 5.5rem; }
     .hero h1 { font-size: clamp(2.5rem, 10.5vw, 3.6rem); }
-    .ficha-pop { top: 28%; right: 50%; translate: 50% -50%; }
+    .hero-shade { background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 50%, transparent) 0%, transparent 25%, color-mix(in srgb, var(--ink) 40%, transparent) 50%, color-mix(in srgb, var(--ink) 92%, transparent) 100%); }
   }
+  @media (prefers-reduced-motion: reduce) { .hero-scroll i::after { animation: none; } }
 </style>

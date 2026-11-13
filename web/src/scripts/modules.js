@@ -5,6 +5,7 @@ const num = new Intl.NumberFormat(loc);
 export function init({ gsap, ScrollTrigger, reduce, lenis, fine }) {
   calculator();
   hero(gsap, ScrollTrigger, reduce);
+  garments(gsap, ScrollTrigger, reduce);
   words(reduce);
   film(gsap, reduce);
   wipe(gsap, reduce);
@@ -48,7 +49,7 @@ function calculator() {
   update();
 }
 
-// Portada: escena 3D fijada; el scroll lleva de la prenda a la etiqueta y al móvil
+// Escena 3D fijada (sin uso en la portada actual)
 // Titulares que entran palabra a palabra
 function splitHeads(gsap, reduce) {
   const all = document.querySelectorAll('[data-split]');
@@ -255,20 +256,40 @@ export function videoDemo() {
 }
 
 // Portada: visor 3D, píldoras de prenda y ficha que aparece al tocar la etiqueta
-async function hero(gsap, ScrollTrigger, reduce) {
+// Portada: vídeo a sangre que se acerca un poco con el scroll; se puede pausar
+function hero(gsap, ScrollTrigger, reduce) {
   const root = document.querySelector('[data-hero]');
+  if (!root) return;
+  const video = root.querySelector('[data-hero-video]');
+  const btn = root.querySelector('[data-hero-play]');
+  const ins = root.querySelectorAll('[data-hero-in]');
+  if (reduce && video) { video.removeAttribute('autoplay'); video.pause(); btn?.setAttribute('aria-pressed', 'true'); btn?.setAttribute('aria-label', btn.dataset.play); }
+  btn?.addEventListener('click', () => {
+    const paused = btn.getAttribute('aria-pressed') === 'true';
+    if (paused) video.play(); else video.pause();
+    btn.setAttribute('aria-pressed', String(!paused));
+    btn.setAttribute('aria-label', paused ? btn.dataset.pause : btn.dataset.play);
+  });
+  if (reduce) return;
+  gsap.from(ins, { y: 24, opacity: 0, duration: 1.2, ease: 'expo.out', stagger: 0.08, delay: 0.7 });
+  gsap.fromTo(video, { scale: 1.12 }, { scale: 1, duration: 2.6, ease: 'expo.out' });
+  gsap.to(video, { yPercent: 12, scale: 1.06, ease: 'none', scrollTrigger: { trigger: root, start: 'top top', end: 'bottom top', scrub: true } });
+  ScrollTrigger.create({ trigger: root, start: 'bottom top', onEnter: () => video.pause(), onLeaveBack: () => { if (btn?.getAttribute('aria-pressed') !== 'true') video.play(); } });
+}
+
+// La prenda en 3D (en La ficha): se gira y, al tocar la etiqueta, abre su ficha
+async function garments(gsap, ScrollTrigger, reduce) {
+  const root = document.querySelector('[data-garments]');
   if (!root) return;
   const box = root.querySelector('[data-viewer]');
   const pills = [...root.querySelectorAll('[data-garment-pick]')];
   const pop = root.querySelector('[data-ficha-pop]');
   const data = JSON.parse(root.querySelector('[data-ficha-data]').textContent);
-  const ins = root.querySelectorAll('[data-hero-in]');
   let key = pills[0]?.dataset.garmentPick || 'samarreta';
 
   if (!reduce) {
-    gsap.from(ins, { y: 24, opacity: 0, duration: 1.2, ease: 'expo.out', stagger: 0.08, delay: 0.7 });
-    gsap.from(box, { opacity: 0, scale: 0.94, duration: 2, ease: 'expo.out', delay: 0.2 });
-    gsap.from(root.querySelector('.hero-glow'), { opacity: 0, scale: 0.6, duration: 2.4, ease: 'expo.out' });
+    gsap.from(box, { opacity: 0, scale: 0.94, duration: 2, ease: 'expo.out', scrollTrigger: { trigger: root, start: 'top 70%', once: true } });
+    gsap.from(root.querySelector('.g3-glow'), { opacity: 0, scale: 0.6, duration: 2.4, ease: 'expo.out', scrollTrigger: { trigger: root, start: 'top 70%', once: true } });
   }
 
   function showPop() {
@@ -310,7 +331,6 @@ async function hero(gsap, ScrollTrigger, reduce) {
     setTimeout(() => { if (box.dataset.loading !== undefined) fail(); }, 9000);
     const idle = window.requestIdleCallback || ((f) => setTimeout(f, 2500));
     idle(() => viewer.preload(pills.map((p) => p.dataset.garmentPick)));
-    if (!reduce) ScrollTrigger.create({ trigger: root, start: 'top top', end: 'bottom top', onUpdate: (s) => (viewer.scroll = s.progress) });
   }
   pills.forEach((b) => b.addEventListener('click', () => {
     key = b.dataset.garmentPick;

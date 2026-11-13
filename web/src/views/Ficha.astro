@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import Garments3D from '../components/Garments3D.astro';
 import Phone from '../components/Phone.astro';
 import Cta from '../components/Cta.astro';
 import { ui, path, type Lang } from '../i18n';
@@ -82,6 +83,8 @@ const T = {
       </ol>
     </div>
   </section>
+
+  <Garments3D lang={lang} />
 
   <section class="band grana">
     <div class="wrap split">

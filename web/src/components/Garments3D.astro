@@ -1,0 +1,124 @@
+---
+// La prenda en 3D (vive en La ficha): se gira con el dedo o el ratón. Tocar la etiqueta abre su ficha.
+import { path, type Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+const T = {
+  es: {
+    h2: 'Toca la <em>etiqueta.</em>',
+    lead: 'Cada prenda lleva su ficha cosida. Gírala y toca la etiqueta para ver lo que vería tu cliente.',
+    g: [['samarreta', 'Camiseta'], ['blusa', 'Blusa'], ['americana', 'Americana']],
+    hint: 'Arrastra para girarla. Toca la etiqueta.', drag: 'Gira',
+    pick: 'Elige una prenda',
+    ficha: {
+      samarreta: ['Camiseta de punto', '100 % algodón orgánico', 'Hilado y tejido en Portugal', 'Probada 38 veces esta semana'],
+      blusa: ['Blusa de manga corta', '70 % viscosa, 30 % lino', 'Confeccionada en Barcelona', 'Piden la talla M desde la cabina'],
+      americana: ['Americana de lana', '96 % lana, 4 % elastano', 'Tejido en Biella, Italia', 'Mucho probada, poco vendida: revisar el patrón'],
+    },
+    tapped: 'Ficha abierta en el móvil', close: 'Cerrar',
+  },
+  ca: {
+    h2: 'Toca l’<em>etiqueta.</em>',
+    lead: 'Cada peça porta la seva fitxa cosida. Gira-la i toca l’etiqueta per veure el que veuria el teu client.',
+    g: [['samarreta', 'Samarreta'], ['blusa', 'Brusa'], ['americana', 'Americana']],
+    hint: 'Arrossega per girar-la. Toca l’etiqueta.', drag: 'Gira',
+    pick: 'Tria una peça',
+    ficha: {
+      samarreta: ['Samarreta de punt', '100 % cotó orgànic', 'Filat i teixit a Portugal', 'Emprovada 38 vegades aquesta setmana'],
+      blusa: ['Brusa de màniga curta', '70 % viscosa, 30 % lli', 'Confeccionada a Barcelona', 'Demanen la talla M des de la cabina'],
+      americana: ['Americana de llana', '96 % llana, 4 % elastà', 'Teixida a Biella, Itàlia', 'Molt emprovada, poc venuda: revisar el patró'],
+    },
+    tapped: 'Fitxa oberta al mòbil', close: 'Tancar',
+  },
+  en: {
+    h2: 'Tap the <em>tag.</em>',
+    lead: 'Every garment carries its page sewn in. Turn it and tap the tag to see what your customer would see.',
+    g: [['samarreta', 'T-shirt'], ['blusa', 'Blouse'], ['americana', 'Blazer']],
+    hint: 'Drag to turn it. Tap the tag.', drag: 'Turn',
+    pick: 'Choose a garment',
+    ficha: {
+      samarreta: ['Jersey T-shirt', '100% organic cotton', 'Spun and knitted in Portugal', 'Tried on 38 times this week'],
+      blusa: ['Short-sleeve blouse', '70% viscose, 30% linen', 'Made in Barcelona', 'Size M requested from the room'],
+      americana: ['Wool blazer', '96% wool, 4% elastane', 'Woven in Biella, Italy', 'Tried on a lot, sold little: check the pattern'],
+    },
+    tapped: 'Garment page open on the phone', close: 'Close',
+  },
+}[lang];
+---
+<section class="g3" data-garments>
+  <div class="g3-glow" aria-hidden="true"></div>
+  <div class="g3-viewer" data-viewer data-logo="/img/logo-blau.png" data-model="/3d/" data-cursor-label={T.drag}>
+    <canvas aria-label={T.hint}></canvas>
+    <button type="button" class="g3-fallback" data-fallback aria-label={T.hint}><img src="/img/3d/samarreta.webp" alt="" /></button>
+  </div>
+
+  <div class="wrap g3-grid">
+    <div class="g3-copy">
+      <h2 data-lines set:html={T.h2} />
+      <p class="lead g3-lead" data-reveal>{T.lead}</p>
+    </div>
+
+    <div class="g3-side">
+      <div class="pills" role="group" aria-label={T.pick} data-reveal>
+        {T.g.map(([k, label], i) => <button type="button" data-garment-pick={k} aria-pressed={i === 0 ? 'true' : 'false'}>{label}</button>)}
+      </div>
+      <p class="g3-hint" data-reveal>{T.hint}</p>
+    </div>
+
+    <aside class="ficha-pop" data-ficha-pop aria-live="polite" hidden>
+      <button type="button" class="fp-x" data-fp-close aria-label={T.close}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" /></svg></button>
+      <p class="fp-k">{T.tapped}</p>
+      <p class="fp-h" data-fp-h></p>
+      <ul data-fp-l></ul>
+    </aside>
+    <script type="application/json" data-ficha-data set:html={JSON.stringify(T.ficha)} />
+
+  </div>
+</section>
+
+<style>
+  .g3 { position: relative; min-height: 92svh; background: var(--ink); color: var(--on-dark); overflow: hidden; isolation: isolate; }
+  .g3-glow { position: absolute; z-index: -1; left: 62%; top: 50%; width: min(100vw, 1100px); aspect-ratio: 1; translate: -50% -50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 70%, transparent), color-mix(in srgb, var(--glow) 18%, transparent) 55%, transparent); filter: blur(10px); opacity: .85; }
+  .g3-viewer { position: absolute; inset: 0; z-index: 0; cursor: grab; }
+  .g3-viewer.grab { cursor: grabbing; }
+  .g3-viewer canvas { width: 100%; height: 100%; display: block; }
+  .g3-viewer canvas:focus-visible { outline: none; }
+  .g3:has(canvas:focus-visible) .g3-hint { color: var(--tint); text-decoration: underline; text-underline-offset: .3em; }
+  .g3-fallback { display: none; position: absolute; inset: 0; place-items: center; background: none; border: 0; padding: 0; cursor: pointer; }
+  .g3-fallback img { max-height: 62vh; max-width: 80%; width: auto; height: auto; mix-blend-mode: screen; animation: float 6s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-12px) rotate(-1deg); } }
+  .g3-viewer[data-failed] .g3-fallback { display: grid; }
+  .g3-viewer[data-loading]::after { content: ''; position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px; border-radius: 50%; border: 1px solid var(--rule-dark); border-top-color: var(--tint); animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(1turn); } }
+  .g3-grid { position: relative; z-index: 1; min-height: 92svh; display: grid; grid-template-rows: auto 1fr auto; padding-top: clamp(5rem, 10vw, 8rem); padding-bottom: 4rem; pointer-events: none; }
+  .g3-grid :is(a, button, .ficha-pop) { pointer-events: auto; }
+  .g3-copy { max-width: 30rem; }
+  .g3 h2 { font-size: clamp(2.6rem, 1.4rem + 4.4vw, 6rem); line-height: .95; letter-spacing: -0.05em; margin: 0; }
+  .g3 h2 :global(em) { color: var(--tint); }
+  .g3-lead { color: var(--on-dark-2); margin: 1.4rem 0 0; max-width: 32ch; }
+  .g3-side { grid-row: 3; display: flex; flex-direction: column; gap: .8rem; }
+  .pills { display: inline-flex; gap: .3rem; padding: .3rem; border-radius: 999px; background: color-mix(in srgb, var(--ink-2) 70%, transparent); border: 1px solid var(--rule-dark); backdrop-filter: blur(12px); width: max-content; }
+  .pills button { font: 540 .9rem/1 var(--sans); color: var(--on-dark-2); background: none; border: 0; padding: .7rem 1rem; border-radius: 999px; cursor: pointer; transition: color .4s, background .4s var(--ease); }
+  .pills button:hover { color: var(--on-dark); }
+  .pills button[aria-pressed='true'] { background: var(--on-dark); color: var(--ink); }
+  .g3-hint { margin: 0; font-size: var(--step--1); color: var(--on-dark-2); }
+  .ficha-pop { position: absolute; right: var(--gutter); top: 50%; translate: 0 -50%; width: min(19rem, 80vw); padding: 1.2rem 1.3rem 1.1rem; border-radius: 18px; background: color-mix(in srgb, var(--on-dark) 92%, transparent); color: var(--on-light); backdrop-filter: blur(14px); box-shadow: 0 30px 60px -30px rgba(0,0,0,.6); }
+  .fp-x { position: absolute; top: .6rem; right: .6rem; width: 32px; height: 32px; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--on-light) 8%, transparent); color: var(--on-light); display: grid; place-items: center; cursor: pointer; }
+  .fp-x:hover { background: var(--on-light); color: #fff; }
+  .fp-k { font-size: .75rem; color: var(--on-light-2); margin: 0 0 .5rem; display: flex; gap: .45rem; align-items: center; }
+  .fp-k::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--deep); box-shadow: 0 0 0 4px color-mix(in srgb, var(--deep) 20%, transparent); }
+  .fp-h { font: 300 italic 1.5rem/1.1 var(--serif); letter-spacing: -0.03em; margin: 0 0 .7rem; }
+  .ficha-pop ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule-light); font-size: .9rem; }
+  .ficha-pop li { padding: .5rem 0; border-bottom: 1px solid var(--rule-light); }
+  .ficha-pop li:last-child { border: 0; color: var(--deep); font-weight: 560; }
+
+  @media (min-width: 960px) {
+    .g3-viewer { left: 32%; }
+  }
+  @media (max-width: 959px) {
+    .g3 { min-height: auto; }
+    .g3-viewer { inset: auto 0 0 0; top: 30%; }
+    .g3-grid { min-height: 100svh; }
+    .ficha-pop { top: 55%; right: 50%; translate: 50% -50%; }
+  }
+</style>
