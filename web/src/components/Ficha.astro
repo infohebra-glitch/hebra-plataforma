@@ -22,6 +22,8 @@ const T = {
       { k: 'Confección', v: 'Cosida y rematada', where: 'Guimarães, Portugal' },
     ],
     by: 'con Hebra',
+    pairH: 'Combina con', pairQ: 'Lo que más se prueba junto a esta prenda', pairAdd: 'A la cabina', pairDone: 'En camino',
+    pairs: [['americana', 'Americana de lana', '149 €'], ['vaquero', 'Vaquero recto', '59 €'], ['blusa', 'Blusa de lino', '45 €']],
   },
   ca: {
     brand: 'La teva marca', alt: 'Samarreta bàsica de cotó, blanca', auth: 'Peça autèntica',
@@ -38,6 +40,8 @@ const T = {
       { k: 'Confecció', v: 'Cosida i rematada', where: 'Guimarães, Portugal' },
     ],
     by: 'amb Hebra',
+    pairH: 'Combina amb', pairQ: 'El que més s’emprova juntament amb aquesta peça', pairAdd: 'A la cabina', pairDone: 'De camí',
+    pairs: [['americana', 'Americana de llana', '149 €'], ['vaquero', 'Texà recte', '59 €'], ['blusa', 'Brusa de lli', '45 €']],
   },
   en: {
     brand: 'Your brand', alt: 'Basic white cotton T-shirt', auth: 'Authentic garment',
@@ -54,6 +58,8 @@ const T = {
       { k: 'Making', v: 'Sewn and finished', where: 'Guimarães, Portugal' },
     ],
     by: 'with Hebra',
+    pairH: 'Goes with', pairQ: 'What’s tried on most with this garment', pairAdd: 'To my room', pairDone: 'On its way',
+    pairs: [['americana', 'Wool blazer', '€149'], ['vaquero', 'Straight jeans', '€59'], ['blusa', 'Linen blouse', '€45']],
   },
 }[lang];
 const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR · EN', en: 'CA · ES · FR · <b>EN</b>' }[lang];
@@ -78,7 +84,7 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
       <div class="fi-cab-head"><h3>{T.other}</h3><span class="fi-badge">{T.cab}</span></div>
       <div class="fi-sizes" role="group" aria-label={T.sizesLabel}>
         {sizes.map((z) => (
-          <button type="button" data-size={z.s} aria-pressed="false" class:list={[{ cur: z.cur, out: !z.ok }]} aria-label={z.ok ? z.s : `${z.s}, ${T.outLabel}`} data-ok={z.ok ? '1' : '0'}>
+          <button type="button" data-size={z.s} aria-pressed="false" class:list={[{ cur: z.cur, out: !z.ok }]} data-yours={T.yours} aria-label={z.ok ? z.s : `${z.s}, ${T.outLabel}`} data-ok={z.ok ? '1' : '0'}>
             {z.s}{!z.ok && <small>{T.notify}</small>}
           </button>
         ))}
@@ -94,6 +100,23 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
         <li><span class="dot" aria-hidden="true"></span><b>{c.k}</b><span>{c.v}</span><em>{c.where}</em></li>
       ))}
     </ol>
+  </section>
+
+  <section class="fi-block">
+    <div class="fi-pair-head"><h3>{T.pairH}</h3><span>{T.pairQ}</span></div>
+    <ul class="fi-pairs">
+      {T.pairs.map(([k, n, pr]) => (
+        <li>
+          <span class="fi-pimg">
+            {k === 'vaquero'
+              ? <svg viewBox="0 0 60 80" aria-hidden="true"><path d="M14 4h32l4 72H35l-5-46-5 46H10z" fill="#3A5A84" /><path d="M14 4h32v6H14z" fill="#2E4A6E" /><path d="M30 10v18" stroke="#C9A35A" stroke-width="1" stroke-dasharray="2 2" /></svg>
+              : <img src={`/img/3d/${k}-alpha.webp`} alt="" loading="lazy" />}
+          </span>
+          <b>{n}</b><span class="fi-pp">{pr}</span>
+          {!compact && <button type="button" data-pair data-done={T.pairDone}>+ {T.pairAdd}</button>}
+        </li>
+      ))}
+    </ul>
   </section>
 
   <section class="fi-block">
@@ -142,7 +165,7 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
   .fi-sizes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; }
   .fi-sizes button { position: relative; font: 600 .95rem/1 var(--sans); height: 2.8rem; border-radius: 10px; border: 1.5px solid #D5DBE3; background: #fff; color: var(--tinta); cursor: pointer; display: grid; place-content: center; gap: .15rem; }
   .fi-sizes button.cur { border-color: var(--on-light); }
-  .fi-sizes button.cur::after { content: 'la tuya'; position: absolute; top: -.55rem; left: 50%; transform: translateX(-50%); font-size: .58rem; font-weight: 700; background: var(--on-light); color: #fff; padding: .1rem .35rem; border-radius: 999px; }
+  .fi-sizes button.cur::after { content: attr(data-yours); position: absolute; top: -.55rem; left: 50%; transform: translateX(-50%); font-size: .58rem; font-weight: 700; background: var(--on-light); color: #fff; padding: .1rem .35rem; border-radius: 999px; }
   .fi-sizes button.out { border-style: dashed; color: var(--tinta-2); }
   .fi-sizes small { font-size: .58rem; font-weight: 600; color: var(--deep); }
   .fi-sizes button[aria-pressed='true'] { background: var(--on-light); color: #fff; border-color: var(--on-light); }
@@ -163,6 +186,18 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
   .fi-chips button[aria-pressed='true'] { background: var(--deep); color: #fff; border-color: var(--deep); }
   .fi-msg { min-height: 1.2em; margin: .55rem 0 0; font-size: .78rem; color: var(--deep); font-weight: 500; }
   .fi-msg:empty { display: none; }
+  .fi-pair-head { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; margin-bottom: .7rem; }
+  .fi-pair-head h3 { margin: 0; }
+  .fi-pair-head span { font-size: .64rem; color: var(--tinta-2); text-align: right; }
+  .fi-pairs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem; }
+  .fi-pairs li { display: flex; flex-direction: column; gap: .15rem; font-size: .68rem; }
+  .fi-pimg { display: grid; place-items: center; aspect-ratio: 1; border-radius: 10px; background: #F3F4F6; padding: .35rem; }
+  .fi-pimg img, .fi-pimg svg { max-height: 100%; max-width: 100%; width: auto; height: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,.12)); }
+  .fi-pimg svg { height: 80%; }
+  .fi-pairs b { font-weight: 600; line-height: 1.2; margin-top: .25rem; }
+  .fi-pp { color: var(--tinta-2); }
+  .fi-pairs button { margin-top: .25rem; font: 600 .62rem/1 var(--sans); padding: .45rem .3rem; border-radius: 999px; border: 1.5px solid var(--on-light); background: #fff; color: var(--on-light); cursor: pointer; transition: background .3s, color .3s; }
+  .fi-pairs button:hover, .fi-pairs button[aria-pressed='true'] { background: var(--on-light); color: #fff; }
   .fi-foot { display: flex; justify-content: space-between; padding: .8rem 1.1rem 1rem; font-size: .7rem; color: var(--tinta-2); border-top: 8px solid #F3F4F6; }
   .fi-foot b { color: var(--on-light); }
   .fi-foot .fi-priv { color: inherit; }

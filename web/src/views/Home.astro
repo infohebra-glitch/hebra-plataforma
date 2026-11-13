@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import Hero from '../components/Hero.astro';
 import Calculator from '../components/Calculator.astro';
 import Process from '../components/Process.astro';
+import Film from '../components/Film.astro';
 import Fan from '../components/Fan.astro';
 import VideoDemo from '../components/VideoDemo.astro';
 import Report from '../components/Report.astro';
@@ -120,17 +121,7 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
     </div>
   </section>
 
-  <section class="film" data-film>
-    <div class="film-frame" data-film-frame>
-      <video muted playsinline loop autoplay preload="metadata" poster="/video/hero.jpg" aria-hidden="true">
-        <source src="/video/hero.mp4" type="video/mp4" />
-      </video>
-      <div class="film-cap">
-        <h2 data-lines set:html={N.vid} />
-        <p>{N.vidL}</p>
-      </div>
-    </div>
-  </section>
+  <Film src="/video/hero.mp4" poster="/video/hero.jpg" title={N.vid} text={N.vidL} />
 
   <section class="band" id="problema">
     <div class="wrap">
@@ -236,15 +227,6 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
   .man-text { max-width: 30ch; margin: 0; font: 400 clamp(1.9rem, 1rem + 3.4vw, 4.6rem)/1.08 var(--sans); letter-spacing: -0.05em; color: color-mix(in srgb, var(--on-dark) 38%, transparent); text-wrap: pretty; }
   .mw { color: var(--on-dark); transition: color .6s var(--ease); }
   .mw.on { font-family: var(--serif); font-style: italic; font-weight: 300; color: var(--tint); letter-spacing: -0.04em; }
-
-  /* Vídeo a sangre que se abre con el scroll */
-  .film { background: var(--ink); padding-bottom: clamp(2rem, 6vw, 5rem); }
-  .film-frame { position: relative; height: 100svh; overflow: hidden; color: #fff; clip-path: inset(0 var(--gutter) round var(--radius)); }
-  .film video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .film-frame::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,.05) 55%); }
-  .film-cap { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; padding: 0 calc(var(--gutter) * 2) clamp(2.5rem, 6vw, 4.5rem); }
-  .film-cap h2 { font-size: clamp(2.6rem, 1.4rem + 5vw, 7rem); line-height: .95; letter-spacing: -0.055em; max-width: 12ch; margin: 0 0 1rem; }
-  .film-cap p { margin: 0; color: rgba(255,255,255,.8); }
 
   /* La tinta sube y cubre la sección clara */
   .wipe { position: relative; height: 22vh; background: var(--paper-2); overflow: hidden; }

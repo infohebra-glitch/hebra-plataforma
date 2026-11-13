@@ -85,6 +85,7 @@ export function mountViewer(root, { reduce, onTap, onFail, onReady } = {}) {
 
   // Etiqueta colgante con su hilo
   const tagGroup = new THREE.Group();
+  tagGroup.scale.setScalar(0.68);
   const swing = new THREE.Group();
   tagGroup.add(swing);
   const w = 0.24, h = 0.38, r = 0.035;

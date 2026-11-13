@@ -11,6 +11,11 @@ const T = {
     h1: 'La prenda ya sabe dónde ha estado. Nosotros hacemos que la marca lo sepa.',
     whyH: 'Por qué existe Hebra.',
     why: ['Las grandes cadenas llevan años midiendo su stock prenda a prenda. Las marcas con una a cinco tiendas se quedaron fuera: demasiado caro, demasiado complejo y pensado para contar cajas, no para entender a quien se prueba la ropa.', 'Hebra nace en Barcelona para darles lo que nadie les da: saber qué pasa dentro de su probador y si contar el origen de lo que venden les hace vender más. Sin cámaras, sin obras y con una acción concreta cada semana.'],
+    mvH: 'Lo que nos mueve.',
+    now: ['Hoy', 'Que cada tienda sepa qué pasa dentro de su probador.', 'Cuántas veces se prueba una prenda, cuántas se queda y por qué no.'],
+    next: ['Mañana', 'Que cada prenda lleve consigo su propia historia.', 'De la fibra a la percha, contada en claro al que la tiene en la mano.'],
+    valH: 'Cómo trabajamos',
+    vals: [['Claros', 'Datos que se entienden sin manual y sin letra pequeña.'], ['Discretos', 'Sin cámaras y sin datos personales. Medimos prendas, no personas.'], ['Útiles', 'Una acción concreta cada semana, no un panel más.'], ['Honestos', 'Medimos antes de prometer y decimos de dónde sale cada dato.']],
     teamH: 'El equipo.',
     team: [['Iscle', 'Cofundador y CEO', 'Dirección, marketing y ventas.'], ['Guillem', 'Cofundador, negocio', 'Ventas y desarrollo de negocio.']],
     photo: 'Foto pendiente: retrato de',
@@ -23,6 +28,11 @@ const T = {
     h1: 'La peça ja sap on ha estat. Nosaltres fem que la marca ho sàpiga.',
     whyH: 'Per què existeix Hebra.',
     why: ['Les grans cadenes fa anys que mesuren el seu estoc peça a peça. Les marques amb una a cinc botigues s’han quedat fora: massa car, massa complex i pensat per comptar caixes, no per entendre qui s’emprova la roba.', 'Hebra neix a Barcelona per donar-los el que ningú els dona: saber què passa dins del seu emprovador i si explicar l’origen del que venen els fa vendre més. Sense càmeres, sense obres i amb una acció concreta cada setmana.'],
+    mvH: 'El que ens mou.',
+    now: ['Avui', 'Que cada botiga sàpiga què passa dins del seu emprovador.', 'Quantes vegades s’emprova una peça, quantes es queda i per què no.'],
+    next: ['Demà', 'Que cada peça porti a sobre la seva pròpia història.', 'De la fibra a la perxa, explicada clar a qui la té a la mà.'],
+    valH: 'Com treballem',
+    vals: [['Clars', 'Dades que s’entenen sense manual i sense lletra petita.'], ['Discrets', 'Sense càmeres i sense dades personals. Mesurem peces, no persones.'], ['Útils', 'Una acció concreta cada setmana, no un panell més.'], ['Honestos', 'Mesurem abans de prometre i diem d’on surt cada dada.']],
     teamH: 'L’equip.',
     team: [['Iscle', 'Cofundador i CEO', 'Direcció, màrqueting i vendes.'], ['Guillem', 'Cofundador, negoci', 'Vendes i desenvolupament de negoci.']],
     photo: 'Foto pendent: retrat de',
@@ -35,6 +45,11 @@ const T = {
     h1: 'The garment already knows where it has been. We let the brand know too.',
     whyH: 'Why Hebra exists.',
     why: ['Large chains have measured their stock garment by garment for years. Brands with one to five stores were left out: too expensive, too complex and built to count boxes, not to understand who tries the clothes on.', 'Hebra was born in Barcelona to give them what nobody else does: knowing what happens inside their fitting room and whether telling the origin of what they sell helps them sell more. No cameras, no building work and one concrete action every week.'],
+    mvH: 'What drives us.',
+    now: ['Today', 'Every store knowing what happens inside its fitting room.', 'How often a garment is tried on, how often it stays and why not.'],
+    next: ['Tomorrow', 'Every garment carrying its own story with it.', 'From fibre to rail, told plainly to whoever holds it.'],
+    valH: 'How we work',
+    vals: [['Clear', 'Data you understand without a manual or small print.'], ['Discreet', 'No cameras and no personal data. We measure garments, not people.'], ['Useful', 'One concrete action every week, not one more dashboard.'], ['Honest', 'We measure before we promise and say where each data point comes from.']],
     teamH: 'The team.',
     team: [['Iscle', 'Co-founder and CEO', 'Management, marketing and sales.'], ['Guillem', 'Co-founder, business', 'Sales and business development.']],
     photo: 'Photo pending: portrait of',
@@ -63,21 +78,49 @@ const fotos: Record<string, string> = { Iscle: '', Guillem: '' };
     </div>
   </section>
 
+
+  <section class="mv" data-thread-scope>
+    <svg class="mv-thread" data-thread data-start="top 75%" data-end="bottom 70%" viewBox="0 0 100 1000" preserveAspectRatio="none" aria-hidden="true"><path d="M50 0 C 90 160, 10 320, 50 480 S 90 800, 50 1000" fill="none" stroke="currentColor" stroke-width="1.2" vector-effect="non-scaling-stroke" /></svg>
+    <div class="wrap">
+      <h2 class="mv-h" data-reveal>{T.mvH}</h2>
+      {[T.now, T.next].map(([k, big, small], i) => (
+        <article class={`mv-row ${i ? 'r' : ''}`} data-reveal>
+          <p class="mv-k">{k}</p>
+          <p class="mv-big">{big}</p>
+          <p class="mv-small">{small}</p>
+        </article>
+      ))}
+      <h3 class="mv-vh" data-reveal>{T.valH}</h3>
+      <ul class="mv-vals">
+        {T.vals.map(([n, d], i) => (
+          <li data-reveal>
+            <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+              {i === 0 && <g fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="32" cy="32" r="22" /><circle cx="32" cy="32" r="8" /></g>}
+              {i === 1 && <g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 32c8-12 40-12 48 0-8 12-40 12-48 0z" /><path d="M14 50L50 14" /></g>}
+              {i === 2 && <g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 44l14-14 10 10 20-20" /><path d="M42 20h12v12" /></g>}
+              {i === 3 && <g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M32 8v48" /><path d="M14 20h36" /><path d="M14 20l-7 16h14zM50 20l-7 16h14z" /></g>}
+            </svg>
+            <h4>{n}</h4>
+            <p>{d}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
   <section class="band">
     <div class="wrap">
       <h2 data-reveal>{T.teamH}</h2>
       <div class="team">
         {T.team.map(([name, role, text]) => {
-          const email = contacts.find((c) => c.name === name)?.email;
           return (
             <article class="person" data-reveal>
               <figure class="photo" style="--ar: 4/5">
-                {fotos[name] ? <img src={fotos[name]} alt={`${name}, ${role}`} loading="lazy" /> : <figcaption>{T.photo} {name}</figcaption>}
+                {fotos[name] ? <img src={fotos[name]} alt={`${name}, ${role}`} loading="lazy" /> : <span class="mono" aria-hidden="true">{name[0]}</span>}
               </figure>
               <h3>{name}</h3>
               <p class="role">{role}</p>
               <p class="quiet">{text}</p>
-              {email && <a class="textlink" href={`mailto:${email}`}>{email}</a>}
             </article>
           );
         })}
@@ -101,7 +144,7 @@ const fotos: Record<string, string> = { Iscle: '', Guillem: '' };
         <p class="lead">{T.inv}</p>
         <div class="actions"><a class="btn" href={path(lang, '/contacto/') + '?motivo=dossier'}>{T.invCta}</a></div>
         <p class="small quiet" style="margin-top:1.5rem">{T.direct}</p>
-        <ul class="contact-list">{contacts.map((c) => <li><b>{c.name}</b><a class="textlink" href={`mailto:${c.email}`}>{c.email}</a></li>)}</ul>
+        <ul class="contact-list">{contacts.map((c) => <li><a class="textlink" href={`mailto:${c.email}`}>{c.email}</a></li>)}</ul>
       </div>
     </div>
   </section>
@@ -110,7 +153,24 @@ const fotos: Record<string, string> = { Iscle: '', Guillem: '' };
 </Base>
 
 <style>
+  .mv { position: relative; overflow: hidden; background: var(--ink); color: var(--on-dark); padding: clamp(6rem, 12vw, 10rem) 0; isolation: isolate; }
+  .mv-thread { position: absolute; z-index: -1; inset: 0; width: 100%; height: 100%; color: var(--tint); opacity: .55; }
+  .mv-h { margin: 0 0 clamp(3rem, 8vw, 6rem); font-size: var(--step-1); font-weight: 400; opacity: .7; }
+  .mv-row { display: grid; gap: .8rem 3rem; max-width: 62rem; margin-bottom: clamp(4rem, 10vw, 8rem); }
+  .mv-row.r { margin-left: auto; text-align: right; justify-items: end; }
+  .mv-k { margin: 0; font-size: var(--step--1); opacity: .65; }
+  .mv-big { margin: 0; font: 300 clamp(2.4rem, 1.2rem + 4.6vw, 6rem)/1 var(--serif); letter-spacing: -0.045em; font-variation-settings: 'opsz' 144; max-width: 16ch; text-wrap: balance; }
+  .mv-small { margin: .6rem 0 0; max-width: 36ch; opacity: .78; }
+  .mv-vh { margin: 0 0 2rem; font-size: var(--step--1); font-weight: 400; opacity: .65; }
+  .mv-vals { list-style: none; padding: 0; margin: 0; display: grid; gap: 1px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); background: color-mix(in srgb, var(--on-dark) 18%, transparent); border: 1px solid color-mix(in srgb, var(--on-dark) 18%, transparent); border-radius: var(--radius); overflow: hidden; }
+  .mv-vals li { background: var(--ink); padding: 2rem 1.6rem 2.2rem; display: grid; gap: .6rem; align-content: start; transition: background .5s var(--ease); }
+  .mv-vals li:hover { background: color-mix(in srgb, var(--ink) 80%, var(--tint)); }
+  .mv-vals svg { color: var(--tint); margin-bottom: 1.2rem; }
+  .mv-vals h4 { margin: 0; font: 340 var(--step-2)/1 var(--serif); letter-spacing: -0.03em; }
+  .mv-vals p { margin: 0; opacity: .78; font-size: .95rem; line-height: 1.5; }
   .team { display: grid; gap: 2.5rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); margin-top: 2.5rem; max-width: 56rem; }
+  .person .photo { display: grid; place-items: center; background: linear-gradient(160deg, var(--ink), color-mix(in srgb, var(--ink) 70%, var(--tint))); border-radius: var(--radius); }
+  .person .mono { font: 300 clamp(6rem, 12vw, 9rem)/1 var(--serif); color: var(--on-dark); letter-spacing: -0.05em; opacity: .9; }
   .person h3 { margin: 1.1rem 0 .1rem; font-size: var(--step-2); font-weight: 340; font-variation-settings: 'opsz' 96; }
   .person .role { margin: 0 0 .4rem; font-weight: 600; color: var(--on-light); }
   .band.grana .rows p { color: #fff; }

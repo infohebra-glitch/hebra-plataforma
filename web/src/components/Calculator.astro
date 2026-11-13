@@ -3,49 +3,67 @@ import type { Lang } from '../i18n';
 interface Props { lang?: Lang }
 const { lang = 'es' } = Astro.props;
 const T = {
-  es: { a: 'Prendas que entran al probador cada semana', b: 'Cuántas se compran', c: 'Precio medio de la prenda', of: '{n} de cada 100', k: 'Probado y no vendido, esta semana', u: 'prendas. En una temporada de 26 semanas,', foot: 'Con las cifras que elijas, no datos de ninguna marca. No todo se puede recuperar: Hebra te dice qué parte sí y qué hacer con ella.' },
-  ca: { a: 'Peces que entren a l’emprovador cada setmana', b: 'Quantes se’n compren', c: 'Preu mitjà de la peça', of: '{n} de cada 100', k: 'Emprovat i no venut, aquesta setmana', u: 'peces. En una temporada de 26 setmanes,', foot: 'Amb les xifres que triïs, no dades de cap marca. No tot es pot recuperar: Hebra et diu quina part sí i què fer-ne.' },
-  en: { a: 'Garments taken into the fitting room each week', b: 'How many get bought', c: 'Average garment price', of: '{n} in 100', k: 'Tried on and not sold, this week', u: 'garments. Over a 26-week season,', foot: 'With the figures you choose, not any brand’s data. Not everything can be recovered: Hebra tells you which part can, and what to do about it.' },
+  es: { a: 'Prendas que entran al probador cada semana', b: 'Cuántas se compran', c: 'Precio medio de la prenda', of: '{n} de cada 100', sold: 'Se compra', tried: 'Se prueba y se deja', k: 'Probado y no vendido, esta semana', u: 'prendas. En una temporada de 26 semanas,', foot: 'Con las cifras que elijas, no datos de ninguna marca. No todo se puede recuperar: Hebra te dice qué parte sí y qué hacer con ella.' },
+  ca: { a: 'Peces que entren a l’emprovador cada setmana', b: 'Quantes se’n compren', c: 'Preu mitjà de la peça', of: '{n} de cada 100', sold: 'Es compra', tried: 'S’emprova i es deixa', k: 'Emprovat i no venut, aquesta setmana', u: 'peces. En una temporada de 26 setmanes,', foot: 'Amb les xifres que triïs, no dades de cap marca. No tot es pot recuperar: Hebra et diu quina part sí i què fer-ne.' },
+  en: { a: 'Garments taken into the fitting room each week', b: 'How many get bought', c: 'Average garment price', of: '{n} in 100', sold: 'Bought', tried: 'Tried on and left', k: 'Tried on and not sold, this week', u: 'garments. Over a 26-week season,', foot: 'With the figures you choose, not any brand’s data. Not everything can be recovered: Hebra tells you which part can, and what to do about it.' },
 }[lang];
 ---
 <div class="calc" data-calc data-of={T.of}>
-  <div class="calc-in">
-    <label>
-      <span>{T.a} <output data-out="pruebas"></output></span>
-      <input type="range" name="pruebas" min="50" max="2000" step="10" value="400" />
-    </label>
-    <label>
-      <span>{T.b} <output data-out="conversion"></output></span>
-      <input type="range" name="conversion" min="5" max="60" step="1" value="25" />
-    </label>
-    <label>
-      <span>{T.c} <output data-out="precio"></output></span>
-      <input type="range" name="precio" min="15" max="300" step="1" value="69" />
-    </label>
-  </div>
   <div class="calc-out" aria-live="polite">
     <p class="calc-k">{T.k}</p>
     <p class="calc-big" data-out="semana">20.700 €</p>
     <p class="calc-sub"><span data-out="unidades">300</span> {T.u} <strong data-out="temporada">538.200 €</strong>.</p>
+    <div class="calc-dots" data-dots aria-hidden="true">{Array.from({ length: 100 }, () => <i></i>)}</div>
+    <p class="calc-legend" aria-hidden="true"><span class="lg sold"></span>{T.sold}<span class="lg tried"></span>{T.tried}</p>
+  </div>
+  <div class="calc-in">
+    <label>
+      <span class="calc-l">{T.a}</span>
+      <output data-out="pruebas"></output>
+      <input type="range" name="pruebas" min="50" max="2000" step="10" value="400" />
+    </label>
+    <label>
+      <span class="calc-l">{T.b}</span>
+      <output data-out="conversion"></output>
+      <input type="range" name="conversion" min="5" max="60" step="1" value="25" />
+    </label>
+    <label>
+      <span class="calc-l">{T.c}</span>
+      <output data-out="precio"></output>
+      <input type="range" name="precio" min="15" max="300" step="1" value="69" />
+    </label>
     <p class="small calc-foot">{T.foot}</p>
   </div>
 </div>
 
 <style>
-  .calc { display: grid; gap: 0; border-radius: 6px; overflow: hidden; background: #fff; box-shadow: 0 1px 0 var(--linea); }
-  @media (min-width: 900px) { .calc { grid-template-columns: 1.1fr 1fr; } }
-  .calc-in { padding: clamp(1.5rem, 4vw, 2.6rem); display: grid; gap: 2rem; }
-  .calc-in label { display: grid; gap: .8rem; }
-  .calc-in span { display: flex; justify-content: space-between; gap: 1rem; font-weight: 500; }
-  .calc-in output { font-weight: 700; color: var(--deep); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; cursor: pointer; }
-  input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--pedra); }
-  input[type=range]::-moz-range-track { height: 2px; background: var(--pedra); }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -10px; border-radius: 50%; background: var(--deep); border: 3px solid #fff; box-shadow: 0 0 0 1.5px var(--deep); }
-  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--deep); border: 3px solid #fff; box-shadow: 0 0 0 1.5px var(--deep); }
-  .calc-out { background: var(--deep); color: #fff; padding: clamp(1.5rem, 4vw, 2.6rem); display: flex; flex-direction: column; justify-content: center; }
-  .calc-k { margin: 0; color: #F3DDE4; }
-  .calc-big { font: 340 clamp(3rem, 2rem + 4vw, 5.2rem)/1 var(--serif); font-variation-settings: 'opsz' 144; margin: .4rem 0 1rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-  .calc-sub { margin: 0 0 1.5rem; }
-  .calc-foot { color: #F3DDE4; margin: 0; padding-top: 1.2rem; border-top: 1px solid rgba(249,249,249,.2); }
+  .calc { display: grid; gap: clamp(1rem, 2vw, 1.5rem); }
+  @media (min-width: 900px) { .calc { grid-template-columns: 1.15fr 1fr; } }
+  .calc-out { position: relative; overflow: hidden; background: var(--ink); color: var(--on-dark); border-radius: var(--radius); padding: clamp(1.6rem, 4vw, 3rem); display: flex; flex-direction: column; }
+  .calc-out::before { content: ''; position: absolute; right: -30%; top: -40%; width: 80%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 55%, transparent), transparent); pointer-events: none; }
+  .calc-k { position: relative; margin: 0; color: var(--on-dark-2); font-size: var(--step--1); }
+  .calc-big { position: relative; font: 300 clamp(3.4rem, 2rem + 5vw, 6.4rem)/.95 var(--sans); letter-spacing: -0.06em; margin: .6rem 0 .8rem; font-variant-numeric: tabular-nums; }
+  .calc-sub { position: relative; margin: 0 0 2rem; color: var(--on-dark-2); max-width: 36ch; }
+  .calc-sub strong { color: var(--on-dark); font-weight: 600; }
+  .calc-dots { position: relative; display: grid; grid-template-columns: repeat(20, 1fr); gap: 5px; margin-top: auto; }
+  .calc-dots i { aspect-ratio: 1; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--on-dark) 30%, transparent); transition: background .35s var(--ease), border-color .35s, transform .35s var(--ease); }
+  .calc-dots i.s { background: var(--tint); border-color: var(--tint); transform: scale(.8); }
+  .calc-legend { position: relative; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 1rem 0 0; font-size: .78rem; color: var(--on-dark-2); }
+  .lg { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .lg.sold { background: var(--tint); }
+  .lg.tried { border: 1px solid color-mix(in srgb, var(--on-dark) 45%, transparent); margin-left: .8rem; }
+
+  .calc-in { background: #fff; border-radius: var(--radius); padding: clamp(1.4rem, 3vw, 2.4rem); display: grid; gap: 1.6rem; align-content: start; box-shadow: 0 0 0 1px var(--rule-light); }
+  .calc-in label { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .2rem 1rem; }
+  .calc-l { font-size: .9rem; color: var(--on-light-2); line-height: 1.3; }
+  .calc-in output { font: 400 1.9rem/1 var(--sans); letter-spacing: -0.04em; color: var(--on-light); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .calc-in input { grid-column: 1 / -1; margin-top: .5rem; }
+  input[type=range] { --p: 50%; -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 6px; background: linear-gradient(to right, var(--deep) var(--p), var(--paper-2) var(--p)); }
+  input[type=range]::-moz-range-track { height: 6px; border-radius: 6px; background: var(--paper-2); }
+  input[type=range]::-moz-range-progress { height: 6px; border-radius: 6px; background: var(--deep); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -10px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 2px 10px rgba(0,0,0,.25), 0 0 0 1px var(--rule-light); transition: transform .2s; }
+  input[type=range]:active::-webkit-slider-thumb { transform: scale(1.15); }
+  input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+  .calc-foot { color: var(--on-light-2); margin: .4rem 0 0; padding-top: 1.2rem; border-top: 1px solid var(--rule-light); }
 </style>

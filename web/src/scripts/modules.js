@@ -40,7 +40,10 @@ function calculator() {
     out('semana').textContent = eur.format(semana);
     out('unidades').textContent = num.format(noVendidas);
     out('temporada').textContent = eur.format(semana * 26);
+    [pr, cv, pc].forEach((i) => i.style.setProperty('--p', ((i.value - i.min) / (i.max - i.min)) * 100 + '%'));
+    dots.forEach((d, k) => d.classList.toggle('s', k < c));
   };
+  const dots = [...root.querySelectorAll('[data-dots] i')];
   [pr, cv, pc].forEach((i) => i.addEventListener('input', update));
   update();
 }
@@ -83,6 +86,11 @@ function ficha() {
   document.querySelectorAll('[data-ficha]').forEach(fichaOne);
 }
 function fichaOne(root) {
+  root.querySelectorAll('[data-pair]').forEach((b) => b.addEventListener('click', () => {
+    if (b.getAttribute('aria-pressed') === 'true') return;
+    b.setAttribute('aria-pressed', 'true');
+    b.textContent = '✓ ' + b.dataset.done;
+  }));
   root.querySelectorAll('[data-size]').forEach((b) =>
     b.addEventListener('click', () => {
       root.querySelectorAll('[data-size]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
@@ -385,7 +393,7 @@ function processPin(gsap, ScrollTrigger, reduce) {
     let cur = 0;
     const st = ScrollTrigger.create({
       trigger: root, pin: root.querySelector('[data-process-pin]'), start: 'top top',
-      end: () => '+=' + window.innerHeight * (reduce ? 1.2 : 2.6),
+      end: () => '+=' + window.innerHeight * 1.2,
       onUpdate: (s) => { const n = Math.min(steps.length - 1, Math.floor(s.progress * steps.length * 0.999)); if (n !== cur) { cur = n; set(n); } },
     });
     return () => st.kill();

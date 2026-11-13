@@ -16,10 +16,9 @@ export function pick<T>(lang: Lang, v: Record<Lang, T>): T {
 }
 
 export const contacts = [
-  { name: 'Iscle', email: 'ibeltran@hebra.com' },
-  { name: 'Guillem', email: 'gserra@hebra.com' },
+  { name: 'Hebra', email: 'clientes@hebra.com' },
 ];
-export const mainEmail = 'ibeltran@hebra.com';
+export const mainEmail = 'clientes@hebra.com';
 
 export const ui = {
   es: {

@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import Film from '../components/Film.astro';
 import Phone from '../components/Phone.astro';
 import Cta from '../components/Cta.astro';
 import { ui, path, type Lang } from '../i18n';
@@ -11,8 +12,8 @@ const T = {
     desc: 'Hebra Origen: la cadena de cada modelo en cuatro etapas, certificados con aviso de caducidad y coste ambiental oficial francés con Ecobalyse. Pensado para marcas de 1 a 5 tiendas.',
     lead: 'La cadena de cada modelo en cuatro etapas. El mismo recorrido que hacen las grandes herramientas de trazabilidad, en la versión que una marca de 1 a 5 tiendas puede rellenar en una tarde.',
     sH: 'Cuatro etapas por modelo.', sQ: 'Si ya usas una herramienta de trazabilidad, importamos lo que tienes y no repites trabajo.',
-    known: 'Cadena conocida de este modelo', knownNote: 'Ejemplo ilustrativo. La métrica se da por modelo y colección, con las etapas que faltan.', missing: 'Falta certificado', barLabel: 'Tres de cuatro etapas completas',
-    stages: [['Materia', 'Fibra o cultivo. País, proveedor y certificado (GOTS, GRS, OCS…).', true], ['Hilatura y tejido', 'Dónde se hacen el hilo y la tela.', true], ['Tintura y acabado', 'Dónde se tiñe y se acaba la tela.', true], ['Confección', 'Dónde se cose la prenda. En este ejemplo aún falta el certificado.', false]],
+    known: 'Cadena conocida de este modelo', knownNote: 'Ejemplo ilustrativo. La métrica se da por modelo y colección, etapa por etapa.', missing: 'Falta certificado', barLabel: 'Cuatro de cuatro etapas completas',
+    stages: [['Materia', 'Fibra o cultivo. País, proveedor y certificado (GOTS, GRS, OCS…).', true], ['Hilatura y tejido', 'Dónde se hacen el hilo y la tela.', true], ['Tintura y acabado', 'Dónde se tiñe y se acaba la tela.', true], ['Confección', 'Dónde se cose la prenda, con su taller y su certificado.', true]],
     cH: 'Cómo se recogen los datos.',
     c: [['La marca rellena una plantilla', 'Por modelo, una vez por colección.'], ['Cada proveedor confirma su etapa', 'Recibe un enlace con su etapa ya escrita, la confirma y sube el certificado. Sin crear ninguna cuenta.'], ['Hebra valida y vigila', 'Comprobamos que el certificado está vigente y avisamos 60 días antes de que caduque.']],
     fH: 'Si vendes en Francia, esto ya va contigo.',
@@ -29,8 +30,8 @@ const T = {
     desc: 'Hebra Origen: la cadena de cada model en quatre etapes, certificats amb avís de caducitat i cost ambiental oficial francès amb Ecobalyse. Pensat per a marques d’1 a 5 botigues.',
     lead: 'La cadena de cada model en quatre etapes. El mateix recorregut que fan les grans eines de traçabilitat, en la versió que una marca d’1 a 5 botigues pot omplir en una tarda.',
     sH: 'Quatre etapes per model.', sQ: 'Si ja fas servir una eina de traçabilitat, importem el que tens i no repeteixes feina.',
-    known: 'Cadena coneguda d’aquest model', knownNote: 'Exemple il·lustratiu. La mètrica es dona per model i col·lecció, amb les etapes que falten.', missing: 'Falta certificat', barLabel: 'Tres de quatre etapes completes',
-    stages: [['Matèria', 'Fibra o cultiu. País, proveïdor i certificat (GOTS, GRS, OCS…).', true], ['Filatura i teixit', 'On es fan el fil i la tela.', true], ['Tintura i acabat', 'On es tenyeix i s’acaba la tela.', true], ['Confecció', 'On es cus la peça. En aquest exemple encara falta el certificat.', false]],
+    known: 'Cadena coneguda d’aquest model', knownNote: 'Exemple il·lustratiu. La mètrica es dona per model i col·lecció, etapa per etapa.', missing: 'Falta certificat', barLabel: 'Quatre de quatre etapes completes',
+    stages: [['Matèria', 'Fibra o cultiu. País, proveïdor i certificat (GOTS, GRS, OCS…).', true], ['Filatura i teixit', 'On es fan el fil i la tela.', true], ['Tintura i acabat', 'On es tenyeix i s’acaba la tela.', true], ['Confecció', 'On es cus la peça, amb el seu taller i el seu certificat.', true]],
     cH: 'Com es recullen les dades.',
     c: [['La marca omple una plantilla', 'Per model, un cop per col·lecció.'], ['Cada proveïdor confirma la seva etapa', 'Rep un enllaç amb la seva etapa ja escrita, la confirma i puja el certificat. Sense crear cap compte.'], ['Hebra valida i vigila', 'Comprovem que el certificat és vigent i avisem 60 dies abans que caduqui.']],
     fH: 'Si vens a França, això ja va amb tu.',
@@ -47,8 +48,8 @@ const T = {
     desc: 'Hebra Origin: each style’s supply chain in four stages, certificates with expiry alerts and the official French environmental cost with Ecobalyse. Built for brands with 1 to 5 stores.',
     lead: 'Each style’s supply chain in four stages. The same journey the big traceability tools cover, in a version a brand with 1 to 5 stores can fill in over an afternoon.',
     sH: 'Four stages per style.', sQ: 'If you already use a traceability tool, we import what you have so you don’t repeat the work.',
-    known: 'Known supply chain for this style', knownNote: 'Illustrative example. The metric is given per style and collection, with the missing stages.', missing: 'Certificate missing', barLabel: 'Three of four stages complete',
-    stages: [['Raw material', 'Fibre or crop. Country, supplier and certificate (GOTS, GRS, OCS…).', true], ['Spinning and weaving', 'Where the yarn and fabric are made.', true], ['Dyeing and finishing', 'Where the fabric is dyed and finished.', true], ['Making', 'Where the garment is sewn. In this example the certificate is still missing.', false]],
+    known: 'Known supply chain for this style', knownNote: 'Illustrative example. The metric is given per style and collection, stage by stage.', missing: 'Certificate missing', barLabel: 'Four of four stages complete',
+    stages: [['Raw material', 'Fibre or crop. Country, supplier and certificate (GOTS, GRS, OCS…).', true], ['Spinning and weaving', 'Where the yarn and fabric are made.', true], ['Dyeing and finishing', 'Where the fabric is dyed and finished.', true], ['Making', 'Where the garment is sewn, with its workshop and certificate.', true]],
     cH: 'How the data is collected.',
     c: [['The brand fills in a template', 'Per style, once per collection.'], ['Each supplier confirms its stage', 'They get a link with their stage already written, confirm it and upload the certificate. No account needed.'], ['Hebra checks and monitors', 'We check the certificate is valid and alert you 60 days before it expires.']],
     fH: 'If you sell in France, this already applies to you.',
@@ -62,6 +63,11 @@ const T = {
   },
 }[lang];
 const u = ui[lang];
+const V = {
+  es: { h: 'De la fibra <em>a la percha.</em>', p: 'Cada prenda pasa por muchas manos antes de llegar a tu tienda. Hebra las ordena en cuatro etapas que tu cliente puede ver.', s: ['Materia', 'Hilatura y tejido', 'Tintura y acabado', 'Confección', 'Tienda'] },
+  ca: { h: 'De la fibra <em>a la perxa.</em>', p: 'Cada peça passa per moltes mans abans d’arribar a la teva botiga. Hebra les ordena en quatre etapes que el teu client pot veure.', s: ['Matèria', 'Filatura i teixit', 'Tintura i acabat', 'Confecció', 'Botiga'] },
+  en: { h: 'From fibre <em>to the rail.</em>', p: 'Every garment passes through many hands before it reaches your store. Hebra puts them in order, in four stages your customer can see.', s: ['Raw material', 'Spinning and weaving', 'Dyeing and finishing', 'Making', 'Store'] },
+}[lang];
 ---
 <Base title={T.title} lang={lang} route="/origen/" description={T.desc}>
   <header class="page-head">
@@ -73,6 +79,8 @@ const u = ui[lang];
     </div>
   </header>
 
+  <Film src="/video/proceso.mp4" poster="/video/proceso.jpg" title={V.h} text={V.p} steps={V.s} />
+
   <section class="band perla">
     <div class="wrap split">
       <div data-reveal>
@@ -80,13 +88,13 @@ const u = ui[lang];
         <p class="quiet">{T.sQ}</p>
         <div class="known">
           <p class="known-k">{T.known}</p>
-          <p class="known-v" data-count="75">75 %</p>
-          <div class="bar" role="img" aria-label={T.barLabel}><span style="width:75%"></span></div>
+          <p class="known-v" data-count="100">100 %</p>
+          <div class="bar" role="img" aria-label={T.barLabel}><span style="width:100%"></span></div>
           <p class="small quiet">{T.knownNote}</p>
         </div>
       </div>
-      <ol class="rows steps chain" data-reveal style={`--missing:'${T.missing}'`}>
-        {T.stages.map(([h, p, ok]) => <li class={ok ? '' : 'missing'}><h3>{h}{!ok && <span class="miss">{T.missing}</span>}</h3><p>{p}</p></li>)}
+      <ol class="rows steps chain" data-reveal>
+        {T.stages.map(([h, p]) => <li><h3>{h}<span class="ok" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2" /></svg></span></h3><p>{p}</p></li>)}
       </ol>
     </div>
   </section>
@@ -142,7 +150,7 @@ const u = ui[lang];
   .known-v { font: 340 var(--step-4)/1 var(--serif); color: var(--deep); margin: .3rem 0 1rem; }
   .bar { height: 6px; background: var(--perla-suave); border-radius: 3px; overflow: hidden; margin-bottom: 1rem; }
   .bar span { display: block; height: 100%; background: var(--deep); }
-  .miss { margin-left: .8rem; font: 600 .78rem/1 var(--sans); color: var(--deep); border: 1.5px solid var(--deep); border-radius: 999px; padding: .25rem .55rem; vertical-align: middle; white-space: nowrap; }
+  .ok { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: .7rem; border-radius: 50%; background: var(--deep); color: #fff; vertical-align: middle; }
   .ficha-col { display: grid; gap: 1.2rem; justify-items: center; align-content: start; }
   .ficha-phone { width: min(300px, 80vw); }
 </style>

@@ -227,3 +227,6 @@ form.f { display: grid; gap: 1.2rem; max-width: 44rem; }
 @keyframes vt-out { to { transform: translateY(-8vh) scale(.96); opacity: .3; filter: blur(4px); } }
 @keyframes vt-in { from { clip-path: inset(100% 0 0 0 round 40px 40px 0 0); transform: translateY(6vh); } to { clip-path: inset(0 0 0 0 round 0); transform: none; } }
 @media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
+
+/* Máscaras de las líneas: margen para descendentes (p, g) y para la cursiva que sobresale */
+.ln-mask { padding: 0 .12em .16em 0; margin: 0 -.12em -.16em 0; }

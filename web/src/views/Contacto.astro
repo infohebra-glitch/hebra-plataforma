@@ -66,7 +66,7 @@ const T = {
         <div class="mailcard">
           <h2 class="h3like">{T.mailH}</h2>
           <ul>
-            {contacts.map((c) => <li><span>{c.name}</span><a href={`mailto:${c.email}`}>{c.email}</a></li>)}
+            {contacts.map((c) => <li><a href={`mailto:${c.email}`}>{c.email}</a></li>)}
           </ul>
         </div>
         <h2 class="h3like" style="margin-top:2.5rem">{T.nextH}</h2>
