@@ -16,9 +16,11 @@ export function pick<T>(lang: Lang, v: Record<Lang, T>): T {
 }
 
 export const contacts = [
-  { name: 'Hebra', email: 'clientes@hebra.com' },
+  { name: 'Hebra', email: 'clientes@hebraia.com' },
 ];
-export const mainEmail = 'clientes@hebra.com';
+// Clave pública de Web3Forms (web3forms.com, gratis). Vacía: el formulario abre el correo del visitante.
+export const formKey = '';
+export const mainEmail = 'clientes@hebraia.com';
 
 export const ui = {
   es: {

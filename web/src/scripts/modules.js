@@ -116,6 +116,17 @@ function contact() {
   const sync = () => document.querySelectorAll('[data-marca-only]').forEach((el) => (el.hidden = !['demo', 'piloto'].includes(sel.value)));
   sel.addEventListener('change', sync);
   sync();
+  // Sin clave del servicio de formularios, el envío abre el correo del visitante con todo rellenado
+  const form = document.querySelector('[data-contact-form]');
+  if (form && !form.dataset.key) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const skip = ['access_key', 'subject', 'from_name', 'redirect', 'botcheck', 'empresa-web'];
+      const body = [...fd.entries()].filter(([k, v]) => !skip.includes(k) && v).map(([k, v]) => `${k}: ${v}`).join('\n');
+      location.href = `mailto:${form.dataset.mail}?subject=${encodeURIComponent('Hebra · ' + (fd.get('motivo') || 'contacto'))}&body=${encodeURIComponent(body)}`;
+    });
+  }
 }
 
 // Simulador del probador

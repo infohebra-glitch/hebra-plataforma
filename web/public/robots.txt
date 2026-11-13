@@ -1,3 +1,2 @@
 User-agent: *
-Disallow: /
-# Abrir cuando tengamos dominio definitivo
+Allow: /

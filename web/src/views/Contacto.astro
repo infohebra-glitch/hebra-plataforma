@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { ui, path, contacts, type Lang } from '../i18n';
+import { ui, path, contacts, formKey, mainEmail, type Lang } from '../i18n';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const T = {
@@ -76,8 +76,12 @@ const T = {
         <p class="small quiet" style="margin-top:2rem">{T.social} <a class="textlink" href="https://www.instagram.com/hebra.trace/" rel="noopener">@hebra.trace</a></p>
       </aside>
 
-      <form class="f" name="contacto" method="POST" action={path(lang, '/gracias/')} data-netlify="true" netlify-honeypot="empresa-web">
-        <input type="hidden" name="form-name" value="contacto" />
+      <form class="f" name="contacto" method="POST" action="https://api.web3forms.com/submit" data-contact-form data-key={formKey} data-mail={mainEmail} data-thanks={path(lang, '/gracias/')}>
+        <input type="hidden" name="access_key" value={formKey} />
+        <input type="hidden" name="subject" value="Hebra · contacto web" />
+        <input type="hidden" name="from_name" value="hebraia.com" />
+        <input type="hidden" name="redirect" value={new URL(path(lang, '/gracias/'), Astro.site).href} />
+        <input type="checkbox" name="botcheck" class="hp" style="display:none" tabindex="-1" autocomplete="off" />
         <input type="hidden" name="idioma" value={lang} />
         <p class="hp"><label>{T.hp} <input name="empresa-web" tabindex="-1" autocomplete="off" /></label></p>
         <label>{T.need}
