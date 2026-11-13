@@ -45,7 +45,14 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
       <a class="brand-fixed" href={path(lang, '/')} aria-label={`Hebra, ${t.home}`}>
         <img src="/img/logo-blanc.png" alt="" width="20" height="29" />
       </a>
-      <a class="cta-fixed" href={path(lang, '/contacto/?motivo=demo')} data-magnetic>{t.demo}</a>
+      <div class="top-right">
+        <span class="top-langs" aria-label={t.langLabel}>
+          {langs.map((l) => (
+            <a href={path(l, route)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} title={langName[l]}>{langShort[l]}</a>
+          ))}
+        </span>
+        <a class="cta-fixed" href={path(lang, '/contacto/?motivo=demo')} data-magnetic>{t.demo}</a>
+      </div>
       <nav class="dock" aria-label={t.navMain} data-dock>
         <a class="dock-word" href={path(lang, '/')}>Hebra<sup>®</sup></a>
         <ul class="dock-links">
@@ -109,7 +116,12 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
   .progress i { display: block; height: 100%; background: var(--tint); transform-origin: left; transform: scaleX(0); }
   .brand-fixed { position: fixed; top: 1.4rem; left: var(--gutter); z-index: 60; mix-blend-mode: difference; }
   .brand-fixed img { height: 30px; width: auto; }
-  .cta-fixed { position: fixed; top: 1.1rem; right: var(--gutter); z-index: 60; padding: .75em 1.3em; border-radius: 999px; font: 560 .92rem/1 var(--sans); text-decoration: none; color: var(--ink); background: var(--on-dark); transition: background .4s var(--ease); }
+  .top-right { position: fixed; top: 1.1rem; right: var(--gutter); z-index: 60; display: flex; align-items: center; gap: 1rem; }
+  .top-langs { display: flex; gap: .2rem; padding: .3rem; border-radius: 999px; background: color-mix(in srgb, var(--ink) 55%, transparent); border: 1px solid var(--rule-dark); backdrop-filter: blur(10px); }
+  .top-langs a { font: 600 .74rem/1 var(--sans); letter-spacing: .02em; color: var(--on-dark-2); text-decoration: none; padding: .5rem .6rem; border-radius: 999px; transition: color .3s, background .3s; }
+  .top-langs a:hover { color: var(--on-dark); }
+  .top-langs a[aria-current] { background: var(--on-dark); color: var(--ink); }
+  .cta-fixed { padding: .75em 1.3em; border-radius: 999px; font: 560 .92rem/1 var(--sans); text-decoration: none; color: var(--ink); background: var(--on-dark); transition: background .4s var(--ease); }
   .cta-fixed:hover { background: var(--tint); }
 
   /* La barra viaja: empieza arriba, baja con el scroll y se queda abajo en el centro */
@@ -123,15 +135,16 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
   .dock-links a::after { content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .5s var(--ease); }
   .dock-links a:hover::after, .dock-links a[aria-current]::after { transform: scaleX(1); transform-origin: left; }
   .dock-langs { display: flex; gap: .7rem; font-size: .78rem; }
+  .dock > .dock-langs { display: none; }
   .dock-langs a { opacity: .55; }
   .dock-langs a[aria-current], .dock-langs a:hover { opacity: 1; }
   .dock-menu { display: none; background: none; border: 0; color: inherit; font: 560 .92rem/1 var(--sans); cursor: pointer; padding: .3rem 0; }
   @media (max-width: 1100px) {
-    .dock { gap: 1.6rem; padding: .8rem 1.2rem; }
+    .dock { gap: 1.6rem; padding: .75rem 1.3rem; mix-blend-mode: normal; color: var(--on-dark); background: color-mix(in srgb, var(--ink) 78%, transparent); border: 1px solid var(--rule-dark); border-radius: 999px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
     .dock-links, .dock > .dock-langs { display: none; }
     .dock-menu { display: block; }
   }
-  @media (max-width: 520px) { .cta-fixed { font-size: .84rem; padding: .7em 1.1em; } }
+  @media (max-width: 520px) { .cta-fixed { font-size: .8rem; padding: .7em 1em; } .top-right { gap: .5rem; } .top-langs a { padding: .45rem .5rem; } }
 
   .overlay { position: fixed; inset: 0; z-index: 65; background: var(--ink); color: var(--on-dark); display: grid; align-content: center; padding: 6rem var(--gutter) 7rem; }
   .overlay ul { list-style: none; margin: 0; padding: 0; }

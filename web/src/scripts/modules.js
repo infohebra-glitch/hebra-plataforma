@@ -263,7 +263,7 @@ async function hero(gsap, ScrollTrigger, reduce) {
     gsap.from(root.querySelector('.hero-glow'), { opacity: 0, scale: 0.6, duration: 2.4, ease: 'expo.out' });
   }
 
-  const showPop = () => {
+  function showPop() {
     const [h, ...l] = data[key];
     pop.querySelector('[data-fp-h]').textContent = h;
     pop.querySelector('[data-fp-l]').innerHTML = l.map((x) => `<li>${x}</li>`).join('');
@@ -271,23 +271,35 @@ async function hero(gsap, ScrollTrigger, reduce) {
     if (!reduce) gsap.fromTo(pop, { opacity: 0, y: 20, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: 'expo.out' });
     clearTimeout(showPop.t);
     showPop.t = setTimeout(() => hidePop(), 6000);
-  };
+  }
+
   const hidePop = () => {
     if (pop.hidden) return;
     if (reduce) { pop.hidden = true; return; }
     gsap.to(pop, { opacity: 0, y: 10, duration: 0.4, onComplete: () => (pop.hidden = true) });
   };
 
+  const fb = root.querySelector('[data-fallback]');
+  const fbImg = fb.querySelector('img');
+  const fbSrc = (k) => fbImg.src.replace(/[^/]+\.webp$/, k + '.webp');
+  const fail = () => { box.dataset.failed = ''; fbImg.src = fbSrc(key); };
+  fb.addEventListener('click', showPop);
+  pop.querySelector('[data-fp-close]').addEventListener('click', hidePop);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hidePop(); });
+
   const saveData = navigator.connection?.saveData;
   let viewer = null;
   if (!saveData) {
     try {
       const { mountViewer } = await import('./viewer.js');
-      viewer = mountViewer(box, { reduce, onTap: showPop });
-    } catch (e) { box.dataset.failed = ''; }
-  } else box.dataset.failed = '';
-  if (viewer) {
+      viewer = mountViewer(box, { reduce, onTap: showPop, onFail: fail, onReady: () => delete box.dataset.failed });
+    } catch (e) { viewer = null; }
+  }
+  if (!viewer) fail();
+  else {
     viewer.show(key);
+    // si en 9 s no hay prenda, se enseña la imagen fija
+    setTimeout(() => { if (box.dataset.loading !== undefined) fail(); }, 9000);
     const idle = window.requestIdleCallback || ((f) => setTimeout(f, 2500));
     idle(() => viewer.preload(pills.map((p) => p.dataset.garmentPick)));
     if (!reduce) ScrollTrigger.create({ trigger: root, start: 'top top', end: 'bottom top', onUpdate: (s) => (viewer.scroll = s.progress) });
@@ -296,6 +308,10 @@ async function hero(gsap, ScrollTrigger, reduce) {
     key = b.dataset.garmentPick;
     pills.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
     hidePop();
+    if (box.dataset.failed !== undefined) {
+      if (!reduce) gsap.fromTo(fbImg, { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.8, ease: 'expo.out' });
+      fbImg.src = fbSrc(key);
+    }
     viewer?.show(key);
   }));
   // teclado: flechas giran, Intro toca la etiqueta
@@ -389,10 +405,10 @@ function fan(gsap, reduce) {
   let cur = 0;
   const pose = (d) => {
     const a = Math.abs(d), s = Math.sign(d);
-    if (a === 0) return { xPercent: 0, rotation: 0, scale: 1, opacity: 1, zIndex: 50 };
-    if (a === 1) return { xPercent: s * 32, rotation: s * 8, scale: 0.9, opacity: 1, zIndex: 40 };
-    if (a === 2) return { xPercent: s * 58, rotation: s * 14, scale: 0.8, opacity: 0.85, zIndex: 30 };
-    return { xPercent: s * 70, rotation: s * 18, scale: 0.7, opacity: 0, zIndex: 10 };
+    if (a === 0) return { x: 0, xPercent: 0, rotation: 0, scale: 1, opacity: 1, zIndex: 50 };
+    if (a === 1) return { x: 0, xPercent: s * 32, rotation: s * 8, scale: 0.9, opacity: 1, zIndex: 40 };
+    if (a === 2) return { x: 0, xPercent: s * 58, rotation: s * 14, scale: 0.8, opacity: 0.85, zIndex: 30 };
+    return { x: 0, xPercent: s * 70, rotation: s * 18, scale: 0.7, opacity: 0, zIndex: 10 };
   };
   const render = (instant) => {
     cards.forEach((c, i) => {
@@ -424,8 +440,7 @@ function fan(gsap, reduce) {
   window.addEventListener('pointerup', (e) => {
     if (x0 === null) return;
     const dx = e.clientX - x0; x0 = null;
-    gsap.to(cards[cur], { x: 0, duration: 0.6, ease: 'expo.out' });
-    if (dx < -60) go(cur + 1); else if (dx > 60) go(cur - 1); else render(true);
+    if (dx < -60) go(cur + 1); else if (dx > 60) go(cur - 1); else render();
   });
   render(true);
 }
@@ -465,6 +480,11 @@ function explore(gsap, fine, reduce) {
     a.addEventListener('pointerleave', () => fl.classList.remove('on'));
   });
   list.addEventListener('pointermove', (e) => { xTo(e.clientX + 30); yTo(e.clientY - 190); });
+  const off = () => fl.classList.remove('on');
+  list.addEventListener('pointerleave', off);
+  list.addEventListener('click', off);
+  window.addEventListener('scroll', off, { passive: true });
+  window.addEventListener('pagehide', off);
 }
 
 // Orbe de cierre: sube con el scroll

@@ -43,7 +43,7 @@ function tagTexture(logo, deep, label) {
   return t;
 }
 
-export function mountViewer(root, { reduce, onTap } = {}) {
+export function mountViewer(root, { reduce, onTap, onFail, onReady } = {}) {
   const canvas = root.querySelector('canvas');
   let renderer;
   try {
@@ -129,6 +129,7 @@ export function mountViewer(root, { reduce, onTap } = {}) {
 
   // Carga de prendas
   const base = root.dataset.model || '/3d/';
+  const modelExt = root.dataset.ext || '.glb';
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const texLoader = new THREE.TextureLoader();
   const cache = {};
@@ -144,7 +145,7 @@ export function mountViewer(root, { reduce, onTap } = {}) {
         side: THREE.DoubleSide,
       });
       if (g.normal) texLoader.load(base + g.normal, (t) => { t.flipY = false; t.anisotropy = 8; mat.normalMap = t; mat.normalScale.set(0.8, 0.8); mat.needsUpdate = true; });
-      loader.load(base + g.file + '.glb', (gltf) => {
+      const onModel = (gltf) => {
         const model = gltf.scene;
         model.traverse((o) => { if (o.isMesh) o.material = mat; });
         const box = new THREE.Box3().setFromObject(model);
@@ -170,7 +171,14 @@ export function mountViewer(root, { reduce, onTap } = {}) {
         let at = band[0] || new THREE.Vector3(0.5, minY, 0.3);
         band.forEach((q) => { if (q.z > at.z) at = q; });
         resolve({ pivot, at: at.clone().add(new THREE.Vector3(0, 0.04, 0.02)), clamp: g.clamp, mat });
-      }, undefined, reject);
+      };
+      // En la vista previa los modelos van como JSON (base64) porque el alojamiento no sirve .glb
+      if (modelExt === '.json') {
+        fetch(base + g.file + '.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((j) => {
+          const bin = Uint8Array.from(atob(j.b64), (c) => c.charCodeAt(0));
+          loader.parse(bin.buffer, base, onModel, reject);
+        }).catch(reject);
+      } else loader.load(base + g.file + '.glb', onModel, undefined, reject);
     });
     return cache[key];
   }
@@ -180,9 +188,10 @@ export function mountViewer(root, { reduce, onTap } = {}) {
     currentKey = key;
     root.dataset.loading = '';
     let item;
-    try { item = await prepare(key); } catch (e) { delete root.dataset.loading; return; }
+    try { item = await prepare(key); } catch (e) { delete root.dataset.loading; onFail?.(key); return; }
     if (key !== currentKey) return;
     delete root.dataset.loading;
+    onReady?.(key);
     if (current) holder.remove(current.pivot);
     current = item;
     holder.add(item.pivot);
