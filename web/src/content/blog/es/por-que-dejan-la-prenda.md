@@ -1,6 +1,6 @@
 ---
 title: 'Por qué tus clientes dejan la prenda en el probador'
-description: 'Talla, corte, precio, color o calidad. Preguntar el motivo en el momento justo, sin pedir datos personales, cambia lo que decides en el próximo pedido.'
+description: 'Talla, corte, precio, color o calidad. Preguntar el motivo en el momento justo, sin datos personales, cambia lo que decides en el próximo pedido.'
 date: 2026-11-10
 kicker: 'El porqué'
 minutes: 4

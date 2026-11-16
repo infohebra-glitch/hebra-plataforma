@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
-import { ui, path, langs, langShort, langName, contacts, type Lang } from '../i18n';
+import { ui, path, langs, langShort, langName, contacts, mainEmail, type Lang } from '../i18n';
+import { seo } from '../seo';
 
 interface Props {
   title: string;
@@ -10,13 +11,52 @@ interface Props {
   current?: string;
   bare?: boolean; // ficha NFC: sin cabecera ni pie de la web
   dark?: boolean; // la página empieza sobre fondo azul
+  noindex?: boolean; // 404 y páginas sin valor de búsqueda
+  article?: { published: Date; modified?: Date; section?: string }; // artículos del blog
 }
-const { title, description, lang = 'es', route = '/', current = route, bare = false, dark = false } = Astro.props;
+const { title, description: descProp, lang = 'es', route = '/', current = route, bare = false, dark = false, article } = Astro.props;
 const t = ui[lang];
 const nav = t.nav.map(([href, label]) => ({ route: href, href: path(lang, href), label }));
-const fullTitle = title === 'Hebra' ? t.titleHome : `${title} · Hebra`;
+const entry = article ? undefined : seo[lang][route];
+const fullTitle = entry?.title ?? (title === 'Hebra' ? t.titleHome : `${title} · Hebra`.length > 60 ? title : `${title} · Hebra`);
+const description = entry?.desc ?? descProp;
+const noindex = Astro.props.noindex || entry?.noindex || false;
 const canonical = new URL(path(lang, route), Astro.site);
 const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
+const site = Astro.site!.href.replace(/\/$/, '');
+const ogImage = `${site}/img/og-${lang}.jpg`;
+// Datos estructurados (Schema.org): la organización y la web en todas las páginas; la página y, en el blog, el artículo.
+const org = {
+  '@type': 'Organization', '@id': `${site}/#organization`, name: 'Hebra', url: `${site}/`,
+  logo: { '@type': 'ImageObject', url: `${site}/img/logo-hebra-512.png`, width: 512, height: 512 },
+  email: mainEmail, slogan: 'Trace the truth',
+  description: seo[lang]['/'].desc,
+  address: { '@type': 'PostalAddress', addressLocality: 'Barcelona', addressCountry: 'ES' },
+  areaServed: 'EU',
+  sameAs: ['https://www.instagram.com/hebra.trace/', 'https://www.tiktok.com/@hebra.trace'],
+  contactPoint: { '@type': 'ContactPoint', contactType: 'sales', email: mainEmail, availableLanguage: ['es', 'ca', 'en'] },
+};
+const website = { '@type': 'WebSite', '@id': `${site}/#website`, url: `${site}/`, name: 'Hebra', inLanguage: ['es', 'ca', 'en'], publisher: { '@id': `${site}/#organization` } };
+const crumbs = [{ name: t.home, url: new URL(path(lang, '/'), Astro.site).href }];
+if (route !== '/') {
+  if (route.startsWith('/blog/') && route !== '/blog/') crumbs.push({ name: 'Blog', url: new URL(path(lang, '/blog/'), Astro.site).href });
+  crumbs.push({ name: (title === 'Hebra' ? fullTitle : title), url: canonical.href });
+}
+const page = {
+  '@type': article ? 'WebPage' : (route === '/contacto/' ? 'ContactPage' : route === '/nosotros/' ? 'AboutPage' : route === '/blog/' ? 'CollectionPage' : 'WebPage'),
+  '@id': `${canonical.href}#webpage`, url: canonical.href, name: fullTitle, description, inLanguage: lang,
+  isPartOf: { '@id': `${site}/#website` }, about: { '@id': `${site}/#organization` },
+  primaryImageOfPage: { '@type': 'ImageObject', url: ogImage },
+  breadcrumb: crumbs.length > 1 ? { '@type': 'BreadcrumbList', itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.url })) } : undefined,
+};
+const graph: object[] = [org, website, page];
+if (article) graph.push({
+  '@type': 'BlogPosting', '@id': `${canonical.href}#article`, headline: title, description, inLanguage: lang,
+  datePublished: article.published.toISOString().slice(0, 10), dateModified: (article.modified ?? article.published).toISOString().slice(0, 10),
+  articleSection: article.section, image: ogImage, url: canonical.href, mainEntityOfPage: { '@id': `${canonical.href}#webpage` },
+  author: { '@id': `${site}/#organization` }, publisher: { '@id': `${site}/#organization` },
+});
+const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replace(/</g, '\\u003c');
 ---
 <!doctype html>
 <html lang={lang}>
@@ -25,24 +65,35 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{fullTitle}</title>
   <meta name="description" content={description} />
-  <link rel="canonical" href={canonical} />
-  {langs.map((l) => <link rel="alternate" hreflang={l} href={new URL(path(l, route), Astro.site)} />)}
+  {noindex ? <meta name="robots" content="noindex, follow" /> : <link rel="canonical" href={canonical} />}
+  {!noindex && langs.map((l) => <link rel="alternate" hreflang={l} href={new URL(path(l, route), Astro.site)} />)}
+  {!noindex && <link rel="alternate" hreflang="x-default" href={new URL(path('es', route), Astro.site)} />}
+  {!noindex && <link rel="sitemap" type="application/xml" href="/sitemap.xml" />}
   <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <meta name="theme-color" content={{ es: '#07121F', ca: '#160810', en: '#121110' }[lang]} />
-  <!-- Quitar al lanzar con el dominio definitivo -->
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content={article ? 'article' : 'website'} />
+  <meta property="og:site_name" content="Hebra" />
   <meta property="og:title" content={fullTitle} />
   <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content={seo[lang]['/'].title} />
   <meta property="og:locale" content={locale} />
+  {langs.filter((l) => l !== lang).map((l) => <meta property="og:locale:alternate" content={{ es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[l]} />)}
+  {article && <meta property="article:published_time" content={article.published.toISOString()} />}
+  <meta name="twitter:card" content="summary_large_image" />
+  {!bare && <script type="application/ld+json" set:html={jsonld} />}
   <script is:inline>document.documentElement.classList.add('js');</script>
 </head>
 <body class={bare ? 'bare' : ''}>
   {!bare && (
     <>
       <div class="progress" data-progress aria-hidden="true"><i></i></div>
-      <a class="brand-fixed" href={path(lang, '/')} aria-label={`Hebra, ${t.home}`}>
-        <img src="/img/logo-blanc.png" alt="" width="20" height="29" />
+      <a class="brand-fixed" href={path(lang, '/')}>
+        <img src="/img/logo-blanc.png" alt={`Hebra, ${t.home.toLowerCase()}`} width="20" height="29" />
       </a>
       <div class="top-right">
         <span class="top-langs" aria-label={t.langLabel}>
@@ -50,7 +101,7 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
             <a href={path(l, route)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} title={langName[l]}>{langShort[l]}</a>
           ))}
         </span>
-        <a class="cta-fixed" href={path(lang, '/contacto/?motivo=demo')} data-magnetic>{t.demo}</a>
+        <a class="cta-fixed" href={path(lang, '/contacto/#demo')} data-magnetic>{t.demo}</a>
       </div>
       <nav class="dock" aria-label={t.navMain} data-dock>
         <a class="dock-word" href={path(lang, '/')}>Hebra<sup>®</sup></a>
@@ -59,23 +110,14 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
             <li><a href={n.href} aria-current={current === n.route || (n.route !== '/' && current.startsWith(n.route)) ? 'page' : undefined}>{n.label}</a></li>
           ))}
         </ul>
-        <span class="dock-langs" aria-label={t.langLabel}>
-          {langs.map((l) => (
-            <a href={path(l, route)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} title={langName[l]}>{langShort[l]}</a>
-          ))}
-        </span>
         <button class="dock-menu" type="button" aria-expanded="false" aria-controls="overlay" data-menu data-close={t.close}>{t.menu}</button>
       </nav>
-      <div class="overlay" id="overlay" data-overlay hidden>
-        <ul>
-          {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
-          <li><a href={path(lang, '/contacto/')}>{t.contact}</a></li>
-        </ul>
-        <div class="overlay-foot">
-          <span class="dock-langs">{langs.map((l) => <a href={path(l, route)} hreflang={l} aria-current={l === lang ? 'true' : undefined}>{langName[l]}</a>)}</span>
-          <a class="btn" href={path(lang, '/contacto/?motivo=demo')}>{t.demo}</a>
-        </div>
-      </div>
+      <!-- El menú móvil se monta con JS a partir de estos datos (no son enlaces en el HTML: así no repiten los de la barra) -->
+      <div class="overlay" id="overlay" data-overlay hidden data-items={JSON.stringify({
+        links: [...nav.map((n) => [n.href, n.label]), [path(lang, '/contacto/'), t.contact]],
+        langs: langs.map((l) => [path(l, route), langName[l], l, l === lang]),
+        demo: [path(lang, '/contacto/#demo'), t.demo],
+      })}></div>
       <div class="cursor" aria-hidden="true" data-cursor><span></span></div>
     </>
   )}
@@ -86,7 +128,6 @@ const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
         <div class="foot-grid">
           <nav aria-label={t.navFoot}>
             <ul>
-              {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
               <li><a href={path(lang, '/piloto/')}>{t.pilot}</a></li>
               <li><a href={path(lang, '/contacto/')}>{t.contact}</a></li>
             </ul>

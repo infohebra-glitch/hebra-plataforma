@@ -9,14 +9,14 @@ const { lang, entry } = Astro.props;
 const { Content } = await render(entry);
 const slug = entry.id.split('/').slice(1).join('/');
 const T = {
-  es: { blog: 'Blog', read: 'min de lectura', more: 'Sigue leyendo', back: 'Todos los artículos', by: 'Equipo Hebra' },
-  ca: { blog: 'Blog', read: 'min de lectura', more: 'Continua llegint', back: 'Tots els articles', by: 'Equip Hebra' },
-  en: { blog: 'Blog', read: 'min read', more: 'Keep reading', back: 'All articles', by: 'The Hebra team' },
+  es: { blog: 'Blog de Hebra', read: 'min de lectura', more: 'Sigue leyendo', back: 'Todos los artículos', by: 'Equipo Hebra' },
+  ca: { blog: 'Blog d’Hebra', read: 'min de lectura', more: 'Continua llegint', back: 'Tots els articles', by: 'Equip Hebra' },
+  en: { blog: 'Hebra blog', read: 'min read', more: 'Keep reading', back: 'All articles', by: 'The Hebra team' },
 }[lang];
 const fmt = new Intl.DateTimeFormat({ es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }[lang], { day: 'numeric', month: 'long', year: 'numeric' });
 const others = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`) && e.id !== entry.id)).slice(0, 2);
 ---
-<Base title={entry.data.title} lang={lang} route={`/blog/${slug}/`} description={entry.data.description}>
+<Base title={entry.data.title} lang={lang} route={`/blog/${slug}/`} description={entry.data.description} article={{ published: entry.data.date, section: entry.data.kicker }}>
   <header class="page-head art-head">
     <div class="wrap">
       <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / <a href={path(lang, '/blog/')}>{T.blog}</a></p>

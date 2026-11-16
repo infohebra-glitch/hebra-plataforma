@@ -50,7 +50,7 @@ const T = {
     endH: 'Shall we talk about your store?', end: 'Tell us how many stores you have and how you sell. We’ll reply with a pilot proposal.',
   },
 }[lang];
-const contact = path(lang, '/contacto/') + '?motivo=piloto';
+const contact = path(lang, '/contacto/#piloto');
 ---
 <Base title={T.title} lang={lang} route="/piloto/" description={T.desc}>
   <header class="page-head">
@@ -110,7 +110,7 @@ const contact = path(lang, '/contacto/') + '?motivo=piloto';
       <h2 data-reveal>{T.endH}</h2>
       <div data-reveal>
         <p class="lead">{T.end}</p>
-        <div class="actions"><a class="btn" href={contact}>{T.cta}</a></div>
+        <div class="actions"><a class="btn" href={contact}>{ui[lang].demoCta}</a></div>
       </div>
     </div>
   </section>

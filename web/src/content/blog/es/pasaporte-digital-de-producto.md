@@ -1,6 +1,6 @@
 ---
 title: 'El pasaporte digital de producto llega a la moda'
-description: 'Europa quiere que cada prenda cuente qué es y de dónde viene. Qué es el pasaporte digital de producto y por qué conviene empezar antes de que sea obligatorio.'
+description: 'Europa quiere que cada prenda cuente qué es y de dónde viene. Qué es el pasaporte digital de producto y por qué empezar antes de que sea obligatorio.'
 date: 2026-11-05
 kicker: 'Origen'
 minutes: 5

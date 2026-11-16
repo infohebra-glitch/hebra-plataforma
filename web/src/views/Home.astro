@@ -30,7 +30,7 @@ const T = {
     rl: [['En tiempo real', 'Avisos al móvil de la tienda: tallas pedidas, prendas olvidadas en la cabina.'], ['Cada mañana', 'Cinco líneas para la encargada.'], ['Cada mes y temporada', 'Curva de tallas, stock parado, riesgo de rebaja y qué repetir en la próxima colección.']],
     tH: 'Lo que medimos, y lo que no mediremos nunca.',
     tr: [['Sin cámaras', 'Nada graba imagen ni sonido, ni reconoce personas. Medimos prendas, no a quien las lleva.'], ['Ningún dato personal', 'Los toques de la ficha no se ligan a ninguna compra ni a ninguna persona. Tampoco medimos al personal.'], ['Se instala en una visita', 'Sin obras, sin tocar tu wifi ni tu caja. Hardware con marcado CE.'], ['Datos de la tienda en la UE', 'Los datos de tu tienda se alojan en la UE, con contratos conformes al RGPD. Preparamos contigo la evaluación de privacidad y el cartel informativo.']],
-    privacy: 'Privacidad',
+    privacy: 'Cómo tratamos los datos',
   },
   ca: {
     desc: 'Hebra mesura el que passa dins l’emprovador de la teva botiga de moda: què s’emprova i no es ven, per què, i si el que canvies fa vendre. Amb una etiqueta intel·ligent a cada peça.',
@@ -50,7 +50,7 @@ const T = {
     rl: [['En temps real', 'Avisos al mòbil de la botiga: talles demanades, peces oblidades a la cabina.'], ['Cada matí', 'Cinc línies per a l’encarregada.'], ['Cada mes i temporada', 'Corba de talles, estoc aturat, risc de rebaixa i què repetir a la propera col·lecció.']],
     tH: 'El que mesurem, i el que no mesurarem mai.',
     tr: [['Sense càmeres', 'Res no grava imatge ni so, ni reconeix persones. Mesurem peces, no qui les porta.'], ['Cap dada personal', 'Els tocs de la fitxa no es lliguen a cap compra ni a cap persona. Tampoc mesurem el personal.'], ['S’instal·la en una visita', 'Sense obres, sense tocar el teu wifi ni la teva caixa. Maquinari amb marcatge CE.'], ['Dades de la botiga a la UE', 'Les dades de la teva botiga s’allotgen a la UE, amb contractes conformes al RGPD. Preparem amb tu l’avaluació de privacitat i el cartell informatiu.']],
-    privacy: 'Privacitat',
+    privacy: 'Com tractem les dades',
   },
   en: {
     desc: 'Hebra measures what happens inside your fashion store’s fitting room: what gets tried on and not sold, why, and whether what you change actually sells. With a smart tag in every garment.',
@@ -70,13 +70,13 @@ const T = {
     rl: [['In real time', 'Alerts to the store’s phone: sizes requested, garments left behind in a room.'], ['Every morning', 'Five lines for the store manager.'], ['Every month and season', 'Size curve, stuck stock, markdown risk and what to repeat in the next collection.']],
     tH: 'What we measure, and what we will never measure.',
     tr: [['No cameras', 'Nothing records images or sound, or recognises people. We measure garments, not who wears them.'], ['No personal data', 'Taps on the garment page are never linked to a purchase or a person. We don’t measure staff either.'], ['Installed in one visit', 'No building work, no touching your wifi or your till. CE-marked hardware.'], ['Store data in the EU', 'Your store’s data is hosted in the EU, under GDPR-compliant contracts. We prepare the privacy assessment and the in-store notice with you.']],
-    privacy: 'Privacy',
+    privacy: 'How we handle data',
   },
 }[lang];
 // Textos nuevos de la v4
 const N = {
   es: {
-    man: 'Cada día, miles de prendas entran en un probador. Se [prueban], se [comparan] y se quedan en la [percha]. La caja solo ve lo que se [vende]. Hebra ve todo lo demás: las [pruebas], las [tallas] que faltan, los [motivos] y el [tiempo].',
+    man: 'Cada día, miles de prendas entran en un probador. Se [prueban], se [comparan] y se quedan en la [percha]. La caja solo ve lo que se [vende]. Hebra sabe todo lo demás: las [pruebas], las [tallas] que faltan, los [motivos] y el [tiempo].',
     vid: 'Medimos prendas. <em>Nunca personas.</em>',
     vidL: 'Sin cámaras, sin micrófonos, sin datos personales.',
     pH: 'El probador es donde tu cliente decide. <em>Y tú no ves nada.</em>',
@@ -88,7 +88,7 @@ const N = {
     tH: 'Lo que medimos, y lo que <em>no mediremos nunca.</em>',
   },
   ca: {
-    man: 'Cada dia, milers de peces entren en un emprovador. S’[emproven], es [comparen] i es queden a la [perxa]. La caixa només veu el que es [ven]. Hebra veu tota la resta: les [proves], les [talles] que falten, els [motius] i el [temps].',
+    man: 'Cada dia, milers de peces entren en un emprovador. S’[emproven], es [comparen] i es queden a la [perxa]. La caixa només veu el que es [ven]. Hebra sap tota la resta: les [proves], les [talles] que falten, els [motius] i el [temps].',
     vid: 'Mesurem peces. <em>Mai persones.</em>',
     vidL: 'Sense càmeres, sense micròfons, sense dades personals.',
     pH: 'L’emprovador és on el teu client decideix. <em>I tu no hi veus res.</em>',
@@ -100,7 +100,7 @@ const N = {
     tH: 'El que mesurem, i el que <em>no mesurarem mai.</em>',
   },
   en: {
-    man: 'Every day, thousands of garments go into a fitting room. They get [tried], [compared] and left on the [rail]. The till only sees what [sells]. Hebra sees everything else: the [try-ons], the missing [sizes], the [reasons] and the [time].',
+    man: 'Every day, thousands of garments go into a fitting room. They get [tried], [compared] and left on the [rail]. The till only sees what [sells]. Hebra knows everything else: the [try-ons], the missing [sizes], the [reasons] and the [time].',
     vid: 'We measure garments. <em>Never people.</em>',
     vidL: 'No cameras, no microphones, no personal data.',
     pH: 'The fitting room is where your customer decides. <em>And you see nothing.</em>',
@@ -204,7 +204,7 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
       </ul>
       <p class="note" data-reveal>{T.note}</p>
     </div>
-    <div class="xfloat" data-xfloat aria-hidden="true"><img alt="" /></div>
+    <div class="xfloat" data-xfloat aria-hidden="true"></div>
   </section>
 
   <section class="band perla" id="lunes">

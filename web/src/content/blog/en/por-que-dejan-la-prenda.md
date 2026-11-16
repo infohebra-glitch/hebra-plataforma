@@ -1,6 +1,6 @@
 ---
 title: 'Why your customers leave the garment in the fitting room'
-description: 'Size, fit, price, colour or quality. Asking for the reason at the right moment, without asking for personal data, changes what you decide on the next order.'
+description: 'Size, fit, price, colour or quality. Asking why at the right moment, with no personal data, changes what you decide on the next order.'
 date: 2026-11-10
 kicker: 'The why'
 minutes: 4

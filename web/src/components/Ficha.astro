@@ -110,7 +110,7 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
           <span class="fi-pimg">
             {k === 'vaquero'
               ? <svg viewBox="0 0 60 80" aria-hidden="true"><path d="M14 4h32l4 72H35l-5-46-5 46H10z" fill="#3A5A84" /><path d="M14 4h32v6H14z" fill="#2E4A6E" /><path d="M30 10v18" stroke="#C9A35A" stroke-width="1" stroke-dasharray="2 2" /></svg>
-              : <img src={`/img/3d/${k}-alpha.webp`} alt="" loading="lazy" />}
+              : <img src={`/img/3d/${k}-alpha.webp`} alt={n} loading="lazy" />}
           </span>
           <b>{n}</b><span class="fi-pp">{pr}</span>
           {!compact && <button type="button" data-pair data-done={T.pairDone}>+ {T.pairAdd}</button>}
@@ -141,7 +141,7 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
 
   <footer class="fi-foot">
     <span set:html={langs} />
-    <span>{T.by} · <a class="fi-priv" href={path(lang, '/privacidad-ficha/')}>{ui[lang].privacy}</a></span>
+    <span>{T.by} · <a class="fi-priv" href={path(lang, '/privacidad-ficha/')}>{({ es: 'Privacidad de la ficha', ca: 'Privacitat de la fitxa', en: 'Garment page privacy' })[lang]}</a></span>
   </footer>
 </article>
 

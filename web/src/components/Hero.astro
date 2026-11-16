@@ -6,22 +6,22 @@ const { lang = 'es' } = Astro.props;
 const T = {
   es: {
     h1: 'Tu ropa sabe lo que pasa en el <em>probador.</em>',
-    lead: 'Hebra pone una etiqueta inteligente en cada prenda y le cuenta a la marca qué se prueba, qué no se vende y por qué.',
-    demo: 'Pedir una demo', more: 'Cómo funciona',
+    lead: 'Cada prenda sabe cuántas veces pasa por el probador, en qué talla y por qué vuelve a la percha. Hebra pone una etiqueta inteligente en tu ropa y se lo cuenta a tu marca.',
+    demo: 'Quiero una demo', more: 'Ver cómo funciona',
     meta: ['Barcelona', 'Para marcas de moda con tienda física'],
     scroll: 'Desliza', pause: 'Pausar el vídeo', play: 'Reproducir el vídeo',
   },
   ca: {
     h1: 'La teva roba sap què passa a l’<em>emprovador.</em>',
-    lead: 'Hebra posa una etiqueta intel·ligent a cada peça i explica a la marca què s’emprova, què no es ven i per què.',
-    demo: 'Demanar una demo', more: 'Com funciona',
+    lead: 'Cada peça sap quantes vegades passa per l’emprovador, en quina talla i per què torna a la perxa. Hebra posa una etiqueta intel·ligent a la teva roba i ho explica a la teva marca.',
+    demo: 'Vull una demo', more: 'Veure com funciona',
     meta: ['Barcelona', 'Per a marques de moda amb botiga física'],
     scroll: 'Llisca', pause: 'Pausar el vídeo', play: 'Reproduir el vídeo',
   },
   en: {
     h1: 'Your clothes know what happens in the <em>fitting room.</em>',
-    lead: 'Hebra puts a smart tag in every garment and tells the brand what gets tried on, what doesn’t sell, and why.',
-    demo: 'Book a demo', more: 'How it works',
+    lead: 'Every garment knows how often it goes into the fitting room, in which size and why it ends up back on the rail. Hebra puts a smart tag in your clothes and tells your brand what happens.',
+    demo: 'Get a demo', more: 'See how it works',
     meta: ['Barcelona', 'For fashion brands with physical stores'],
     scroll: 'Scroll', pause: 'Pause the video', play: 'Play the video',
   },
@@ -40,7 +40,7 @@ const T = {
       <h1 data-lines set:html={T.h1} />
       <p class="lead hero-lead" data-hero-in>{T.lead}</p>
       <div class="actions" data-hero-in>
-        <a class="btn" href={path(lang, '/contacto/?motivo=demo')} data-magnetic>{T.demo}</a>
+        <a class="btn" href={path(lang, '/contacto/#demo')} data-magnetic>{T.demo}</a>
         <a class="btn ghost" href={path(lang, '/como-funciona/')}>{T.more}</a>
       </div>
     </div>

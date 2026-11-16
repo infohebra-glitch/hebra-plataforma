@@ -111,10 +111,12 @@ function fichaOne(root) {
 function contact() {
   const sel = document.querySelector('[name=motivo]');
   if (!sel) return;
-  const m = new URLSearchParams(location.search).get('motivo');
+  // Los enlaces internos usan /contacto/#demo (sin parámetros); ?motivo=demo sigue funcionando por compatibilidad
+  const m = location.hash.slice(1) || new URLSearchParams(location.search).get('motivo');
   if (m && sel.querySelector(`option[value="${m}"]`)) sel.value = m;
   const sync = () => document.querySelectorAll('[data-marca-only]').forEach((el) => (el.hidden = !['demo', 'piloto'].includes(sel.value)));
   sel.addEventListener('change', sync);
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (sel.querySelector(`option[value="${h}"]`)) { sel.value = h; sync(); } });
   sync();
   // Sin clave del servicio de formularios, el envío abre el correo del visitante con todo rellenado
   const form = document.querySelector('[data-contact-form]');
@@ -511,11 +513,12 @@ function explore(gsap, fine, reduce) {
   const list = document.querySelector('[data-xlist]');
   const fl = document.querySelector('[data-xfloat]');
   if (!list || !fl || !fine) return;
-  const img = fl.querySelector('img');
+  // La imagen se crea aquí (sin src en el HTML no tendría sentido para buscadores ni lectores de pantalla)
+  const img = fl.querySelector('img') || fl.appendChild(document.createElement('img'));
   const xTo = gsap.quickTo(fl, 'x', { duration: reduce ? 0 : 0.6, ease: 'power3' });
   const yTo = gsap.quickTo(fl, 'y', { duration: reduce ? 0 : 0.6, ease: 'power3' });
   list.querySelectorAll('a').forEach((a) => {
-    a.addEventListener('pointerenter', () => { img.src = a.dataset.ximg; fl.classList.add('on'); });
+    a.addEventListener('pointerenter', () => { img.src = a.dataset.ximg; img.alt = a.querySelector('.x-h')?.textContent || ''; fl.classList.add('on'); });
     a.addEventListener('pointerleave', () => fl.classList.remove('on'));
   });
   list.addEventListener('pointermove', (e) => { xTo(e.clientX + 30); yTo(e.clientY - 190); });

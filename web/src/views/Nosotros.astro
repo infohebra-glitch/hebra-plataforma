@@ -142,7 +142,7 @@ const fotos: Record<string, string> = { Iscle: '', Guillem: '' };
       <h2 data-reveal>{T.invH}</h2>
       <div data-reveal>
         <p class="lead">{T.inv}</p>
-        <div class="actions"><a class="btn" href={path(lang, '/contacto/') + '?motivo=dossier'}>{T.invCta}</a></div>
+        <div class="actions"><a class="btn" href={path(lang, '/contacto/#dossier')}>{T.invCta}</a></div>
         <p class="small quiet" style="margin-top:1.5rem">{T.direct}</p>
         <ul class="contact-list">{contacts.map((c) => <li><a class="textlink" href={`mailto:${c.email}`}>{c.email}</a></li>)}</ul>
       </div>

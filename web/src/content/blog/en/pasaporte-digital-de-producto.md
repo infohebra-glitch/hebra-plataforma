@@ -1,6 +1,6 @@
 ---
 title: 'The digital product passport is coming to fashion'
-description: 'Europe wants every garment to say what it is and where it comes from. What the digital product passport is and why it pays to start before it becomes mandatory.'
+description: 'Europe wants every garment to say what it is and where it comes from. What the digital product passport is, and why to start before it is mandatory.'
 date: 2026-11-05
 kicker: 'Origin'
 minutes: 5

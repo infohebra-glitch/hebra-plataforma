@@ -8,7 +8,7 @@ const T = {
   es: {
     h1: 'Tu ropa sabe cosas. Hebra te las explica.',
     lead: 'Tecnología textil para marcas de moda: una etiqueta inteligente en cada prenda y datos de lo que pasa en tu probador, en tu tienda y en tu cadena.',
-    demo: 'Pedir una demo', more: 'Descubrir Hebra',
+    demo: 'Verlo en mi tienda', more: 'Descubrir Hebra',
     k2: 'La etiqueta', h2: 'Una etiqueta. Dos maneras de leerla.',
     l2: 'La tienda sabe, sin que nadie haga nada, qué se prueba y qué se vende. Tu cliente la toca con el móvil y ve de dónde viene.',
     k3: 'La ficha', h3: 'Tu cliente la toca. Tú lo entiendes.',
@@ -18,7 +18,7 @@ const T = {
   ca: {
     h1: 'La teva roba sap coses. Hebra te les explica.',
     lead: 'Tecnologia tèxtil per a marques de moda: una etiqueta intel·ligent a cada peça i dades del que passa al teu emprovador, a la teva botiga i a la teva cadena.',
-    demo: 'Demanar una demo', more: 'Descobrir Hebra',
+    demo: 'Veure-ho a la meva botiga', more: 'Descobrir Hebra',
     k2: 'L’etiqueta', h2: 'Una etiqueta. Dues maneres de llegir-la.',
     l2: 'La botiga sap, sense que ningú faci res, què s’emprova i què es ven. El teu client la toca amb el mòbil i veu d’on ve.',
     k3: 'La fitxa', h3: 'El teu client la toca. Tu ho entens.',
@@ -28,7 +28,7 @@ const T = {
   en: {
     h1: 'Your clothes know things. Hebra explains them.',
     lead: 'Textile technology for fashion brands: a smart tag in every garment, and data on what happens in your fitting room, your store and your supply chain.',
-    demo: 'Book a demo', more: 'Discover Hebra',
+    demo: 'See it in my store', more: 'Discover Hebra',
     k2: 'The tag', h2: 'One tag. Two ways to read it.',
     l2: 'The store knows what gets tried on and what gets sold, without anyone doing a thing. Your customer taps it with their phone and sees where it comes from.',
     k3: 'The garment page', h3: 'Your customer taps it. You understand them.',
@@ -49,7 +49,7 @@ const T = {
           <h1 data-split>{T.h1}</h1>
           <p class="lead">{T.lead}</p>
           <div class="actions">
-            <a class="btn" href={path(lang, '/contacto/?motivo=demo')}>{T.demo}</a>
+            <a class="btn" href={path(lang, '/contacto/#demo')}>{T.demo}</a>
             <a class="btn ghost" href="#problema">{T.more}</a>
           </div>
         </div>

@@ -50,6 +50,17 @@ if (dock && document.querySelector('[data-hero]') && !reduce && window.matchMedi
 // Menú a pantalla completa
 const menuBtn = document.querySelector('[data-menu]');
 const overlay = document.querySelector('[data-overlay]');
+if (overlay?.dataset.items && !overlay.children.length) {
+  const d = JSON.parse(overlay.dataset.items);
+  const a = (href, text, cls) => Object.assign(document.createElement('a'), { href, textContent: text, className: cls || '' });
+  const ul = document.createElement('ul');
+  d.links.forEach(([h, t]) => { const li = document.createElement('li'); li.append(a(h, t)); ul.append(li); });
+  const langsEl = Object.assign(document.createElement('span'), { className: 'dock-langs' });
+  d.langs.forEach(([h, t, l, cur]) => { const el = a(h, t); el.hreflang = l; if (cur) el.setAttribute('aria-current', 'true'); langsEl.append(el); });
+  const foot = Object.assign(document.createElement('div'), { className: 'overlay-foot' });
+  foot.append(langsEl, a(d.demo[0], d.demo[1], 'btn'));
+  overlay.append(ul, foot);
+}
 if (menuBtn && overlay) {
   const items = overlay.querySelectorAll('li a, .overlay-foot > *');
   const label = menuBtn.textContent;

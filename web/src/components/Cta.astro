@@ -13,7 +13,7 @@ const text = Astro.props.text ?? t.ctaText;
     <h2 data-lines set:html={title} />
     <p class="lead" data-reveal>{text}</p>
     <div class="actions" data-reveal>
-      <a class="btn" href={path(lang, '/contacto/?motivo=demo')} data-magnetic>{t.demo}</a>
+      <a class="btn" href={path(lang, '/contacto/#demo')} data-magnetic>{t.demoCta}</a>
       <a class="btn ghost" href={path(lang, '/ficha/')}>{t.ctaSecondary}</a>
     </div>
   </div>
