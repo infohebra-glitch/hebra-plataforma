@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS sensor_event (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     cabina_id   TEXT NOT NULL REFERENCES cabina(id),
     ts          TEXT NOT NULL,              -- ISO 8601 amb zona
-    tipus       TEXT NOT NULL CHECK (tipus IN ('porta_tancada', 'porta_oberta', 'presencia_si', 'presencia_no'))
+    tipus       TEXT NOT NULL CHECK (tipus IN ('porta_tancada', 'porta_oberta', 'presencia_si', 'presencia_no')),
+    ref         TEXT                        -- referència única que posa la passarel·la (evita duplicats si reenvia)
 );
 
 -- La passarel·la (Raspberry Pi) agrega les lectures crues en finestres curtes
@@ -65,9 +66,12 @@ CREATE TABLE IF NOT EXISTS lectura_agregada (
     fi          TEXT NOT NULL,
     n_lectures  INTEGER NOT NULL,
     rssi_max    REAL NOT NULL,
-    rssi_mitja  REAL NOT NULL
+    rssi_mitja  REAL NOT NULL,
+    ref         TEXT                        -- referència única que posa la passarel·la (evita duplicats si reenvia)
 );
 CREATE INDEX IF NOT EXISTS ix_lectura_antena_temps ON lectura_agregada(antena_id, inici);
+CREATE INDEX IF NOT EXISTS ix_lectura_epc_temps ON lectura_agregada(epc, inici);
+-- Els índexs únics de `ref` es creen a db.inicialitza (la columna s'afegeix a les bases de dades antigues).
 
 -- ---------------------------------------------------------------- Proves
 CREATE TABLE IF NOT EXISTS sessio (
@@ -77,6 +81,7 @@ CREATE TABLE IF NOT EXISTS sessio (
     fi          TEXT NOT NULL,
     grup        TEXT                        -- grup de control del dia ('amb' / 'sense')
 );
+CREATE INDEX IF NOT EXISTS ix_sessio_cabina_inici ON sessio(cabina_id, inici);
 
 CREATE TABLE IF NOT EXISTS prova (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,6 +92,29 @@ CREATE TABLE IF NOT EXISTS prova (
     n_lectures  INTEGER NOT NULL,
     rssi_mitja  REAL NOT NULL,
     confianca   TEXT NOT NULL CHECK (confianca IN ('alta', 'mitjana', 'ambigua'))
+);
+CREATE INDEX IF NOT EXISTS ix_prova_sessio ON prova(sessio_id);
+
+-- Fins on ha arribat el càlcul de proves de cada cabina (hebra/proves.py): només es recalcula
+-- el tros afectat per les dades noves. `signatura` canvia si canvia la regla o les antenes.
+CREATE TABLE IF NOT EXISTS estat_calcul (
+    cabina_id   TEXT PRIMARY KEY REFERENCES cabina(id),
+    darrera_lectura_id INTEGER NOT NULL DEFAULT 0,
+    darrer_sensor_id   INTEGER NOT NULL DEFAULT 0,
+    signatura   TEXT NOT NULL DEFAULT ''
+);
+
+-- Darrer senyal de vida de cada passarel·la (hebra/passarella.py): quan ha enviat l'últim lot,
+-- quants elements té pendents i quants n'ha rebutjat la plataforma (p. ex. una antena mal configurada).
+CREATE TABLE IF NOT EXISTS passarella_estat (
+    id          TEXT PRIMARY KEY,           -- nom de la passarel·la ('' si no en diu cap)
+    vista       TEXT NOT NULL,
+    pendents    INTEGER,
+    versio      TEXT,
+    desfasament_s INTEGER,              -- rellotge de la passarel·la menys el del servidor
+    rebutjats   INTEGER NOT NULL DEFAULT 0,
+    darrer_error TEXT,
+    darrer_error_ts TEXT
 );
 
 -- ---------------------------------------------------------------- Vendes
@@ -147,6 +175,9 @@ CREATE TABLE IF NOT EXISTS peticio_talla (
     hora_resolta TEXT,
     disponible  INTEGER                     -- 1/0 segons l'estoc conegut en el moment
 );
+CREATE INDEX IF NOT EXISTS ix_peticio_botiga_estat ON peticio_talla(botiga_id, estat);
+CREATE INDEX IF NOT EXISTS ix_nfc_botiga_ts ON esdeveniment_nfc(botiga_id, ts);
+CREATE INDEX IF NOT EXISTS ix_venda_botiga_data ON venda_linia(botiga_id, data);
 
 -- ================================================================ v0.2: plataforma completa
 -- (Taules afegides per al tauler de la marca, alertes, estoc, experiments i registre de decisions.)

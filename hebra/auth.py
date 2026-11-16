@@ -3,8 +3,10 @@
   * Contrasenyes: PBKDF2-SHA256 amb sal aleatòria i 310.000 iteracions
     (`pbkdf2_sha256$iteracions$sal$hash`, tot en hex). Mai en clar.
   * Sessió: galeta `hebra_sessio` amb un testimoni signat amb HMAC-SHA256
-    (`base64url(json{"uid","exp"}).base64url(signatura)`) i caducitat de 12 h.
-    No hi ha estat al servidor: tancar la sessió esborra la galeta.
+    (`base64url(json{"uid","exp","v"}).base64url(signatura)`) i caducitat de 12 h.
+    `v` és la versió de sessió de l'usuari: canviar la contrasenya o desactivar l'usuari
+    la fa pujar i invalida les galetes anteriors. Tancar la sessió només esborra la galeta
+    d'aquell dispositiu (l'usuari de botiga es comparteix entre diversos mòbils).
   * Límits: intents d'inici de sessió per IP i correu, i un cubell de testimonis
     per IP per als formularis públics de la fitxa NFC.
 
@@ -65,14 +67,25 @@ def _desb64(text: str) -> bytes:
     return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
 
 
-def signa(secret: str, uid: int, ara: float | None = None, durada_s: int = DURADA_SESSIO_S) -> str:
-    cos = _b64(json.dumps({"uid": uid, "exp": int((ara or time.time()) + durada_s)}, separators=(",", ":")).encode())
+def signa(secret: str, uid: int, ara: float | None = None, durada_s: int = DURADA_SESSIO_S, versio: int = 0) -> str:
+    cos = _b64(json.dumps({"uid": uid, "exp": int((ara or time.time()) + durada_s), "v": int(versio)},
+                          separators=(",", ":")).encode())
     sig = hmac.new(secret.encode(), cos.encode(), hashlib.sha256).digest()
     return f"{cos}.{_b64(sig)}"
 
 
 def verifica(secret: str, testimoni: str, ara: float | None = None) -> int | None:
     """Retorna l'id d'usuari si el testimoni és vàlid i no ha caducat; si no, None."""
+    dades = llegeix(secret, testimoni, ara)
+    return dades[0] if dades else None
+
+
+def llegeix(secret: str, testimoni: str, ara: float | None = None) -> tuple[int, int] | None:
+    """(id d'usuari, versió de sessió) si el testimoni és vàlid i no ha caducat; si no, None.
+
+    La versió es compara amb `usuari.versio_sessio`: en canviar la contrasenya puja, i les
+    galetes antigues deixen de valdre encara que algú les hagi copiades.
+    """
     try:
         cos, sig = testimoni.split(".")
         esperada = hmac.new(secret.encode(), cos.encode(), hashlib.sha256).digest()
@@ -81,9 +94,15 @@ def verifica(secret: str, testimoni: str, ara: float | None = None) -> int | Non
         dades = json.loads(_desb64(cos))
         if int(dades["exp"]) < (ara or time.time()):
             return None
-        return int(dades["uid"])
-    except (ValueError, KeyError, TypeError):
+        return int(dades["uid"]), int(dades.get("v", 0))
+    except (ValueError, KeyError, TypeError, AttributeError):
         return None
+
+
+def tanca_sessions(con: sqlite3.Connection, uid: int) -> None:
+    """Invalida totes les sessions obertes de l'usuari."""
+    con.execute("UPDATE usuari SET versio_sessio = versio_sessio + 1 WHERE id = ?", (uid,))
+    con.commit()
 
 
 # ---------------------------------------------------------------- Usuaris

@@ -12,6 +12,7 @@ Arrencada:  uvicorn hebra.app:app --reload   (un sol procés: les alertes en dir
 
 import asyncio
 import logging
+import re
 import secrets
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
@@ -162,8 +163,33 @@ async def _cicle_de_vida(_app):
         t.cancel()
 
 
-class CapcaleresSeguretat:
-    """Middleware ASGI (no fa de tap amb el flux SSE): afegeix les capçaleres de seguretat a cada resposta."""
+MIDA_MAXIMA_COS = 12 * 1024 * 1024   # importacions CSV (10 MB) i lots de la passarel·la
+METODES_SEGURS = ("GET", "HEAD", "OPTIONS")
+# Rutes amb sessió del navegador (galeta o HTTP Basic): només s'accepten escriptures des de la mateixa web.
+RUTES_AMB_SESSIO = ("/api/v2/", "/botiga/")
+SENSE_MEMORIA_CAU = ("/p/", "/api/", "/botiga/")
+
+
+def _capcalera(scope, nom: bytes) -> str:
+    return next((v.decode("latin-1") for k, v in scope.get("headers", []) if k == nom), "")
+
+
+async def _respon(send, estat: int, detall: str) -> None:
+    cos = ('{"detail": "' + detall + '"}').encode()
+    await send({"type": "http.response.start", "status": estat,
+                "headers": [(b"content-type", b"application/json; charset=utf-8"),
+                            (b"content-length", str(len(cos)).encode())]})
+    await send({"type": "http.response.body", "body": cos})
+
+
+class Proteccions:
+    """Middleware ASGI (no fa de tap amb el flux SSE):
+
+      * afegeix les capçaleres de seguretat a cada resposta;
+      * rebutja cossos de petició massa grans (413), encara que no declarin la mida;
+      * a les rutes amb sessió del navegador, rebutja les escriptures que venen d'una altra
+        web (capçalera Origin diferent del nostre domini): defensa contra CSRF a més de SameSite.
+    """
 
     def __init__(self, app, segura: bool):
         self.app, self.segura = app, segura
@@ -171,33 +197,63 @@ class CapcaleresSeguretat:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
-        amb_csp = not scope["path"].startswith(SENSE_CSP)
-        iframe = scope["path"].startswith(IFRAME_MATEIX_ORIGEN)
+        cami = scope["path"]
+        amb_csp = not cami.startswith(SENSE_CSP)
+        iframe = cami.startswith(IFRAME_MATEIX_ORIGEN)
 
         async def envia(missatge):
             if missatge["type"] == "http.response.start":
                 h = list(missatge.get("headers", []))
                 h += [(b"x-content-type-options", b"nosniff"), (b"referrer-policy", b"no-referrer"),
                       (b"x-frame-options", b"SAMEORIGIN" if iframe else b"DENY"),
-                      (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), interest-cohort=()")]
+                      (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), interest-cohort=()"),
+                      (b"x-robots-tag", b"noindex, nofollow")]
                 if amb_csp:
                     h.append((b"content-security-policy", (CSP_IFRAME if iframe else CSP).encode()))
                 if self.segura:
                     h.append((b"strict-transport-security", b"max-age=31536000"))
+                if cami.startswith(SENSE_MEMORIA_CAU) and not any(k.lower() == b"cache-control" for k, _ in h):
+                    h.append((b"cache-control", b"no-store"))
                 missatge = dict(missatge, headers=h)
             await send(missatge)
 
+        if scope["method"] not in METODES_SEGURS:
+            origen = _capcalera(scope, b"origin")
+            if origen and origen != "null" and cami.startswith(RUTES_AMB_SESSIO):
+                from urllib.parse import urlsplit
+                if urlsplit(origen).netloc.lower() != _capcalera(scope, b"host").lower():
+                    return await _respon(envia, 403, "Petició des d'un altre lloc web")
+            declarada = _capcalera(scope, b"content-length")
+            if declarada.isdigit() and int(declarada) > MIDA_MAXIMA_COS:
+                return await _respon(envia, 413, "La petició és massa gran")
+            rebut = 0
+
+            async def rep():
+                nonlocal rebut
+                missatge = await receive()
+                if missatge["type"] == "http.request":
+                    rebut += len(missatge.get("body", b""))
+                    if rebut > MIDA_MAXIMA_COS:
+                        raise HTTPException(413, "La petició és massa gran")
+                return missatge
+
+            return await self.app(scope, rep, envia)
         await self.app(scope, receive, envia)
 
 
 # Sense CORS: el tauler se serveix des del mateix origen (/app) i l'API no accepta altres orígens.
-app = FastAPI(title="Hebra", version=__version__, docs_url="/api/docs", redoc_url=None, lifespan=_cicle_de_vida)
-app.add_middleware(CapcaleresSeguretat, segura=cfg.galeta_segura)
+# La documentació interactiva de l'API només en desenvolupament.
+app = FastAPI(title="Hebra", version=__version__, docs_url=None if cfg.produccio else "/api/docs", redoc_url=None,
+              openapi_url=None if cfg.produccio else "/openapi.json", lifespan=_cicle_de_vida)
+app.add_middleware(Proteccions, segura=cfg.galeta_segura)
 app.mount("/static", StaticFiles(directory=ARREL / "static"), name="static")
 app.state.con = con
 app.state.cfg = cfg
 app.state.limit_sessio = auth.LimitIntents(maxim=10, finestra_s=15 * 60)
-app.state.limit_fitxa = auth.CubellTestimonis(capacitat=30, ritme=0.5)
+app.state.limit_fitxa = auth.CubellTestimonis(capacitat=30, ritme=0.5)       # formularis de la fitxa
+app.state.limit_fitxa_get = auth.CubellTestimonis(capacitat=60, ritme=1.0)   # obrir fitxes
+app.state.limit_no_trobada = auth.LimitIntents(maxim=20, finestra_s=10 * 60)  # qui prova codis de fitxa a l'atzar
+app.state.limit_botiga = auth.LimitIntents(maxim=10, finestra_s=15 * 60)     # usuari bàsic de /botiga
 app.include_router(api.router)
 plantilles = Jinja2Templates(directory=ARREL / "templates")
 plantilles.env.globals["pais"] = textos.pais
@@ -214,17 +270,33 @@ async def _error_validacio(request: Request, exc: RequestValidationError):
     return JSONResponse({"detail": f"Dades no vàlides: {', '.join(camps)}"}, status_code=400)
 
 
+def _ip(request: Request) -> str:
+    return request.client.host if request.client else "?"
+
+
 def limit_fitxa(request: Request) -> None:
     """Límit de peticions per IP als formularis públics de la fitxa NFC."""
-    ip = request.client.host if request.client else "?"
-    if not request.app.state.limit_fitxa.permet(ip):
+    if not request.app.state.limit_fitxa.permet(_ip(request)):
         raise HTTPException(429, "Massa peticions. Espera un moment.")
 
 
-def usuari_botiga(cred: HTTPBasicCredentials = Depends(seguretat)) -> str:
+def limit_fitxa_get(request: Request) -> None:
+    """Límit per IP en obrir fitxes, i bloqueig de qui prova molts codis que no existeixen."""
+    ip = _ip(request)
+    if request.app.state.limit_no_trobada.bloquejat(ip) or not request.app.state.limit_fitxa_get.permet(ip):
+        raise HTTPException(429, "Massa peticions. Espera un moment.")
+
+
+def usuari_botiga(request: Request, cred: HTTPBasicCredentials = Depends(seguretat)) -> str:
+    if not cfg.botiga_antiga_activa:
+        raise HTTPException(404, "Aquesta pàgina no està activada: fes servir el tauler (/app)")
+    ip = _ip(request)
+    if request.app.state.limit_botiga.bloquejat(ip):
+        raise HTTPException(429, "Massa intents. Torna-ho a provar d'aquí a una estona.")
     ok = (secrets.compare_digest(cred.username.encode(), cfg.usuari_botiga.encode())
           and secrets.compare_digest(cred.password.encode(), cfg.contrasenya_botiga.encode()))
     if not ok:
+        request.app.state.limit_botiga.falla(ip)
         raise HTTPException(401, "Credencials incorrectes", headers={"WWW-Authenticate": "Basic"})
     return cred.username
 
@@ -236,6 +308,12 @@ def clau_passarella(x_hebra_clau: str = Header(default="")) -> None:
 
 @app.get("/salut")
 def salut() -> dict:
+    """Per al monitor: 200 si la web i la base de dades responen."""
+    try:
+        con.execute("SELECT 1 FROM botiga LIMIT 1").fetchall()
+    except Exception:
+        log.exception("La base de dades no respon")
+        raise HTTPException(503, "La base de dades no respon")
     return {"estat": "ok", "versio": __version__}
 
 
@@ -246,8 +324,9 @@ def _dist() -> Path | None:
 
 @app.get("/", response_class=HTMLResponse)
 def inici(request: Request):
-    if _dist():
+    if _dist() or cfg.produccio:
         return RedirectResponse("/app/", status_code=307)
+    # Només en desenvolupament: pàgina d'inici amb una fitxa d'exemple.
     exemple = con.execute("SELECT nfc_token FROM etiqueta ORDER BY rowid LIMIT 1").fetchone()
     botiga = con.execute("SELECT id FROM botiga ORDER BY id LIMIT 1").fetchone()
     return plantilles.TemplateResponse(request, "inici.html", {
@@ -255,9 +334,37 @@ def inici(request: Request):
 
 
 # ---------------------------------------------------------------- Fitxa NFC (client)
+#
+# És l'única part pública: tothom qui té l'enllaç d'una peça la pot obrir, des d'on sigui.
+# Per això tot el que arriba es valida aquí: la botiga ha d'existir, la sessió tècnica ha de
+# tenir la forma que genera el servidor, i les peticions al dependent tenen límits (hebra/fitxa.py).
+
+_ROBOTS = re.compile(r"bot|crawl|spider|preview|whatsapp|facebookexternalhit|slack|telegram|twitter|discord|"
+                     r"linkedin|pinterest|curl|wget|python-requests|headless", re.IGNORECASE)
 
 
-@app.get("/p/{token}", response_class=HTMLResponse)
+def _peca(request: Request, token: str):
+    peca = fitxa.peca_per_token(con, token) if 6 <= len(token) <= 64 else None
+    if peca is None:
+        request.app.state.limit_no_trobada.falla(_ip(request))
+        raise HTTPException(404, "Peça no trobada")
+    return peca
+
+
+def _sessio_form(s: str) -> str:
+    if not fitxa.sessio_valida(s):
+        raise HTTPException(400, "Torna a obrir la fitxa tocant la peça amb el mòbil")
+    return s
+
+
+def _botiga_form(b: str) -> str:
+    botiga = fitxa.botiga_existent(con, b)
+    if botiga is None:
+        raise HTTPException(400, "Aquesta acció necessita saber la botiga: torna a tocar la peça amb el mòbil")
+    return botiga
+
+
+@app.get("/p/{token}", response_class=HTMLResponse, dependencies=[Depends(limit_fitxa_get)])
 def fitxa_peca(request: Request, token: str, b: str | None = None, lang: str | None = None,
                s: str | None = None, ok: str | None = None):
     """Pàgina que obre el mòbil en tocar l'etiqueta NFC.
@@ -265,85 +372,91 @@ def fitxa_peca(request: Request, token: str, b: str | None = None, lang: str | N
     La URL gravada a l'NFC és /p/{token}?b={botiga}. `s` és la sessió tècnica
     (només dins la pàgina); si no hi és, és un toc nou i el registrem.
     """
-    peca = fitxa.peca_per_token(con, token)
-    if peca is None:
-        raise HTTPException(404, "Peça no trobada")
+    peca = _peca(request, token)
+    b = fitxa.botiga_existent(con, b)  # una botiga que no existeix es tracta com «sense botiga»
     cfg_fitxa = fitxa_config.efectiva(con, b)  # v0.3: configuració de la marca (general + botiga)
     idioma = fitxa.tria_idioma(lang, request.headers.get("accept-language"), cfg_fitxa["idiomes"])
-    if not s:
+    if not fitxa.sessio_valida(s):
         s = fitxa.nova_sessio()
-        fitxa.registra(con, s, b, peca["gtin"], "obre_fitxa", idioma)
+        # Les previsualitzacions d'enllaços (WhatsApp, cercadors...) no són tocs de clients: no es compten.
+        if not _ROBOTS.search(request.headers.get("user-agent", "")):
+            fitxa.registra(con, s, b, peca["gtin"], "obre_fitxa", idioma)
+    if ok not in ("talla", "assistencia", "motiu", "origen", "limit"):
+        ok = None
     return plantilles.TemplateResponse(request, "fitxa.html",
                                        fitxa.context_pagina(con, peca, b, idioma, cfg_fitxa, s, ok))
 
 
-def _accio_activa(b: str, accio: str) -> None:
+def _accio_activa(b: str | None, accio: str) -> None:
     """La marca pot desactivar un botó de la fitxa: el formulari tampoc s'accepta."""
     if not fitxa_config.efectiva(con, b or None)["accions"].get(accio, True):
         raise HTTPException(400, "Aquesta acció no està activada en aquesta botiga")
 
 
-def _torna(token: str, b: str, lang: str, s: str, ok: str) -> RedirectResponse:
+def _torna(token: str, b: str | None, lang: str, s: str, ok: str) -> RedirectResponse:
     from urllib.parse import urlencode
-    return RedirectResponse(f"/p/{token}?{urlencode({'b': b, 'lang': lang, 's': s, 'ok': ok})}", status_code=303)
+    lang = lang if lang in fitxa.IDIOMES else "ca"
+    return RedirectResponse(f"/p/{token}?{urlencode({'b': b or '', 'lang': lang, 's': s, 'ok': ok})}", status_code=303)
 
 
 @app.post("/p/{token}/origen", dependencies=[Depends(limit_fitxa)])
-def veu_origen(token: str, b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
-    peca = fitxa.peca_per_token(con, token) or _404()
-    fitxa.registra(con, s, b or None, peca["gtin"], "veu_origen", lang)
+def veu_origen(request: Request, token: str, b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
+    peca, s, b = _peca(request, token), _sessio_form(s), fitxa.botiga_existent(con, b)
+    fitxa.registra(con, s, b, peca["gtin"], "veu_origen", lang)
     return _torna(token, b, lang, s, "origen")
 
 
 @app.post("/p/{token}/motiu", dependencies=[Depends(limit_fitxa)])
-def motiu(token: str, motiu: str = Form(...), b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
-    peca = fitxa.peca_per_token(con, token) or _404()
+def motiu(request: Request, token: str, motiu: str = Form(...), b: str = Form(""), lang: str = Form("ca"),
+          s: str = Form(...)):
+    peca, s, b = _peca(request, token), _sessio_form(s), fitxa.botiga_existent(con, b)
     _accio_activa(b, "per_que_no")
+    if fitxa.ja_ha_dit_motiu(con, s, peca["gtin"]):  # un motiu per visita i peça
+        return _torna(token, b, lang, s, "motiu")
     try:
-        fitxa.registra(con, s, b or None, peca["gtin"], "motiu_no_compra", lang, motiu)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
+        fitxa.registra(con, s, b, peca["gtin"], "motiu_no_compra", lang, motiu)
+    except ValueError:
+        raise HTTPException(400, "Motiu desconegut")
     return _torna(token, b, lang, s, "motiu")
 
 
 @app.post("/p/{token}/talla", dependencies=[Depends(limit_fitxa)])
-def talla(token: str, gtin: str = Form(...), cabina: str = Form(""), b: str = Form(""),
+def talla(request: Request, token: str, gtin: str = Form(...), cabina: str = Form(""), b: str = Form(""),
           lang: str = Form("ca"), s: str = Form(...)):
-    peca = fitxa.peca_per_token(con, token) or _404()
-    if not b:
-        raise HTTPException(400, "La petició de talla necessita saber la botiga")
+    peca, s, b = _peca(request, token), _sessio_form(s), _botiga_form(b)
     _accio_activa(b, "demana_talla")
     try:
-        fitxa.demana_talla(con, s, b, peca["gtin"], gtin, lang, cabina[:20] or None)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
+        fitxa.demana_talla(con, s, b, peca["gtin"], gtin[:14], lang, fitxa.neteja_cabina(cabina))
+    except fitxa.MassaPeticions:
+        return _torna(token, b, lang, s, "limit")
+    except ValueError:
+        raise HTTPException(400, "Talla desconeguda")
     return _torna(token, b, lang, s, "talla")
 
 
 @app.post("/p/{token}/assistencia", dependencies=[Depends(limit_fitxa)])
-def assistencia(token: str, cabina: str = Form(""), b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
+def assistencia(request: Request, token: str, cabina: str = Form(""), b: str = Form(""), lang: str = Form("ca"),
+                s: str = Form(...)):
     """«Vull que m'atenguin» (v0.3, A.4): avís a la web del dependent, a la mateixa llista que les peticions de talla."""
-    peca = fitxa.peca_per_token(con, token) or _404()
-    if not b:
-        raise HTTPException(400, "La petició d'assistència necessita saber la botiga")
+    peca, s, b = _peca(request, token), _sessio_form(s), _botiga_form(b)
     _accio_activa(b, "demana_assistencia")
-    fitxa.demana_assistencia(con, s[:40], b, peca["gtin"], lang, cabina[:20] or None)
+    try:
+        fitxa.demana_assistencia(con, s, b, peca["gtin"], lang, fitxa.neteja_cabina(cabina))
+    except fitxa.MassaPeticions:
+        return _torna(token, b, lang, s, "limit")
     return _torna(token, b, lang, s, "assistencia")
 
 
 @app.post("/p/{token}/seccio", status_code=204, dependencies=[Depends(limit_fitxa)])
-def seccio(token: str, seccio: str = Form(...), b: str = Form(""), lang: str = Form("ca"), s: str = Form(...)):
+def seccio(request: Request, token: str, seccio: str = Form(...), b: str = Form(""), lang: str = Form("ca"),
+           s: str = Form(...)):
     """Balisa (navigator.sendBeacon) quan el client obre una secció plegable de la fitxa (insight 16)."""
-    peca = fitxa.peca_per_token(con, token) or _404()
+    peca, s, b = _peca(request, token), _sessio_form(s), fitxa.botiga_existent(con, b)
     try:
-        fitxa.registra(con, s[:40], b or None, peca["gtin"], "veu_seccio", lang, seccio)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
+        fitxa.registra(con, s, b, peca["gtin"], "veu_seccio", lang, seccio)
+    except ValueError:
+        raise HTTPException(400, "Secció desconeguda")
     return Response(status_code=204)
-
-
-def _404():
-    raise HTTPException(404, "Peça no trobada")
 
 
 # ---------------------------------------------------------------- Botiga (dependent i informes)
@@ -364,6 +477,7 @@ def resol(pid: int, estat: str = Form(...), b: str = Form(""), _: str = Depends(
         fitxa.resol_peticio(con, pid, estat)  # si la transició no és permesa (ja resolta), no fa res
     except ValueError:
         raise HTTPException(400, "Estat no vàlid")
+    b = fitxa.botiga_existent(con, b)
     return RedirectResponse(f"/botiga/peticions?b={b}" if b else "/botiga/peticions", status_code=303)
 
 
@@ -374,17 +488,27 @@ def vendes_form(request: Request, _: str = Depends(usuari_botiga)):
 
 @app.post("/botiga/vendes", response_class=HTMLResponse)
 async def vendes_puja(request: Request, fitxer: UploadFile, _: str = Depends(usuari_botiga)):
-    text = (await fitxer.read()).decode("utf-8-sig")
-    n, errors = vendes.importa_csv(con, text)
-    atribuides = {b["id"]: vendes.atribueix(con, b["id"]) for b in con.execute("SELECT id FROM botiga").fetchall()}
-    return plantilles.TemplateResponse(request, "vendes.html", {
-        "resultat": {"importades": n, "errors": errors[:50], "atribuides": atribuides}})
+    try:
+        text = (await fitxer.read(MIDA_MAXIMA_COS)).decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise HTTPException(400, "El fitxer ha de ser un CSV en UTF-8")
+
+    def importa():
+        n, errors, repetides = vendes.importa_csv_sense_repetir(con, text)
+        atribuides = {b["id"]: vendes.atribueix(con, b["id"]) for b in con.execute("SELECT id FROM botiga").fetchall()}
+        return {"importades": n, "errors": errors[:50], "atribuides": atribuides, "repetides": repetides}
+    return plantilles.TemplateResponse(request, "vendes.html", {"resultat": await asyncio.to_thread(importa)})
 
 
 @app.get("/botiga/informe", response_class=HTMLResponse)
 def informe(request: Request, b: str, setmana: str | None = None, _: str = Depends(usuari_botiga)):
+    if not con.execute("SELECT 1 FROM botiga WHERE id = ?", (b,)).fetchone():
+        raise HTTPException(404, "Botiga desconeguda")
     if setmana:
-        dilluns = date.fromisoformat(setmana)
+        try:
+            dilluns = date.fromisoformat(setmana)
+        except ValueError:
+            raise HTTPException(400, "Setmana no vàlida (format AAAA-MM-DD)")
     else:
         darrera = con.execute(
             "SELECT MAX(s.inici) FROM sessio s JOIN cabina c ON c.id = s.cabina_id WHERE c.botiga_id = ?",
@@ -405,14 +529,22 @@ def informe(request: Request, b: str, setmana: str | None = None, _: str = Depen
 @app.post("/api/v1/lots", dependencies=[Depends(clau_passarella)])
 def rep_lot(lot: dict) -> dict:
     """Rep un lot de lectures agregades i esdeveniments de sensors (vegeu hebra/passarella.py)."""
-    res = passarella.desa_lot(con, lot)
-    return {"lectures": res.lectures, "sensors": res.sensors, "errors": res.errors}
+    try:
+        res = passarella.desa_lot(con, lot, passarella.MAXIM_ELEMENTS)
+    except passarella.LotMassaGran as e:
+        raise HTTPException(413, str(e))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"lectures": res.lectures, "sensors": res.sensors, "repetits": res.repetits, "errors": res.errors[:100]}
 
 
 @app.post("/api/v1/processa", dependencies=[Depends(clau_passarella)])
-def processa(botiga: str) -> dict:
-    """Recalcula sessions, proves i atribucions d'una botiga. Es pot cridar cada nit (cron)."""
-    n_proves = proves.processa_botiga(con, botiga, cfg.regla)
+def processa(botiga: str, tot: bool = False) -> dict:
+    """Posa al dia sessions, proves i atribucions d'una botiga. Amb `tot=1` ho recalcula tot
+    (després de canviar el catàleg o les etiquetes, per exemple)."""
+    if not con.execute("SELECT 1 FROM botiga WHERE id = ?", (botiga,)).fetchone():
+        raise HTTPException(404, f"Botiga desconeguda: {botiga}")
+    n_proves = proves.processa_botiga(con, botiga, cfg.regla, tot)
     n_atrib = vendes.atribueix(con, botiga)
     return {"proves": n_proves, "atribucions": n_atrib}
 

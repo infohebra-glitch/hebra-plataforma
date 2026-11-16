@@ -63,7 +63,7 @@ def _dies_candidats(prog: dict, ara_local: date) -> list[date]:
         return [ara_local + timedelta(days=1 - i) for i in range(3)]
     if t == "setmanal":
         d = ara_local + timedelta(days=(prog["dia_setmana"] - ara_local.weekday()) % 7)
-        return [d, d - timedelta(days=7), d - timedelta(days=14)]
+        return [d + timedelta(days=7), d, d - timedelta(days=7), d - timedelta(days=14)]
     if t == "mensual":
         out, a, m = [], ara_local.year, ara_local.month
         a, m = (a + 1, 1) if m == 12 else (a, m + 1)

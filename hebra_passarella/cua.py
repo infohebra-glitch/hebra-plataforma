@@ -11,6 +11,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import uuid
 from datetime import datetime, timedelta, timezone
 
 log = logging.getLogger(__name__)
@@ -25,7 +26,15 @@ class Cua:
             self._con.execute("""CREATE TABLE IF NOT EXISTS pendent (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, creat TEXT NOT NULL,
                 tipus TEXT NOT NULL CHECK (tipus IN ('lectura', 'sensor')), dades TEXT NOT NULL)""")
+            self._con.execute("CREATE TABLE IF NOT EXISTS meta (clau TEXT PRIMARY KEY, valor TEXT NOT NULL)")
+            fila = self._con.execute("SELECT valor FROM meta WHERE clau = 'instal·lacio'").fetchone()
+            if fila is None:
+                fila = (uuid.uuid4().hex[:12],)
+                self._con.execute("INSERT INTO meta VALUES ('instal·lacio', ?)", (fila[0],))
             self._con.commit()
+        # Identifica aquesta passarel·la i dona un `ref` únic a cada element: si un lot s'envia dues
+        # vegades (la resposta es perd), la plataforma no el compta dues cops.
+        self.id = fila[0]
 
     def afegeix(self, tipus: str, elements: list[dict]) -> None:
         if not elements:
@@ -40,8 +49,10 @@ class Cua:
         with self._lock:
             files = self._con.execute("SELECT id, tipus, dades FROM pendent ORDER BY id LIMIT ?", (maxim,)).fetchall()
         lot = {"lectures": [], "sensors": []}
-        for _, tipus, dades in files:
-            lot["lectures" if tipus == "lectura" else "sensors"].append(json.loads(dades))
+        for id_, tipus, dades in files:
+            e = json.loads(dades)
+            e["ref"] = f"{self.id}-{id_}"
+            lot["lectures" if tipus == "lectura" else "sensors"].append(e)
         return [f[0] for f in files], lot
 
     def esborra(self, ids: list[int]) -> None:
@@ -66,6 +77,15 @@ class Cua:
             return self._con.execute("SELECT COUNT(*) FROM pendent").fetchone()[0]
 
 
+VERSIO = "0.4"
+
+
+def senyal(cua: Cua) -> dict:
+    """El que la plataforma necessita per saber que la passarel·la viu i va al dia."""
+    return {"id": cua.id, "pendents": cua.mida(), "versio": VERSIO,
+            "ara": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+
+
 def envia_lot(url_plataforma: str, clau: str, lot: dict, timeout: float = 20) -> None:
     req = urllib.request.Request(
         url_plataforma.rstrip("/") + "/api/v1/lots", data=json.dumps(lot).encode(), method="POST",
@@ -77,21 +97,44 @@ def envia_lot(url_plataforma: str, clau: str, lot: dict, timeout: float = 20) ->
         log.warning("La plataforma ha rebutjat %s elements: %s", len(resposta["errors"]), resposta["errors"][:3])
 
 
-def bucle_enviament(cua: Cua, url_plataforma: str, clau: str, cada_s: float = 5, atura=None) -> None:
-    espera = cada_s
+def _envia_amb_senyal(cua: Cua, url: str, clau: str, ids: list[int], lot: dict) -> None:
+    lot["passarella"] = senyal(cua)
+    envia_lot(url, clau, lot)
+    cua.esborra(ids)
+
+
+def bucle_enviament(cua: Cua, url_plataforma: str, clau: str, cada_s: float = 5, atura=None,
+                    senyal_cada_s: float = 60) -> None:
+    """Envia la cua en lots. Cada `senyal_cada_s` s'envia també un lot buit: així la plataforma
+    sap que la passarel·la és viva encara que a la botiga no passi res."""
+    espera, maxim, darrer_senyal = cada_s, 2000, 0.0
     while not (atura and atura.is_set()):
-        ids, lot = cua.lot()
-        if ids:
+        ids, lot = cua.lot(maxim)
+        if ids or time.monotonic() - darrer_senyal >= senyal_cada_s:
             try:
-                envia_lot(url_plataforma, clau, lot)
-                cua.esborra(ids)
-                espera = cada_s
-                continue  # si n'hi ha més, envia'ls de seguida
+                _envia_amb_senyal(cua, url_plataforma, clau, ids, lot)
+                darrer_senyal = time.monotonic()
+                espera, maxim = cada_s, 2000
+                if ids:
+                    continue  # si n'hi ha més, envia'ls de seguida
             except urllib.error.HTTPError as e:
+                if e.code in (400, 413, 422):
+                    # La plataforma no accepta aquest lot i ho tornaria a dir sempre: un sol element
+                    # dolent no ha de bloquejar la resta. Es parteix el lot i, si és un de sol, es descarta.
+                    if len(ids) > 1:
+                        maxim = max(1, len(ids) // 2)
+                        log.warning("La plataforma respon %s; es prova amb lots de %s", e.code, maxim)
+                        continue
+                    if ids:
+                        log.error("Element descartat: la plataforma el rebutja (%s): %s", e.code, lot)
+                        cua.esborra(ids)
+                        maxim = 2000
+                        continue
                 log.error("La plataforma respon %s; reintent més tard (%s pendents)", e.code, cua.mida())
+                espera = min(espera * 2, 300)
             except Exception as e:
                 log.error("Sense connexió amb la plataforma (%s); %s pendents", e, cua.mida())
-            espera = min(espera * 2, 300)
+                espera = min(espera * 2, 300)
         else:
             espera = cada_s
         cua.purga()

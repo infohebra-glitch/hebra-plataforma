@@ -178,7 +178,7 @@ def main() -> None:
         print(f"{len(a)} dies assignats: {sum(g == 'amb' for g in a.values())} amb origen, "
               f"{sum(g == 'sense' for g in a.values())} sense")
     elif args.ordre == "processa":
-        n_proves = proves.processa_botiga(con, args.botiga, cfg.regla)
+        n_proves = proves.processa_botiga(con, args.botiga, cfg.regla, tot=True)  # a mà: tot el període
         n_atrib = vendes.atribueix(con, args.botiga)
         n_aband = sum(alertes.detecta_abandonades(con, c["id"], tot=True) for c in con.execute(
             "SELECT id FROM cabina WHERE botiga_id = ?", (args.botiga,)).fetchall())

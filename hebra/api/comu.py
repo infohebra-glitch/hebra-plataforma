@@ -19,9 +19,9 @@ def bd(request: Request) -> sqlite3.Connection:
 def usuari(request: Request) -> dict:
     """Usuari de la galeta de sessió, o 401."""
     testimoni = request.cookies.get(auth.NOM_GALETA, "")
-    uid = auth.verifica(request.app.state.cfg.secret, testimoni) if testimoni else None
-    fila = auth.usuari_per_id(request.app.state.con, uid) if uid is not None else None
-    if fila is None:
+    dades = auth.llegeix(request.app.state.cfg.secret, testimoni) if testimoni else None
+    fila = auth.usuari_per_id(request.app.state.con, dades[0]) if dades else None
+    if fila is None or fila["versio_sessio"] != dades[1]:
         raise HTTPException(401, "Cal iniciar la sessió")
     return auth.usuari_json(fila)
 

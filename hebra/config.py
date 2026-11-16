@@ -1,8 +1,10 @@
 """Configuració per variables d'entorn (vegeu .env.example).
 
 Tot té un valor per defecte pensat per a desenvolupament local.
-En producció (HEBRA_ENTORN=produccio) cal definir HEBRA_SECRET, i canviar com a
-mínim HEBRA_CLAU_PASSARELLA i HEBRA_CONTRASENYA_BOTIGA.
+En producció (HEBRA_ENTORN=produccio) la plataforma no arrenca amb valors
+d'exemple: calen HEBRA_SECRET i HEBRA_CLAU_PASSARELLA aleatoris i HEBRA_COOKIE_SECURE=1
+(vegeu `problemes_produccio`). Les pàgines antigues /botiga/* queden desactivades
+si no se'ls posa una contrasenya pròpia.
 """
 
 import logging
@@ -62,15 +64,45 @@ class Config:
     smtp_contrasenya: str = field(default_factory=lambda: os.environ.get("HEBRA_SMTP_CONTRASENYA", ""))
     smtp_remitent: str = field(default_factory=lambda: os.environ.get("HEBRA_SMTP_REMITENT", ""))
 
+    @property
+    def produccio(self) -> bool:
+        return self.entorn == "produccio"
+
+    @property
+    def botiga_antiga_activa(self) -> bool:
+        """Les pàgines antigues /botiga/* (usuari bàsic compartit): en producció, només amb contrasenya pròpia."""
+        return not self.produccio or self.contrasenya_botiga not in CONTRASENYES_BOTIGA_DEV
+
 
 SECRET_DEV = "hebra-dev-secret-no-el-facis-servir-en-produccio"
+CLAU_PASSARELLA_DEV = "canvia-aquesta-clau"
+CONTRASENYES_BOTIGA_DEV = ("hebra", "canvia-aquesta-contrasenya", "")
+
+
+def problemes_produccio(cfg: Config) -> list[str]:
+    """Què impedeix arrencar en producció: valors d'exemple o massa febles."""
+    p = []
+    if len(cfg.secret) < 32 or cfg.secret.startswith("canvia") or cfg.secret == SECRET_DEV:
+        p.append("HEBRA_SECRET ha de ser una clau aleatòria de 32 caràcters o més")
+    if len(cfg.clau_passarella) < 24 or cfg.clau_passarella.startswith("canvia"):
+        p.append("HEBRA_CLAU_PASSARELLA ha de ser una clau aleatòria de 24 caràcters o més")
+    # Les pàgines antigues /botiga/* només s'activen si se'ls posa una contrasenya pròpia.
+    if cfg.contrasenya_botiga not in CONTRASENYES_BOTIGA_DEV and len(cfg.contrasenya_botiga) < 12:
+        p.append("HEBRA_CONTRASENYA_BOTIGA ha de tenir 12 caràcters o més (o deixa-la buida per desactivar /botiga)")
+    if not cfg.galeta_segura:
+        p.append("HEBRA_COOKIE_SECURE ha de ser 1 (la plataforma només s'ha de servir per HTTPS)")
+    return p
 
 
 def carrega() -> Config:
     cfg = Config()
+    if cfg.entorn == "produccio":
+        problemes = problemes_produccio(cfg)
+        if problemes:
+            raise RuntimeError("Configuració no segura per a producció (HEBRA_ENTORN=produccio):\n  - "
+                               + "\n  - ".join(problemes)
+                               + "\nGenera claus amb: python -c \"import secrets; print(secrets.token_urlsafe(48))\"")
     if not cfg.secret:
-        if cfg.entorn == "produccio":
-            raise RuntimeError("Cal definir HEBRA_SECRET en producció (HEBRA_ENTORN=produccio)")
         logging.getLogger("hebra").warning(
             "HEBRA_SECRET no és definit: fem servir una clau de desenvolupament. No ho facis en producció.")
         cfg = Config(secret=SECRET_DEV)

@@ -23,13 +23,15 @@ Nivell Bàsic (botiga.nivell = 'basic', sense sensors de porta ni de presència)
   (vegeu `etiqueta_sessions`).
 
 El motor és determinista i idempotent per sessió: es pot tornar a executar
-sobre les mateixes dades i dona el mateix resultat. Només es recalcula des del
-primer esdeveniment que encara es conserva (vegeu hebra/retencio.py): les
+sobre les mateixes dades i dona el mateix resultat. Cada execució només refà el
+tros que les dades noves poden canviar (vegeu «Recàlcul incremental»), i mai
+abans del primer esdeveniment que encara es conserva (hebra/retencio.py): les
 sessions i proves més antigues es mantenen.
 
 Després de cada cabina es busquen les peces abandonades (hebra/alertes.py).
 """
 
+import hashlib
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -122,10 +124,10 @@ def _lectures_epc(con: sqlite3.Connection, cabina_id: str, inici: str, fi: str) 
                   SUM(l.n_lectures) AS n,
                   SUM(l.rssi_mitja * l.n_lectures) / SUM(l.n_lectures) AS rssi,
                   MIN(a.llindar_rssi) AS llindar
-           FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
-           WHERE a.cabina_id = ? AND l.fi >= ? AND l.inici <= ?
+           FROM antena a JOIN lectura_agregada l INDEXED BY ix_lectura_antena_temps ON l.antena_id = a.id
+           WHERE a.cabina_id = ? AND l.inici >= ? AND l.fi >= ? AND l.inici <= ?
            GROUP BY l.epc""",
-        (cabina_id, inici, fi),
+        (cabina_id, (_dt(inici) - MARGE_LECTURES).isoformat(), inici, fi),
     ).fetchall()
     resultat = {}
     for f in files:
@@ -150,9 +152,10 @@ def confianca(rssi_propi: float, rssi_veina: float | None, regla: ReglaProva) ->
     return None  # la veïna la llegeix clarament més fort
 
 
-def _esborra_des_de(con: sqlite3.Connection, cabina_id: str, des: str | None) -> None:
-    """Esborra sessions, proves i atribucions de la cabina que comencen a partir de `des` (None = totes)."""
-    filtre = "cabina_id = ?" + (" AND inici >= ?" if des else "")
+def _esborra_des_de(con: sqlite3.Connection, cabina_id: str, des: str | None, estricte: bool = False) -> None:
+    """Esborra sessions, proves i atribucions de la cabina que comencen a partir de `des` (None = totes).
+    Amb `estricte`, només les que comencen després de `des`."""
+    filtre = "cabina_id = ?" + ((" AND inici > ?" if estricte else " AND inici >= ?") if des else "")
     params = (cabina_id, des) if des else (cabina_id,)
     con.execute(f"""DELETE FROM atribucio WHERE prova_id IN (SELECT p.id FROM prova p
                     WHERE p.sessio_id IN (SELECT id FROM sessio WHERE {filtre}))""", params)
@@ -168,28 +171,120 @@ def _desa_prova(con, sessio_id: int, cand: Candidata, conf: str) -> None:
          cand.n_lectures, round(cand.rssi_mitja, 1), conf))
 
 
-def processa_cabina(con: sqlite3.Connection, cabina_id: str, regla: ReglaProva) -> int:
-    """Recalcula sessions i proves d'una cabina a partir de tots els seus esdeveniments.
+# ---------------------------------------------------------------- Recàlcul incremental
+#
+# Recalcular tota la història de la cabina cada 5 minuts no aguanta un pilot de 8 setmanes
+# (minuts de càlcul amb la base de dades bloquejada). Per això es desa fins on s'ha calculat
+# (taula `estat_calcul`) i només es refà el tros que les dades noves poden canviar:
+#
+#   * dades noves = files de `lectura_agregada` (de qualsevol cabina de la botiga, per les
+#     veïnes) i de `sensor_event` (de la cabina) amb id més gran que l'últim vist;
+#   * es reprèn des del final de l'última sessió que va acabar com a mínim `MARGE_REPRESA`
+#     abans de la dada nova més antiga. Just després d'una sessió tancada la màquina d'estats
+#     és a zero (porta oberta, ningú dins), i per tant el resultat és el mateix que recalculant-ho tot;
+#   * si canvia la regla, els llindars de les antenes o les veïnes (la `signatura`), o amb
+#     `tot=True`, es recalcula tot el període del qual encara hi ha dades crues.
 
-    Retorna el nombre de proves creades. Esborra abans les sessions i proves
-    anteriors de la cabina (i les atribucions que en depenen) perquè el càlcul
-    sigui idempotent. Si la botiga és de nivell Bàsic, fa servir només les lectures.
+MARGE_REPRESA = timedelta(hours=3)  # cobreix lectures que arriben tard i el canvi d'hora
+MARGE_LECTURES = timedelta(hours=2)  # una lectura agregada dura segons; marge ample per a l'índex
+
+
+def _signatura(con: sqlite3.Connection, cabina: sqlite3.Row, regla: ReglaProva) -> str:
+    veines = sorted(v for v in cabina["veines"].split(",") if v)
+    antenes = con.execute(
+        f"""SELECT id, cabina_id, llindar_rssi FROM antena WHERE cabina_id IN ({",".join("?" * (len(veines) + 1))})
+            ORDER BY id""", (cabina["id"], *veines)).fetchall()
+    text = repr((regla.durada_minima_s, regla.lectures_minimes, regla.marge_alta_db, regla.marge_mitjana_db,
+                 regla.tancament_sessio_s, BUIT_ZONA_S, cabina["nivell"], veines, [tuple(a) for a in antenes]))
+    return hashlib.sha256(text.encode()).hexdigest()[:16]
+
+
+def _punt_de_represa(con: sqlite3.Connection, cabina: sqlite3.Row, estat: sqlite3.Row | None, signatura: str,
+                     tot: bool) -> tuple[bool, str | None]:
+    """(cal recalcular?, des d'on). `des` None = tot el període amb dades crues."""
+    if tot or estat is None or estat["signatura"] != signatura:
+        return True, None
+    lectura = con.execute(
+        """SELECT MIN(l.inici) FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
+           JOIN cabina c ON c.id = a.cabina_id WHERE l.id > ? AND c.botiga_id = ?""",
+        (estat["darrera_lectura_id"], cabina["botiga_id"])).fetchone()[0]
+    sensor = con.execute("SELECT MIN(ts) FROM sensor_event WHERE id > ? AND cabina_id = ?",
+                         (estat["darrer_sensor_id"], cabina["id"])).fetchone()[0]
+    noves = [_dt(x) for x in (lectura, sensor) if x]
+    if not noves:
+        return False, None
+    try:
+        tall = (min(noves) - MARGE_REPRESA).isoformat()
+    except TypeError:  # hores amb zona i sense barrejades: no ens en refiem
+        return True, None
+    fila = con.execute("SELECT MAX(fi) FROM sessio WHERE cabina_id = ? AND fi < ?", (cabina["id"], tall)).fetchone()
+    return True, fila[0]
+
+
+def _proves_del_periode(con: sqlite3.Connection, cabina_id: str, primer: str | None) -> int:
+    """Proves de la cabina des de la primera dada crua que encara es conserva."""
+    return con.execute(
+        """SELECT COUNT(*) FROM prova p JOIN sessio s ON s.id = p.sessio_id
+           WHERE s.cabina_id = ? AND (? IS NULL OR s.inici >= ?)""", (cabina_id, primer, primer)).fetchone()[0]
+
+
+def processa_cabina(con: sqlite3.Connection, cabina_id: str, regla: ReglaProva, tot: bool = False) -> int:
+    """Posa al dia les sessions i proves d'una cabina.
+
+    Només recalcula el tros que les dades noves poden canviar (vegeu «Recàlcul incremental»);
+    amb `tot=True`, tot el període del qual encara hi ha dades crues. És idempotent.
+    Retorna el nombre de proves de la cabina en aquest període (no només les noves).
+    Si la botiga és de nivell Bàsic, fa servir només les lectures.
     """
     cabina = con.execute(
         "SELECT c.*, b.nivell FROM cabina c JOIN botiga b ON b.id = c.botiga_id WHERE c.id = ?",
         (cabina_id,)).fetchone()
-    if cabina["nivell"] == "basic":
-        creades = _processa_zona_basic(con, cabina, regla)
-        con.commit()
-        return creades
+    basic = cabina["nivell"] == "basic"
+    # Fins on hi ha dades ara: el que arribi mentre calculem es tornarà a mirar la propera vegada.
+    max_lectura = con.execute("SELECT COALESCE(MAX(id), 0) FROM lectura_agregada").fetchone()[0]
+    max_sensor = con.execute("SELECT COALESCE(MAX(id), 0) FROM sensor_event").fetchone()[0]
+    estat = con.execute("SELECT * FROM estat_calcul WHERE cabina_id = ?", (cabina_id,)).fetchone()
+    signatura = _signatura(con, cabina, regla)
+    if basic:
+        primer = con.execute("""SELECT MIN(l.inici) FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
+                                WHERE a.cabina_id = ?""", (cabina_id,)).fetchone()[0]
+    else:
+        primer = con.execute("SELECT MIN(ts) FROM sensor_event WHERE cabina_id = ?", (cabina_id,)).fetchone()[0]
+    primer = _dt(primer).isoformat() if primer else None
 
+    cal, des = _punt_de_represa(con, cabina, estat, signatura, tot)
+    if cal:
+        try:
+            if basic:
+                _processa_zona_basic(con, cabina, regla, des)
+            else:
+                _processa_amb_sensors(con, cabina, regla, des)
+            con.execute(
+                """INSERT INTO estat_calcul (cabina_id, darrera_lectura_id, darrer_sensor_id, signatura)
+                   VALUES (?, ?, ?, ?) ON CONFLICT(cabina_id) DO UPDATE SET
+                     darrera_lectura_id = excluded.darrera_lectura_id, darrer_sensor_id = excluded.darrer_sensor_id,
+                     signatura = excluded.signatura""", (cabina_id, max_lectura, max_sensor, signatura))
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+    if not basic:
+        alertes.detecta_abandonades(con, cabina_id)
+    return _proves_del_periode(con, cabina_id, primer)
+
+
+def _processa_amb_sensors(con: sqlite3.Connection, cabina: sqlite3.Row, regla: ReglaProva, des: str | None) -> None:
+    cabina_id = cabina["id"]
     veines = [v for v in cabina["veines"].split(",") if v]
     esdeveniments = [(_dt(f["ts"]), f["tipus"]) for f in con.execute(
-        "SELECT ts, tipus FROM sensor_event WHERE cabina_id = ? ORDER BY ts, id", (cabina_id,))]
-    # Només recalculem el període del qual encara tenim esdeveniments (la retenció esborra els antics).
-    _esborra_des_de(con, cabina_id, esdeveniments[0][0].isoformat() if esdeveniments else None)
+        "SELECT ts, tipus FROM sensor_event WHERE cabina_id = ? AND (? IS NULL OR ts > ?) ORDER BY ts, id",
+        (cabina_id, des, des))]
+    if des:
+        _esborra_des_de(con, cabina_id, des, estricte=True)
+    else:
+        # Només recalculem el període del qual encara tenim esdeveniments (la retenció esborra els antics).
+        _esborra_des_de(con, cabina_id, esdeveniments[0][0].isoformat() if esdeveniments else None)
 
-    creades = 0
     for s in detecta_sessions(esdeveniments, cabina_id, regla):
         inici, fi = s.inici.isoformat(), s.fi.isoformat()
         grup = control.grup_del_dia(con, cabina["botiga_id"], "origen", s.inici.date().isoformat())
@@ -206,10 +301,6 @@ def processa_cabina(con: sqlite3.Connection, cabina_id: str, regla: ReglaProva) 
             if conf is None:
                 continue
             _desa_prova(con, sessio_id, cand, conf)
-            creades += 1
-    con.commit()
-    alertes.detecta_abandonades(con, cabina_id)
-    return creades
 
 
 # ---------------------------------------------------------------- Nivell Bàsic
@@ -263,17 +354,20 @@ def entrades_zona(estades: list[Estada]) -> list[tuple[datetime, datetime, list[
     return grups
 
 
-def _processa_zona_basic(con: sqlite3.Connection, cabina: sqlite3.Row, regla: ReglaProva) -> int:
+def _processa_zona_basic(con: sqlite3.Connection, cabina: sqlite3.Row, regla: ReglaProva, des: str | None) -> None:
     files = con.execute(
         """SELECT l.epc, l.inici, l.fi, l.n_lectures, l.rssi_mitja, a.llindar_rssi
            FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
-           WHERE a.cabina_id = ? ORDER BY l.inici, l.id""", (cabina["id"],)).fetchall()
+           WHERE a.cabina_id = ? AND (? IS NULL OR l.inici > ?) ORDER BY l.inici, l.id""",
+        (cabina["id"], des, des)).fetchall()
     lectures = [(f["epc"], _dt(f["inici"]), _dt(f["fi"]), f["n_lectures"], f["rssi_mitja"], f["llindar_rssi"])
                 for f in files]
-    _esborra_des_de(con, cabina["id"], lectures[0][1].isoformat() if lectures else None)
+    if des:
+        _esborra_des_de(con, cabina["id"], des, estricte=True)
+    else:
+        _esborra_des_de(con, cabina["id"], lectures[0][1].isoformat() if lectures else None)
     veines = [v for v in cabina["veines"].split(",") if v]
 
-    creades = 0
     for inici, fi, estades in entrades_zona(estades_zona(lectures)):
         grup = control.grup_del_dia(con, cabina["botiga_id"], "origen", inici.date().isoformat())
         sessio_id = con.execute("INSERT INTO sessio (cabina_id, inici, fi, grup) VALUES (?, ?, ?, ?)",
@@ -289,10 +383,22 @@ def _processa_zona_basic(con: sqlite3.Connection, cabina: sqlite3.Row, regla: Re
             if conf is None:
                 continue
             _desa_prova(con, sessio_id, cand, conf)
-            creades += 1
-    return creades
 
 
-def processa_botiga(con: sqlite3.Connection, botiga_id: str, regla: ReglaProva) -> int:
+def _repara_gtin(con: sqlite3.Connection, botiga_id: str) -> None:
+    """Proves d'una peça que no era al catàleg quan es va llegir: si ara ja hi és, se li posa el GTIN."""
+    files = con.execute(
+        """SELECT DISTINCT p.epc FROM prova p JOIN sessio s ON s.id = p.sessio_id JOIN cabina c ON c.id = s.cabina_id
+           WHERE c.botiga_id = ? AND p.gtin IS NULL""", (botiga_id,)).fetchall()
+    for f in files:
+        gtin = cataleg.gtin_de_epc(con, f["epc"])
+        if gtin:
+            con.execute("UPDATE prova SET gtin = ? WHERE epc = ? AND gtin IS NULL", (gtin, f["epc"]))
+    con.commit()
+
+
+def processa_botiga(con: sqlite3.Connection, botiga_id: str, regla: ReglaProva, tot: bool = False) -> int:
     cabines = con.execute("SELECT id FROM cabina WHERE botiga_id = ?", (botiga_id,)).fetchall()
-    return sum(processa_cabina(con, c["id"], regla) for c in cabines)
+    n = sum(processa_cabina(con, c["id"], regla, tot) for c in cabines)
+    _repara_gtin(con, botiga_id)
+    return n

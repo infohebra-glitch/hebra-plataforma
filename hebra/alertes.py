@@ -252,8 +252,8 @@ def detecta_abandonades(con: sqlite3.Connection, cabina_id: str, ara: str | None
         for p in con.execute("SELECT epc, gtin FROM prova WHERE sessio_id = ?", (s["id"],)).fetchall():
             lectures = [(datetime.fromisoformat(f["inici"]), datetime.fromisoformat(f["fi"])) for f in con.execute(
                 """SELECT l.inici, l.fi FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
-                   WHERE a.cabina_id = ? AND l.epc = ? AND l.fi >= ? ORDER BY l.inici""",
-                (cabina_id, p["epc"], s["fi"]))]
+                   WHERE a.cabina_id = ? AND l.epc = ? AND l.inici >= ? AND l.fi >= ? ORDER BY l.inici""",
+                (cabina_id, p["epc"], (fi_sessio - timedelta(hours=2)).isoformat(), s["fi"]))]
             fi = _presencia_continua(lectures, fi_sessio)
             if fi is None or fi < limit or (seguent and seguent <= limit):
                 continue

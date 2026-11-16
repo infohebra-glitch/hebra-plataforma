@@ -402,3 +402,12 @@ Tots els informes (`GET /informes/{tipus}` i els lliurats) porten, a més dels b
 - El bucle de fons mira cada minut què toca: genera l'ocurrència més recent que encara no s'ha fet (posterior a la creació i a `darrera_execucio`), la desa i, si hi ha SMTP i destinataris, l'envia. Si el servidor ha estat aturat, en tornar no recupera tots els buits, només la darrera.
 - Si el PDF no es pot fer (falta WeasyPrint o Pango al servidor): les rutes `.pdf` i `/envia` responen **400** «No s'ha pogut generar el PDF: …»; al bucle de fons, el lliurat queda amb `estat_enviament` `error` i el motiu a `error`, i els altres informes que toquen es fan igualment.
 - PDF: WeasyPrint amb `hebra/templates/informe_pdf.html` i gràfics SVG fets al servidor (`hebra/grafics_svg.py`). El nom de la marca de la capçalera és el paràmetre `nom_marca`, o el de la configuració de la fitxa, o «Hebra».
+
+## Entrada de la passarel·la (`POST /api/v1/lots`), revisió 0.4
+
+- Cada element de `lectures` i `sensors` pot portar `ref` (text únic per element; la passarel·la fa servir `<id d'instal·lació>-<número de la cua>`). Un `ref` ja vist s'ignora i es compta a `repetits`: reenviar un lot és segur.
+- El lot pot portar `passarella: {id, pendents, versio, ara}`. S'anota quan s'ha vist i quin desfasament de rellotge té. Un lot buit amb aquest camp és un senyal de vida.
+- Màxim 5.000 elements per lot (413 si se supera). Un lot invàlid dona 400 i no es desa res (tot o res); els errors d'element no fatals surten a `errors`.
+- `GET /api/v2/analitica/estat-sistema` inclou `passarelles`: id, última vegada vista, pendents, elements rebutjats i alertes (silenci de més de 10 min o rellotge desfasat més de 30 s).
+- `POST /api/v2/jo/contrasenya {actual, nova}` canvia la contrasenya pròpia i tanca les altres sessions d'aquest usuari.
+- Fitxa pública `/p/{token}`: `s` (sessió) i `b` (botiga) es validen; màxim 3 peticions obertes per visita i 20 per botiga cada 10 minuts (superat: redirecció amb `ok=limit`); les respostes porten `no-store` i `noindex`.
