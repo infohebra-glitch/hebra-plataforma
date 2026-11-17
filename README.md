@@ -30,8 +30,12 @@ Aquest repositori és la primera versió de la plataforma per al **pilot de 8 se
 | Analítica | `hebra/analitica/` | Tots els càlculs dels insights (conversió, corba de talles, demanda perduda, motius, servei, estoc parat, risc de rebaixa, experiments amb interval de confiança i mida de mostra, valor estimat, acció de la setmana). Una sola font per al tauler i els informes. |
 | API v2 | `hebra/api/`, `/api/v2/*` | La que fa servir el tauler (contracte a [`docs/API.md`](docs/API.md)). Usuaris amb rols **admin / marca / botiga** (una botiga només veu la seva), alertes en directe per SSE, importacions CSV, integracions de només lectura amb Shopify, Square i CSV per URL (catàleg, vendes amb devolucions i estoc; testimonis xifrats), paràmetres. |
 | Alertes i retenció | `hebra/alertes.py`, `hebra/retencio.py` | Peces abandonades (> 30 min fora de la sala), bus d'alertes en directe; esborrat automàtic de lectures antigues (`HEBRA_RETENCIO_DIES`). |
+| Còpies de seguretat | `hebra/copies.py`, `python -m hebra.admin copia` | Còpia en calent comprovada i comprimida, rotació (14 diàries + 8 setmanals), enviament xifrat fora del servidor amb rclone, restauració i avís a l'estat del sistema. |
+| Diagnosi del lector | `hebra_passarella/diagnosi.py` | Comprova plataforma, clau, preset, flux i aturada del R700 i resumeix lectures per antena i etiqueta. |
 | Simulador | `hebra/simulador.py` | Omple la base de dades amb una botiga de 3 cabines i setmanes de pilot simulades, per veure-ho tot funcionant sense maquinari. |
 | Descodificador EPC | `hebra/epc.py` | SGTIN-96 (hex o URN) a GTIN-14 i número de sèrie (estàndard GS1). |
+
+Per posar-ho en línia sense cost (servidor gratuït, HTTPS, còpies de seguretat diàries i avís si cau): [`docs/ALLOTJAMENT.md`](docs/ALLOTJAMENT.md). Primera prova amb un lector R700 real: [`docs/PROVA-R700.md`](docs/PROVA-R700.md).
 
 L'arquitectura i les regles en detall són a [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md). Les decisions obertes i el que falta són a [`docs/PENDENT.md`](docs/PENDENT.md).
 

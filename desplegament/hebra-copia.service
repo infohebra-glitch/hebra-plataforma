@@ -1,0 +1,17 @@
+# Còpia de seguretat de la base de dades. L'engega hebra-copia.timer cada nit.
+# Vegeu docs/ALLOTJAMENT.md (secció «Còpies de seguretat»).
+[Unit]
+Description=Hebra - còpia de seguretat de la base de dades
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=hebra
+WorkingDirectory=/opt/hebra-plataforma
+EnvironmentFile=/etc/hebra/plataforma.env
+# rclone llegeix la configuració del destí remot d'aquí (rclone config --config ...)
+Environment=RCLONE_CONFIG=/etc/hebra/rclone.conf
+ExecStart=/opt/hebra-plataforma/.venv/bin/python -m hebra.admin copia
+Nice=10
+IOSchedulingClass=idle

@@ -1,0 +1,11 @@
+# Cada nit a les 3:30 (hora del servidor) i, si el servidor estava apagat, en engegar-se.
+[Unit]
+Description=Hebra - còpia de seguretat diària
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

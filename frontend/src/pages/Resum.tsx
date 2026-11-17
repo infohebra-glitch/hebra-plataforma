@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { analitica } from '../api/endpoints';
-import type { Accio, EstatSistema as TEstatSistema, Resum as TResum } from '../api/types';
+import type { Accio, EstatCopia as TEstatCopia, EstatSistema as TEstatSistema, Resum as TResum } from '../api/types';
 import { Consulta, Esquelet } from '../components/Estat';
 import { MostraPetita } from '../components/Insignies';
 import { Rajola, type Delta } from '../components/Rajola';
@@ -56,6 +56,20 @@ function Xifres({ r }: { r: TResum }) {
 
 const quan = (iso: string | null) => (iso ? `${diaCurt(iso)}${iso.length > 10 ? `, ${hora(iso)}` : ''}` : 'mai');
 
+function CopiaSeguretat({ c }: { c: TEstatCopia }) {
+  return (
+    <p className="petit" style={{ marginTop: 6 }}>
+      <b>Còpia de seguretat:</b> {quan(c.darrera)}
+      {c.darrera && (c.remot ? ' (guardada fora del servidor)' : ' (només al servidor)')}
+      {c.alerta && (
+        <span className="insignia insignia-critic" style={{ marginLeft: 6 }}>
+          {c.error_remot ? 'no s’ha pogut enviar fora' : c.darrera ? `fa més de ${c.hores_alerta} h` : 'cap còpia'}
+        </span>
+      )}
+    </p>
+  );
+}
+
 /** Pantalla «Estat del sistema» del manual: si cada cabina envia dades i si arriben les vendes. */
 function EstatDelSistema({ e }: { e: TEstatSistema }) {
   const alertes = e.cabines.filter((c) => c.alerta).length;
@@ -83,6 +97,7 @@ function EstatDelSistema({ e }: { e: TEstatSistema }) {
           {(e.dies_sense_vendes ?? 99) > 7 && <> · <Link to="/dades">Importa les vendes</Link></>}
           {alertes > 0 && <> · {alertes === 1 ? 'Una cabina' : `${alertes} cabines`} sense dades: mira la xarxa, el lector i la passarel·la (manual, capítol 19).</>}
         </p>
+        {e.copia_seguretat && <CopiaSeguretat c={e.copia_seguretat} />}
       </div>
     </Seccio>
   );

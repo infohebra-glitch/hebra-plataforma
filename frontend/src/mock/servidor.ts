@@ -298,6 +298,7 @@ function estatSistema(): T.EstatSistema {
     })),
     darrera_venda: fa(60 * 20), dies_sense_vendes: 1, peces_llegides: 412, peces_desconegudes: 3,
     pct_desconegudes: 3 / 412, hores_alerta: 24, generat: fa(0), periode: { des: '2026-11-16', fins: '2026-11-22' },
+    copia_seguretat: { darrera: fa(60 * 6), hores: 6, remot: 'copies:hebra-copies', error_remot: null, alerta: false, hores_alerta: 36 },
   };
 }
 
