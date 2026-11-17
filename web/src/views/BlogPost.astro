@@ -3,6 +3,7 @@ import { getCollection, render, type CollectionEntry } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import BlogCover from '../components/BlogCover.astro';
 import Cta from '../components/Cta.astro';
+import Newsletter from '../components/Newsletter.astro';
 import { ui, path, type Lang } from '../i18n';
 interface Props { lang: Lang; entry: CollectionEntry<'blog'> }
 const { lang, entry } = Astro.props;
@@ -43,6 +44,7 @@ const others = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`) &
       </div>
     </section>
   )}
+  <Newsletter lang={lang} />
   <Cta lang={lang} />
 </Base>
 

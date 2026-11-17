@@ -130,6 +130,7 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
             <ul>
               <li><a href={path(lang, '/piloto/')}>{t.pilot}</a></li>
               <li><a href={path(lang, '/contacto/')}>{t.contact}</a></li>
+              <li><a href={path(lang, '/blog/#newsletter')}>{t.newsletter}</a></li>
             </ul>
             <ul>
               {contacts.map((c) => <li><a href={`mailto:${c.email}`}>{c.email}</a></li>)}

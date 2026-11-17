@@ -18,6 +18,7 @@ export function init({ gsap, ScrollTrigger, reduce, lenis, fine }) {
   demoMode();
   ficha();
   contact();
+  newsletter();
   simulator(gsap, reduce);
   dataCards();
   videoDemo();
@@ -129,6 +130,34 @@ function contact() {
       location.href = `mailto:${form.dataset.mail}?subject=${encodeURIComponent('Hebra · ' + (fd.get('motivo') || 'contacto'))}&body=${encodeURIComponent(body)}`;
     });
   }
+}
+
+// Newsletter: envío a MailerLite sin cargar su script (sin cookies)
+function newsletter() {
+  document.querySelectorAll('[data-newsletter]').forEach((form) => {
+    const msg = form.querySelector('[data-nl-msg]');
+    const ok = form.querySelector('[data-nl-ok]');
+    const btn = form.querySelector('button[type=submit]');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (form.querySelector('[name="web-url"]').value) return; // trampa para bots
+      const fd = new FormData(form);
+      fd.delete('web-url'); fd.delete('consent');
+      const label = btn.textContent;
+      btn.disabled = true; btn.textContent = form.dataset.sending;
+      msg.hidden = true;
+      try {
+        const r = await fetch(form.action, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.success === false) throw new Error('nl');
+        form.querySelectorAll('.nl-row, .check, .layer').forEach((el) => (el.hidden = true));
+        ok.hidden = false;
+      } catch {
+        msg.textContent = form.dataset.err; msg.hidden = false;
+        btn.disabled = false; btn.textContent = label;
+      }
+    });
+  });
 }
 
 // Simulador del probador

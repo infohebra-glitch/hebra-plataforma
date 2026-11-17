@@ -21,6 +21,8 @@ export const contacts = [
 // Clave pública de Web3Forms (web3forms.com, gratis). Vacía: el formulario abre el correo del visitante.
 export const formKey = '';
 export const mainEmail = 'clientes@hebraia.com';
+// Formulario de la newsletter en MailerLite (cuenta 2722998, grupo «Newsletter web hebraia.com»).
+export const newsletterAction = 'https://assets.mailerlite.com/jsonp/2722998/forms/204389154466825680/subscribe';
 
 export const ui = {
   es: {
@@ -34,6 +36,7 @@ export const ui = {
     home: 'Inicio',
     footClaim: 'La prenda ya sabe dónde ha estado. Hebra hace que la marca lo sepa.',
     pilot: 'El piloto',
+    newsletter: 'Newsletter',
     privacy: 'Privacidad',
     legal: 'Aviso legal',
     cookies: 'Cookies',
@@ -56,6 +59,7 @@ export const ui = {
     home: 'Inici',
     footClaim: 'La peça ja sap on ha estat. Hebra fa que la marca ho sàpiga.',
     pilot: 'El pilot',
+    newsletter: 'Newsletter',
     privacy: 'Privacitat',
     legal: 'Avís legal',
     cookies: 'Galetes',
@@ -78,6 +82,7 @@ export const ui = {
     home: 'Home',
     footClaim: 'The garment already knows where it has been. Hebra lets the brand know too.',
     pilot: 'The pilot',
+    newsletter: 'Newsletter',
     privacy: 'Privacy',
     legal: 'Legal notice',
     cookies: 'Cookies',

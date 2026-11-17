@@ -1,0 +1,89 @@
+---
+// Alta a la newsletter mensual. Envía el correo a MailerLite con fetch (sin su script ni cookies).
+// Sin JavaScript, el formulario se envía directamente a MailerLite.
+import { path, newsletterAction, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: {
+    kick: 'Newsletter',
+    h: 'Una carta al mes para <em>tiendas de moda.</em>',
+    p: 'Un dato del probador, una novedad de normativa y un enlace útil. Nada más. Al apuntarte te enviamos el calendario normativo 2026-2030 en PDF.',
+    email: 'Tu correo profesional',
+    consentA: 'Quiero recibir la newsletter de Hebra (como máximo una vez al mes). He leído la',
+    consentL: 'política de privacidad',
+    consentB: 'y puedo darme de baja cuando quiera.',
+    layer: '<strong>Responsable:</strong> Hebra. <strong>Finalidad:</strong> enviarte la newsletter. <strong>Base legal:</strong> tu consentimiento. <strong>Destinatarios:</strong> MailerLite (UE) la envía por encargo nuestro. <strong>Derechos:</strong> baja en cada correo y los demás de la política de privacidad.',
+    send: 'Apuntarme',
+    sending: 'Enviando…',
+    ok: '<strong>Casi está.</strong> Te hemos enviado un correo para confirmar la suscripción. Mientras, aquí tienes el calendario:',
+    pdf: 'Descargar el calendario (PDF)',
+    err: 'No se ha podido enviar. Vuelve a probarlo o escríbenos a clientes@hebraia.com.',
+  },
+  ca: {
+    kick: 'Newsletter',
+    h: 'Una carta al mes per a <em>botigues de moda.</em>',
+    p: 'Una dada de l’emprovador, una novetat de normativa i un enllaç útil. Res més. Quan t’hi apuntes t’enviem el calendari normatiu 2026-2030 en PDF.',
+    email: 'El teu correu professional',
+    consentA: 'Vull rebre la newsletter d’Hebra (com a màxim un cop al mes). He llegit la',
+    consentL: 'política de privacitat',
+    consentB: 'i me’n puc donar de baixa quan vulgui.',
+    layer: '<strong>Responsable:</strong> Hebra. <strong>Finalitat:</strong> enviar-te la newsletter. <strong>Base legal:</strong> el teu consentiment. <strong>Destinataris:</strong> MailerLite (UE) l’envia per encàrrec nostre. <strong>Drets:</strong> baixa a cada correu i els altres de la política de privacitat.',
+    send: 'Apuntar-me',
+    sending: 'Enviant…',
+    ok: '<strong>Gairebé fet.</strong> T’hem enviat un correu per confirmar la subscripció. Mentrestant, aquí tens el calendari:',
+    pdf: 'Descarregar el calendari (PDF)',
+    err: 'No s’ha pogut enviar. Torna-ho a provar o escriu-nos a clientes@hebraia.com.',
+  },
+  en: {
+    kick: 'Newsletter',
+    h: 'One letter a month for <em>fashion stores.</em>',
+    p: 'One fitting-room insight, one regulation update and one useful link. Nothing else. When you sign up we send you the 2026-2030 regulation calendar as a PDF.',
+    email: 'Your work email',
+    consentA: 'I’d like to receive Hebra’s newsletter (no more than once a month). I have read the',
+    consentL: 'privacy policy',
+    consentB: 'and can unsubscribe at any time.',
+    layer: '<strong>Controller:</strong> Hebra. <strong>Purpose:</strong> sending you the newsletter. <strong>Legal basis:</strong> your consent. <strong>Recipients:</strong> MailerLite (EU) sends it on our behalf. <strong>Rights:</strong> unsubscribe in every email, plus the others in the privacy policy.',
+    send: 'Sign me up',
+    sending: 'Sending…',
+    ok: '<strong>Almost done.</strong> We’ve sent you an email to confirm your subscription. Meanwhile, here is the calendar:',
+    pdf: 'Download the calendar (PDF)',
+    err: 'Something went wrong. Please try again or write to clientes@hebraia.com.',
+  },
+}[lang];
+const pdf = `/descargas/hebra-calendario-normativo-2026-2030-${lang}.pdf`;
+---
+<section class="band perla tight nl" id="newsletter">
+  <div class="wrap nl-in">
+    <div>
+      <p class="kick">{T.kick}</p>
+      <h2 set:html={T.h} />
+      <p class="quiet">{T.p}</p>
+    </div>
+    <form class="f nl-form" method="POST" action={newsletterAction} data-newsletter data-sending={T.sending} data-err={T.err}>
+      <input type="hidden" name="ml-submit" value="1" />
+      <input type="hidden" name="anticsrf" value="true" />
+      <p class="hp"><label>Web <input name="web-url" tabindex="-1" autocomplete="off" /></label></p>
+      <div class="nl-row">
+        <label class="nl-mail"><span>{T.email}</span> <input name="fields[email]" type="email" autocomplete="email" required /></label>
+        <button class="btn" type="submit">{T.send}</button>
+      </div>
+      <label class="check"><input type="checkbox" name="consent" required /> <span>{T.consentA} <a class="textlink" href={path(lang, '/privacidad/')}>{T.consentL}</a> {T.consentB}</span></label>
+      <p class="layer small quiet" set:html={T.layer} />
+      <p class="nl-msg" data-nl-msg role="status" aria-live="polite" hidden></p>
+      <p class="nl-ok" data-nl-ok hidden><span set:html={T.ok} /> <a class="textlink" href={pdf} download>{T.pdf}</a></p>
+    </form>
+  </div>
+</section>
+
+<style>
+  .nl-in { display: grid; gap: 2rem 4rem; align-items: start; }
+  @media (min-width: 900px) { .nl-in { grid-template-columns: 5fr 6fr; } }
+  .nl h2 { font-size: var(--step-3); margin: .4rem 0 1rem; max-width: 16ch; }
+  .nl-form { max-width: none; }
+  .nl-row { display: grid; gap: .8rem; align-items: end; }
+  @media (min-width: 560px) { .nl-row { grid-template-columns: 1fr auto; } }
+  .nl-mail { margin: 0; }
+  .nl-msg { color: var(--deep); margin: 0; }
+  .nl-ok { margin: 0; padding: 1rem 1.2rem; border-left: 3px solid var(--deep); background: var(--paper, #fff); }
+</style>
