@@ -1,0 +1,10 @@
+# Còpia de seguretat de la base de dades. La llança hebra-copia.timer cada nit.
+[Unit]
+Description=Hebra - copia de seguretat de la base de dades
+
+[Service]
+Type=oneshot
+User=hebra
+WorkingDirectory=/opt/hebra-plataforma
+EnvironmentFile=/etc/hebra/plataforma.env
+ExecStart=/opt/hebra-plataforma/.venv/bin/python -m hebra.admin copia --carpeta /opt/copies --dies 14

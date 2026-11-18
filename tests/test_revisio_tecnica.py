@@ -246,3 +246,43 @@ def test_un_element_dolent_no_bloqueja_la_cua(tmp_path, monkeypatch):
     monkeypatch.setattr(cua_mod.time, "sleep", lambda s: None)
     cua_mod.bucle_enviament(cua, "http://x", "k", atura=atura)
     assert sorted(rebuts) == ["BO-1", "BO-2"] and cua.mida() == 0
+
+
+# ---------------------------------------------------------------- posada en producció
+
+def test_claus_generades_passen_la_comprovacio(monkeypatch, tmp_path):
+    from hebra import admin
+    for linia in admin.claus().splitlines():
+        if linia and not linia.startswith("#"):
+            k, v = linia.split("=", 1)
+            monkeypatch.setenv(k, v)
+    monkeypatch.setenv("HEBRA_BD", str(tmp_path / "hebra.db"))
+    errors, _ = admin.comprova_configuracio()
+    assert errors == []
+
+
+def test_comprova_detecta_la_configuracio_d_exemple(monkeypatch, tmp_path):
+    from hebra import admin
+    for k in ("HEBRA_ENTORN", "HEBRA_SECRET", "HEBRA_CLAU_PASSARELLA", "HEBRA_SAL_TIQUET", "HEBRA_COOKIE_SECURE"):
+        monkeypatch.delenv(k, raising=False)
+    errors, _ = admin.comprova_configuracio()
+    assert len(errors) >= 4
+
+
+def test_copia_de_seguretat_es_valida_i_es_roten(tmp_path):
+    import sqlite3
+    from hebra import admin
+    bd = tmp_path / "hebra.db"
+    c = sqlite3.connect(bd)
+    c.execute("CREATE TABLE t (x)")
+    c.execute("INSERT INTO t VALUES (42)")
+    c.commit()
+    c.close()
+    carpeta = tmp_path / "copies"
+    carpeta.mkdir()
+    for i in range(3):
+        (carpeta / f"hebra-2026-01-0{i + 1}_0300.db").write_bytes(b"vella")
+    admin.copia(str(bd), str(carpeta), dies=2)
+    fitxers = sorted(carpeta.glob("hebra-*.db"))
+    assert len(fitxers) == 2
+    assert sqlite3.connect(fitxers[-1]).execute("SELECT x FROM t").fetchone()[0] == 42
