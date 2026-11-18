@@ -11,9 +11,6 @@
   python -m hebra.admin estoc estoc.csv              # botiga,gtin,unitats
   python -m hebra.admin shopify --botiga BCN-01      # sincronitza comandes i estoc (només lectura)
   python -m hebra.admin retencio                     # esborra lectures i sensors més antics que HEBRA_RETENCIO_DIES
-  python -m hebra.admin claus                        # genera claus aleatòries per a /etc/hebra/plataforma.env (només per pantalla)
-  python -m hebra.admin comprova                     # revisa la configuració abans d'engegar en producció
-  python -m hebra.admin copia --carpeta /opt/copies  # còpia de seguretat de la base de dades (n'hi ha 14 de guardades)
 
 Formats CSV (capçalera obligatòria, separador coma o punt i coma):
   cataleg.csv:   gtin,model,color,talla,categoria,preu
@@ -137,64 +134,6 @@ def sincronitza_shopify(con: sqlite3.Connection, clau: str, botiga_id: str) -> d
     return shopify.sincronitza(con, botiga_id)
 
 
-def claus() -> str:
-    """Valors nous per a la configuració de producció. No es desen enlloc: es copien al fitxer d'entorn."""
-    return "\n".join([
-        "HEBRA_ENTORN=produccio",
-        "HEBRA_COOKIE_SECURE=1",
-        f"HEBRA_SECRET={secrets.token_urlsafe(48)}",
-        f"HEBRA_CLAU_PASSARELLA={secrets.token_urlsafe(32)}",
-        f"HEBRA_SAL_TIQUET={secrets.token_urlsafe(24)}",
-        "# HEBRA_CONTRASENYA_BOTIGA=   (buida: les pàgines antigues /botiga queden desactivades)",
-    ])
-
-
-def comprova_configuracio() -> tuple[list[str], list[str]]:
-    """(errors, avisos) de la configuració llegida de l'entorn, sense arrencar res."""
-    import os
-    from .config import Config, problemes_produccio
-    cfg = Config()
-    errors, avisos = [], []
-    if not cfg.produccio:
-        errors.append("HEBRA_ENTORN no és «produccio»")
-    errors += problemes_produccio(cfg)
-    if os.environ.get("HEBRA_SAL_TIQUET", "hebra-mvp") in ("hebra-mvp", "canvia-aquesta-sal", ""):
-        errors.append("HEBRA_SAL_TIQUET encara és la d'exemple (canvieu-la ABANS de pujar vendes: després no es pot canviar)")
-    carpeta = Path(cfg.ruta_bd).resolve().parent
-    if not os.access(carpeta, os.W_OK):
-        errors.append(f"No es pot escriure a la carpeta de la base de dades ({carpeta})")
-    if not Path(cfg.frontend_dist, "index.html").exists():
-        avisos.append(f"No hi ha tauler compilat a {cfg.frontend_dist} (cal «npm run build» a frontend/)")
-    if not cfg.smtp_host:
-        avisos.append("Sense HEBRA_SMTP_HOST: els informes es generen però no s'envien per correu")
-    return errors, avisos
-
-
-def copia(ruta_bd: str, carpeta: str, dies: int = 14) -> str:
-    """Còpia consistent de la base de dades en marxa (API de còpia de SQLite), comprovada i amb rotació."""
-    from datetime import datetime
-    destí = Path(carpeta)
-    destí.mkdir(parents=True, exist_ok=True)
-    fitxer = destí / f"hebra-{datetime.now():%Y-%m-%d_%H%M}.db"
-    origen = sqlite3.connect(ruta_bd)
-    try:
-        sortida = sqlite3.connect(fitxer)
-        try:
-            origen.backup(sortida)
-            if sortida.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-                fitxer.unlink(missing_ok=True)
-                raise RuntimeError("La còpia no ha passat la comprovació d'integritat")
-        finally:
-            sortida.close()
-    finally:
-        origen.close()
-    fitxer.chmod(0o600)
-    antigues = sorted(destí.glob("hebra-*.db"))[:-max(1, dies)]
-    for f in antigues:
-        f.unlink()
-    return f"{fitxer} ({fitxer.stat().st_size // 1024} KB; {len(antigues)} d'antigues esborrades)"
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description="Administració de Hebra")
     sub = ap.add_subparsers(dest="ordre", required=True)
@@ -220,29 +159,7 @@ def main() -> None:
     sub.add_parser("estoc").add_argument("fitxer")
     sub.add_parser("shopify").add_argument("--botiga", required=True)
     sub.add_parser("retencio")
-    sub.add_parser("claus")
-    sub.add_parser("comprova")
-    k = sub.add_parser("copia")
-    k.add_argument("--carpeta", required=True)
-    k.add_argument("--dies", type=int, default=14, help="quantes còpies es guarden")
     args = ap.parse_args()
-
-    # Ordres que no han d'arrencar la configuració (la de producció es pot negar a carregar-se).
-    if args.ordre == "claus":
-        print(claus())
-        return
-    if args.ordre == "comprova":
-        errors, avisos = comprova_configuracio()
-        for e in errors:
-            print("✗", e)
-        for a in avisos:
-            print("!", a)
-        print("Tot a punt per a producció." if not errors else f"{len(errors)} problema(es) per resoldre.")
-        sys.exit(1 if errors else 0)
-    if args.ordre == "copia":
-        import os
-        print(copia(os.environ.get("HEBRA_BD", "hebra.db"), args.carpeta, args.dies))
-        return
 
     cfg = carrega()
     con = db.connecta(cfg.ruta_bd)

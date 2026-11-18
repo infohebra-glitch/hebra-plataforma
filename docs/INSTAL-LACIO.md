@@ -10,7 +10,7 @@ Aquesta guia porta la plataforma de les dades simulades a una botiga de veritat.
 
 ## 1. Servidor
 
-Qualsevol servidor Linux petit serveix (previst: Hetzner CX23, Debian o Ubuntu). Cal un domini que apunti a la IP del servidor, p. ex. `plataforma.hebraia.com` (un registre DNS de tipus A al GoDaddy cap a la IP del servidor).
+Qualsevol servidor Linux petit serveix (previst: Hetzner CX23, Debian o Ubuntu). Cal un domini que apunti a la IP del servidor, p. ex. `plataforma.hebra.cat`.
 
 ```bash
 sudo apt install -y python3-venv git caddy
@@ -29,7 +29,6 @@ cd frontend && sudo -u hebra npm ci && sudo -u hebra npm run build && cd ..
 # Configuració (secrets fora del repositori)
 sudo mkdir -p /etc/hebra
 sudo cp .env.example /etc/hebra/plataforma.env
-sudo -u hebra .venv/bin/python -m hebra.admin claus      # escriu claus noves per pantalla: copieu-les al fitxer
 sudo nano /etc/hebra/plataforma.env
 #   HEBRA_BD=/opt/hebra-plataforma/hebra.db
 #   HEBRA_CLAU_PASSARELLA=<genereu-la: python3 -c "import secrets; print(secrets.token_urlsafe(32))">
@@ -47,9 +46,6 @@ sudo nano /etc/hebra/plataforma.env
 #   HEBRA_SMTP_REMITENT=Hebra <informes@marca.cat>
 sudo chmod 600 /etc/hebra/plataforma.env
 
-# Abans d'engegar: revisa la configuració (diu què falta en llenguatge clar)
-sudo -u hebra env $(grep -v '^#' /etc/hebra/plataforma.env | xargs) .venv/bin/python -m hebra.admin comprova
-
 # Servei i HTTPS
 sudo cp desplegament/hebra-web.service /etc/systemd/system/
 sudo systemctl enable --now hebra-web
@@ -63,15 +59,7 @@ El servei arrenca **un sol procés** `uvicorn`: les alertes en directe (peticion
 
 La plataforma recalcula proves i atribucions cada 5 minuts (`HEBRA_PROCESSA_CADA_MIN`).
 
-**Còpia de seguretat**: la base de dades és un sol fitxer. Una còpia cada nit, comprovada i amb rotació de 14 dies:
-
-```bash
-sudo mkdir -p /opt/copies && sudo chown hebra /opt/copies
-sudo cp desplegament/hebra-copia.service desplegament/hebra-copia.timer /etc/systemd/system/
-sudo systemctl enable --now hebra-copia.timer
-```
-
-Això protegeix d'esborrar res per error, però **no** si el servidor desapareix: activeu també les còpies automàtiques (snapshots) de Hetzner, o baixeu `/opt/copies` a un altre lloc cada setmana. Proveu una restauració abans del pilot (copieu una còpia com a `hebra.db` i engegueu el servei).
+**Còpia de seguretat**: la base de dades és un sol fitxer. Cada nit: `sqlite3 /opt/hebra-plataforma/hebra.db ".backup /opt/copies/hebra-$(date +%F).db"`.
 
 ## 2. Raspberry Pi de la botiga
 
