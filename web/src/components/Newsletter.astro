@@ -1,7 +1,7 @@
 ---
 // Alta a la newsletter mensual. Envía el correo a MailerLite con fetch (sin su script ni cookies).
 // Sin JavaScript, el formulario se envía directamente a MailerLite.
-import { path, newsletterAction, type Lang } from '../i18n';
+import { path, type Lang } from '../i18n';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const T = {
@@ -83,7 +83,7 @@ const pdf = `/descargas/hebra-calendario-normativo-2026-2030-${lang}.pdf`;
         <img src={`/img/newsletter-portada-${lang}.jpg`} width="414" height="585" alt={T.cover} loading="lazy" decoding="async" />
         <div><p class="nl-gift-k">{T.gift}</p><p class="nl-gift-t">{T.giftT}</p></div>
       </div>
-      <form class="f nl-form" method="POST" action={newsletterAction} data-newsletter data-sending={T.sending} data-err={T.err}>
+      <form class="f nl-form" method="POST" action="/api/subscribe" data-newsletter data-sending={T.sending} data-err={T.err}>
         <input type="hidden" name="ml-submit" value="1" />
         <input type="hidden" name="anticsrf" value="true" />
         <input type="hidden" name="fields[idioma]" value={lang} />

@@ -142,13 +142,16 @@ function newsletter() {
       e.preventDefault();
       if (form.querySelector('[name="web-url"]').value) return; // trampa para bots
       const fd = new FormData(form);
-      fd.delete('web-url'); fd.delete('consent');
       const label = btn.textContent;
       btn.disabled = true; btn.textContent = form.dataset.sending;
       msg.hidden = true;
       try {
-        // MailerLite no respon amb capçaleres CORS: enviament «no-cors» (la resposta és opaca)
-        await fetch(form.action, { method: 'POST', body: fd, mode: 'no-cors' });
+        const r = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: fd.get('fields[email]'), idioma: fd.get('fields[idioma]'), consent: fd.get('consent') === 'on' }),
+        });
+        if (!r.ok) throw new Error('nl');
         form.querySelectorAll('.nl-row, .check, .layer').forEach((el) => (el.hidden = true));
         ok.hidden = false;
       } catch {
