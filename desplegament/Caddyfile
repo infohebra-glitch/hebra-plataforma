@@ -1,5 +1,15 @@
-# Caddy posa HTTPS automàticament (Let's Encrypt). Canvieu el domini.
-plataforma.hebra.example {
+# Caddy posa HTTPS automàticament (Let's Encrypt).
+# L'script instal-la-servidor.sh hi posa el domini que li passeu (per defecte, plataforma.hebraia.com).
+plataforma.hebraia.com {
 	encode gzip
-	reverse_proxy 127.0.0.1:8000
+	reverse_proxy 127.0.0.1:8000 {
+		# Les alertes en directe (SSE) no s'han d'emmagatzemar a la memòria intermèdia
+		flush_interval -1
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
 }

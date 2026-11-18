@@ -10,7 +10,7 @@ Després d'un diumenge o d'un festiu també sortirà en alerta fins a la primera
 import sqlite3
 from datetime import datetime
 
-from .. import passarella
+from .. import copies, passarella
 from . import Filtre
 
 HORES_ALERTA = 24
@@ -53,6 +53,7 @@ def estat_sistema(con: sqlite3.Connection, f: Filtre) -> dict:
     return {
         "cabines": cabines,
         "passarelles": passarella.estat(con),
+        "copia_seguretat": copies.estat(con),
         "darrera_venda": venda,
         "dies_sense_vendes": ((ara.date() - datetime.fromisoformat(venda[:10]).date()).days if venda else None),
         "peces_llegides": epcs["n"],

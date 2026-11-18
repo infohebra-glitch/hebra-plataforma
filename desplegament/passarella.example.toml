@@ -4,7 +4,7 @@ finestra_s = 10                      # segons per finestra de lectures agregades
 cua = "/var/lib/hebra/cua.db"        # cua local (7 dies si cau la xarxa)
 
 [plataforma]
-url = "https://plataforma.hebra.example"   # URL del servidor de Hebra
+url = "https://plataforma.hebraia.com"     # URL del servidor de Hebra
 clau = "LA-MATEIXA-QUE-HEBRA_CLAU_PASSARELLA"
 
 [lector]

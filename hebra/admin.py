@@ -11,6 +11,9 @@
   python -m hebra.admin estoc estoc.csv              # botiga,gtin,unitats
   python -m hebra.admin shopify --botiga BCN-01      # sincronitza comandes i estoc (només lectura)
   python -m hebra.admin retencio                     # esborra lectures i sensors més antics que HEBRA_RETENCIO_DIES
+  python -m hebra.admin copia                        # còpia de seguretat comprovada (i enviada fora si HEBRA_COPIES_DESTI)
+  python -m hebra.admin copies                       # llista les còpies locals
+  python -m hebra.admin restaura FITXER.db.gz        # restaura una còpia (atureu abans hebra-web)
 
 Formats CSV (capçalera obligatòria, separador coma o punt i coma):
   cataleg.csv:   gtin,model,color,talla,categoria,preu
@@ -28,7 +31,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import alertes, auth, cataleg, control, db, estoc, proves, retencio, shopify, vendes
+from . import alertes, auth, cataleg, control, copies, db, estoc, proves, retencio, shopify, vendes
 from .integracions import ErrorIntegracio
 from .integracions import motor as integracions_motor
 from . import epc as epc_mod
@@ -159,9 +162,16 @@ def main() -> None:
     sub.add_parser("estoc").add_argument("fitxer")
     sub.add_parser("shopify").add_argument("--botiga", required=True)
     sub.add_parser("retencio")
+    sub.add_parser("copia", help="còpia de seguretat de la base de dades")
+    sub.add_parser("copies", help="llista les còpies locals")
+    r = sub.add_parser("restaura", help="restaura una còpia (amb el servei web aturat)")
+    r.add_argument("fitxer")
+    r.add_argument("--si", action="store_true", help="no demanis confirmació")
     args = ap.parse_args()
 
     cfg = carrega()
+    if args.ordre in ("copia", "copies", "restaura"):
+        sys.exit(_copies(args, cfg.ruta_bd))
     con = db.connecta(cfg.ruta_bd)
     db.inicialitza(con)
     if args.ordre == "botiga":
@@ -204,6 +214,37 @@ def main() -> None:
             sys.exit(str(e))
     elif args.ordre == "retencio":
         print(retencio.neteja(con, cfg.retencio_dies))
+
+
+def _copies(args, ruta_bd: str) -> int:
+    """Ordres de còpia de seguretat. No obren la base de dades abans (la restauració la substitueix)."""
+    import logging
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    cc = copies.ConfigCopies()
+    try:
+        if args.ordre == "copia":
+            e = copies.fes_copia(ruta_bd, cc)
+            print(f"Còpia feta: {e['fitxer']} ({e['mida_copia'] / 1e6:.1f} MB, {e['locals']} còpies locals)")
+            if e["remot"]:
+                print(f"Enviada a {e['remot']}")
+            elif e["error_remot"]:
+                print(f"ATENCIÓ: no s'ha pogut enviar fora: {e['error_remot']}", file=sys.stderr)
+                return 2
+            else:
+                print("ATENCIÓ: només local (HEBRA_COPIES_DESTI és buit)", file=sys.stderr)
+        elif args.ordre == "copies":
+            for p in copies.llista(cc.carpeta_per(ruta_bd)):
+                print(f"{p}  {p.stat().st_size / 1e6:.1f} MB")
+        else:
+            if not args.si and input(f"Substituir {ruta_bd} per {args.fitxer}? Escriu «si»: ").strip().lower() != "si":
+                print("Cancel·lat")
+                return 1
+            anterior = copies.restaura(args.fitxer, ruta_bd)
+            print(f"Restaurada. La base de dades anterior és a {anterior}" if anterior else "Restaurada.")
+    except copies.ErrorCopia as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

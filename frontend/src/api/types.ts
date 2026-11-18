@@ -311,6 +311,17 @@ export interface EstatSistema {
   hores_alerta: number;
   generat: DataHora;
   periode: { des: string; fins: string };
+  /** Darrera còpia de seguretat de la base de dades (hebra/copies.py). */
+  copia_seguretat?: EstatCopia;
+}
+export interface EstatCopia {
+  darrera: DataHora | null;
+  hores: number | null;
+  /** Destí remot on es va enviar (null = només local). */
+  remot: string | null;
+  error_remot: string | null;
+  alerta: boolean;
+  hores_alerta: number;
 }
 
 // ── GET /valor ───────────────────────────────────────────────────────────
