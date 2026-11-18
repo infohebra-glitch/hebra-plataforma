@@ -86,6 +86,7 @@ const pdf = `/descargas/hebra-calendario-normativo-2026-2030-${lang}.pdf`;
       <form class="f nl-form" method="POST" action={newsletterAction} data-newsletter data-sending={T.sending} data-err={T.err}>
         <input type="hidden" name="ml-submit" value="1" />
         <input type="hidden" name="anticsrf" value="true" />
+        <input type="hidden" name="fields[idioma]" value={lang} />
         <p class="hp"><label>Web <input name="web-url" tabindex="-1" autocomplete="off" /></label></p>
         <div class="nl-row">
           <label class="nl-mail"><span>{T.email}</span> <input name="fields[email]" type="email" autocomplete="email" placeholder={T.ph} required /></label>
