@@ -147,9 +147,8 @@ function newsletter() {
       btn.disabled = true; btn.textContent = form.dataset.sending;
       msg.hidden = true;
       try {
-        const r = await fetch(form.action, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok || j.success === false) throw new Error('nl');
+        // MailerLite no respon amb capçaleres CORS: enviament «no-cors» (la resposta és opaca)
+        await fetch(form.action, { method: 'POST', body: fd, mode: 'no-cors' });
         form.querySelectorAll('.nl-row, .check, .layer').forEach((el) => (el.hidden = true));
         ok.hidden = false;
       } catch {
