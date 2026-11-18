@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import { ui, path, langs, langShort, langName, contacts, mainEmail, type Lang } from '../i18n';
 import { seo } from '../seo';
+import Newsletter from '../components/Newsletter.astro';
 
 interface Props {
   title: string;
@@ -16,6 +17,8 @@ interface Props {
 }
 const { title, description: descProp, lang = 'es', route = '/', current = route, bare = false, dark = false, article } = Astro.props;
 const t = ui[lang];
+const nlStrip = route !== '/' && !route.startsWith('/blog') && !route.startsWith('/p/') && route !== '/gracias/';
+const hasNl = nlStrip || route === '/' || route.startsWith('/blog');
 const nav = t.nav.map(([href, label]) => ({ route: href, href: path(lang, href), label }));
 const entry = article ? undefined : seo[lang][route];
 const fullTitle = entry?.title ?? (title === 'Hebra' ? t.titleHome : `${title} · Hebra`.length > 60 ? title : `${title} · Hebra`);
@@ -101,6 +104,7 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
             <a href={path(l, route)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} title={langName[l]}>{langShort[l]}</a>
           ))}
         </span>
+        {hasNl && <a class="nl-fixed" href="#newsletter">{t.newsletter}</a>}
         <a class="cta-fixed" href={path(lang, '/contacto/#demo')} data-magnetic>{t.demo}</a>
       </div>
       <nav class="dock" aria-label={t.navMain} data-dock>
@@ -121,7 +125,7 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
       <div class="cursor" aria-hidden="true" data-cursor><span></span></div>
     </>
   )}
-  <main id="main"><slot /></main>
+  <main id="main"><slot />{!bare && nlStrip && <Newsletter lang={lang} compact />}</main>
   {!bare && (
     <footer class="foot">
       <div class="wrap">
@@ -130,7 +134,7 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
             <ul>
               <li><a href={path(lang, '/piloto/')}>{t.pilot}</a></li>
               <li><a href={path(lang, '/contacto/')}>{t.contact}</a></li>
-              <li><a href={path(lang, '/blog/#newsletter')}>{t.newsletter}</a></li>
+              <li><a href={'#newsletter'}>{t.newsletter}</a></li>
             </ul>
             <ul>
               {contacts.map((c) => <li><a href={`mailto:${c.email}`}>{c.email}</a></li>)}
@@ -162,6 +166,9 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
   .top-langs a { font: 600 .74rem/1 var(--sans); letter-spacing: .02em; color: var(--on-dark-2); text-decoration: none; padding: .5rem .6rem; border-radius: 999px; transition: color .3s, background .3s; }
   .top-langs a:hover { color: var(--on-dark); }
   .top-langs a[aria-current] { background: var(--on-dark); color: var(--ink); }
+  .nl-fixed { padding: .75em 1.2em; border-radius: 999px; font: 560 .92rem/1 var(--sans); text-decoration: none; color: var(--blanc); background: var(--grana); transition: filter .3s; }
+  .nl-fixed:hover { filter: brightness(1.12); }
+  @media (max-width: 720px) { .nl-fixed { display: none; } }
   .cta-fixed { padding: .75em 1.3em; border-radius: 999px; font: 560 .92rem/1 var(--sans); text-decoration: none; color: var(--ink); background: var(--on-dark); transition: background .4s var(--ease); }
   .cta-fixed:hover { background: var(--tint); }
 

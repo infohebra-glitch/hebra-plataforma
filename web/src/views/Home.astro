@@ -8,6 +8,7 @@ import Fan from '../components/Fan.astro';
 import VideoDemo from '../components/VideoDemo.astro';
 import Report from '../components/Report.astro';
 import Cta from '../components/Cta.astro';
+import Newsletter from '../components/Newsletter.astro';
 import { path, type Lang } from '../i18n';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
@@ -229,6 +230,7 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
     </div>
   </section>
 
+  <Newsletter lang={lang} />
   <Cta lang={lang} />
 </Base>
 

@@ -2,11 +2,13 @@
 // Alta a la newsletter mensual. Envía el correo a MailerLite con fetch (sin su script ni cookies).
 // Sin JavaScript, el formulario se envía directamente a MailerLite.
 import { path, type Lang } from '../i18n';
-interface Props { lang: Lang }
-const { lang } = Astro.props;
+interface Props { lang: Lang; compact?: boolean }
+const { lang, compact = false } = Astro.props;
 const T = {
   es: {
     kick: 'Newsletter',
+    cH: 'Una carta al mes para tiendas de moda.',
+    cP: 'Cinco minutos, tres cosas útiles. Y de regalo, el calendario normativo 2026‑2030 en PDF.',
     ph: 'nombre@tutienda.com',
     items: [['Un dato del probador', 'Qué se prueba y no se vende, y por qué. Con cifras reales, explicado en dos líneas.'], ['Una novedad de normativa', 'Lo que cambia para una marca con tienda y cuándo te toca.'], ['Un enlace útil', 'Un estudio, una herramienta o un caso que vale la pena leer.']],
     facts: ['1 vez al mes', 'Gratis', 'Baja con un clic'],
@@ -26,6 +28,8 @@ const T = {
   },
   ca: {
     kick: 'Newsletter',
+    cH: 'Una carta al mes per a botigues de moda.',
+    cP: 'Cinc minuts, tres coses útils. I de regal, el calendari normatiu 2026‑2030 en PDF.',
     ph: 'nom@latevabotiga.cat',
     items: [['Una dada de l’emprovador', 'Què es prova i no es ven, i per què. Amb xifres reals, explicat en dues línies.'], ['Una novetat de normativa', 'El que canvia per a una marca amb botiga i quan et toca.'], ['Un enllaç útil', 'Un estudi, una eina o un cas que val la pena llegir.']],
     facts: ['1 cop al mes', 'Gratis', 'Baixa amb un clic'],
@@ -45,6 +49,8 @@ const T = {
   },
   en: {
     kick: 'Newsletter',
+    cH: 'One letter a month for fashion stores.',
+    cP: 'Five minutes, three useful things. Plus a free 2026‑2030 regulation calendar (PDF).',
     ph: 'name@yourstore.com',
     items: [['One fitting-room insight', 'What gets tried on but not bought, and why. Real figures, explained in two lines.'], ['One regulation update', 'What changes for a brand with shops, and when it applies to you.'], ['One useful link', 'A study, a tool or a case worth reading.']],
     facts: ['Once a month', 'Free', 'One-click unsubscribe'],
@@ -65,6 +71,31 @@ const T = {
 }[lang];
 const pdf = `/descargas/hebra-calendario-normativo-2026-2030-${lang}.pdf`;
 ---
+{compact ? (
+<section class="nlc" id="newsletter" aria-label={T.kick}>
+  <div class="wrap nlc-in">
+    <div class="nlc-copy">
+      <p class="kick">{T.kick}</p>
+      <p class="nlc-h">{T.cH}</p>
+      <p class="nlc-p">{T.cP}</p>
+    </div>
+    <form class="f nl-form nlc-form" method="POST" action="/api/subscribe" data-newsletter data-sending={T.sending} data-err={T.err}>
+        <input type="hidden" name="ml-submit" value="1" />
+        <input type="hidden" name="anticsrf" value="true" />
+        <input type="hidden" name="fields[idioma]" value={lang} />
+        <p class="hp"><label>Web <input name="web-url" tabindex="-1" autocomplete="off" /></label></p>
+        <div class="nl-row">
+          <label class="nl-mail"><span>{T.email}</span> <input name="fields[email]" type="email" autocomplete="email" placeholder={T.ph} required /></label>
+          <button class="btn" type="submit">{T.send}</button>
+        </div>
+        <label class="check"><input type="checkbox" name="consent" required /> <span>{T.consentA}{' '}<a class="textlink" href={path(lang, '/privacidad/')}>{T.consentL}</a>{' '}{T.consentB}</span></label>
+        <p class="layer" set:html={T.layer} />
+        <p class="nl-msg" data-nl-msg role="status" aria-live="polite" hidden></p>
+        <p class="nl-ok" data-nl-ok hidden><span set:html={T.ok} />{' '}<a class="btn" href={pdf} download>{T.pdf}</a></p>
+      </form>
+  </div>
+</section>
+) : (
 <section class="nl" id="newsletter">
   <div class="wrap nl-in">
     <div class="nl-copy">
@@ -92,14 +123,15 @@ const pdf = `/descargas/hebra-calendario-normativo-2026-2030-${lang}.pdf`;
           <label class="nl-mail"><span>{T.email}</span> <input name="fields[email]" type="email" autocomplete="email" placeholder={T.ph} required /></label>
           <button class="btn" type="submit">{T.send}</button>
         </div>
-        <label class="check"><input type="checkbox" name="consent" required /> <span>{T.consentA} <a class="textlink" href={path(lang, '/privacidad/')}>{T.consentL}</a> {T.consentB}</span></label>
+        <label class="check"><input type="checkbox" name="consent" required /> <span>{T.consentA}{' '}<a class="textlink" href={path(lang, '/privacidad/')}>{T.consentL}</a>{' '}{T.consentB}</span></label>
         <p class="layer" set:html={T.layer} />
         <p class="nl-msg" data-nl-msg role="status" aria-live="polite" hidden></p>
-        <p class="nl-ok" data-nl-ok hidden><span set:html={T.ok} /> <a class="btn" href={pdf} download>{T.pdf}</a></p>
+        <p class="nl-ok" data-nl-ok hidden><span set:html={T.ok} />{' '}<a class="btn" href={pdf} download>{T.pdf}</a></p>
       </form>
     </div>
   </div>
 </section>
+)}
 
 <style>
   .nl { border-bottom: 1px solid var(--rule-dark); background: var(--ink); color: var(--on-dark); padding: clamp(4.5rem, 9vw, 8rem) 0; position: relative; overflow: hidden; isolation: isolate; }
@@ -132,4 +164,19 @@ const pdf = `/descargas/hebra-calendario-normativo-2026-2030-${lang}.pdf`;
   .nl .layer { font-size: .74rem; line-height: 1.5; color: var(--on-light-2); margin: 0; }
   .nl-msg { color: var(--grana); margin: 0; }
   .nl-ok { margin: 0; display: grid; gap: 1rem; justify-items: start; }
+  .nlc { background: var(--grana); color: var(--blanc); padding: clamp(2.6rem, 5vw, 3.6rem) 0; }
+  .nlc .kick { color: color-mix(in srgb, var(--blanc) 75%, transparent); }
+  .nlc .kick::before { background: var(--blanc); }
+  .nlc-in { display: grid; gap: 1.6rem 4rem; align-items: center; }
+  @media (min-width: 960px) { .nlc-in { grid-template-columns: 5fr 6fr; } }
+  .nlc-h { font-family: var(--serif); font-size: var(--step-2); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 .6rem; }
+  .nlc-p { margin: 0; color: color-mix(in srgb, var(--blanc) 85%, transparent); max-width: 40ch; }
+  .nlc-form { max-width: none; gap: .8rem; color: var(--blanc); }
+  .nlc-form .nl-mail > span { color: var(--blanc); }
+  .nlc-form input[type=email] { background: var(--blanc); color: var(--on-light); }
+  .nlc-form .check, .nlc-form .check a, .nlc-form .layer { color: color-mix(in srgb, var(--blanc) 88%, transparent); }
+  .nlc-form .layer { font-size: .72rem; line-height: 1.5; margin: 0; }
+  .nlc-form .btn { background: var(--ink); color: var(--blanc); border-color: var(--ink); white-space: nowrap; }
+  .nlc-form .nl-msg { color: var(--blanc); font-weight: 600; margin: 0; }
+  .nlc-form .nl-ok { margin: 0; display: grid; gap: .8rem; justify-items: start; }
 </style>
