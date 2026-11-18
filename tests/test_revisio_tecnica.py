@@ -172,6 +172,8 @@ def test_assistencia_no_es_pot_repetir_sense_fi(entorn):
 def test_limit_per_botiga(entorn, monkeypatch):
     app_mod, con = entorn
     monkeypatch.setattr(fitxa, "MAX_PER_BOTIGA", 3)
+    con.execute("DELETE FROM peticio_talla")  # les de la simulació poden caure dins la finestra d'ara
+    con.commit()
     c = TestClient(app_mod.app)
     t = _token(con)
     ok = []
