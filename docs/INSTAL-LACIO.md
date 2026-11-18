@@ -10,7 +10,7 @@ Aquesta guia porta la plataforma de les dades simulades a una botiga de veritat.
 
 ## 1. Servidor
 
-**Camí recomanat: [`docs/ALLOTJAMENT.md`](ALLOTJAMENT.md)** (servidor gratuït d'Oracle Cloud, `plataforma.hebraia.com`, script d'instal·lació, còpies de seguretat i avís si cau). El que segueix és la instal·lació a mà, per a qualsevol servidor Linux petit (Debian o Ubuntu). Cal un domini que apunti a la IP del servidor.
+**Camí recomanat: [`docs/ALLOTJAMENT.md`](ALLOTJAMENT.md)** (gratuït: Raspberry Pi o ordinador propi + Cloudflare Tunnel a `plataforma.hebraia.com`, script d'instal·lació, còpies de seguretat a Google Drive i avís si cau). El que segueix és la instal·lació a mà, per a qualsevol servidor Linux petit (Debian o Ubuntu). Cal un domini que apunti a la IP del servidor.
 
 ```bash
 sudo apt install -y python3-venv git caddy
