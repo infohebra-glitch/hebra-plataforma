@@ -65,3 +65,72 @@ details.panell > summary::after { content: "+"; float: right; font-size: 21px; c
 details.panell[open] > summary::after { content: "−"; }
 details.panell[open] > summary { margin-bottom: 10px; }
 .estat-en_cami { color: var(--accent); font-weight: 600; }
+
+/* ── Fitxa NFC (el que veu el client al mòbil) ─────────────────────────────
+   Una sola columna amb el mateix marge a tot arreu (16 px), targetes de 18 px de radi
+   i un ritme vertical de 10 px entre blocs. El color de la marca arriba per --accent. */
+main.fitxa { padding: 0 16px 36px; }
+.fitxa .nota-previa { font-size: 12px; color: var(--muted); background: var(--accent-soft); border-radius: 999px;
+  padding: 6px 12px; margin: 12px 0 0; text-align: center; }
+.fitxa-cap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 0 12px; }
+.fitxa-cap .marca { font-size: 12px; letter-spacing: .18em; }
+.fitxa .idiomes { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.fitxa .idiomes a { font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 999px; color: var(--muted); letter-spacing: .04em; }
+.fitxa .idiomes a.actiu { background: var(--accent); color: var(--sobre-accent, #fff); }
+.fitxa-heroi { position: relative; overflow: hidden; background: var(--accent); color: var(--sobre-accent, #fff); border-radius: 22px; padding: 22px 20px 20px; margin: 4px 0 10px; }
+.fitxa-heroi::after { content: ""; position: absolute; right: -40px; top: -30px; width: 170px; height: 170px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.18), rgba(255,255,255,0) 70%); pointer-events: none; }
+.fitxa-heroi h1 { font-size: 30px; line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 12px; color: inherit; }
+.fitxa-heroi .benvinguda { font-size: 13px; opacity: .8; margin: 0 0 8px; }
+.fitxa-dades { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; }
+.fitxa-dades li { font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); }
+.fitxa-dades li.preu { background: var(--sobre-accent, #fff); color: var(--accent); }
+.fitxa-heroi .descripcio { margin: 14px 0 0; font-size: 15px; line-height: 1.5; color: inherit; opacity: .9; }
+.fitxa .panell { border-radius: 18px; padding: 16px 18px; margin: 0 0 10px; border-color: var(--line); }
+.fitxa .panell h2 { font-size: 17px; margin: 0 0 10px; }
+.fitxa .panell h3 { font-size: 15px; margin: 16px 0 4px; }
+.fitxa .panell p { margin: 0 0 8px; }
+.fitxa .panell p:last-child, .fitxa .panell ul:last-child { margin-bottom: 0; }
+.fitxa .panell ul { padding-left: 18px; margin: 0; }
+.fitxa details.panell > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fitxa details.panell > summary h2 { margin: 0; }
+.fitxa details.panell > summary::after { float: none; content: "+"; flex: none; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 18px; line-height: 1; background: var(--accent-soft); color: var(--accent); }
+.fitxa details.panell[open] > summary::after { content: "−"; }
+.fitxa .talla { min-width: 48px; padding: 8px 12px; }
+.fitxa .talla.actual { background: var(--accent); border-color: var(--accent); color: var(--sobre-accent, #fff); }
+.fitxa ul.composicio { list-style: none; padding: 0; display: grid; gap: 10px; }
+.fitxa .comp-nom { display: block; font-size: 14.5px; margin-bottom: 5px; }
+.fitxa .comp-barra { display: block; height: 6px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
+.fitxa .comp-barra span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.fitxa ol.ruta { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; }
+.fitxa ol.ruta li { font-size: 13.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.fitxa ol.ruta li + li::before { content: "→"; color: var(--muted); font-weight: 400; margin: 0 6px 0 -2px; }
+.fitxa ol.ruta li + li { display: inline-flex; align-items: center; }
+.fitxa ol.etapes { border-left-color: var(--accent); }
+.fitxa ol.etapes li::before { background: var(--accent); }
+.fitxa .xips { display: flex; flex-wrap: wrap; gap: 8px; }
+.fitxa .xips button { font-size: 14px; padding: 8px 14px; }
+.fitxa .xips button:hover:not(:disabled) { background: var(--accent-soft); }
+.fitxa form.fila { gap: 8px; }
+.fitxa form.fila input[type=text] { flex: 1 1 100%; border-radius: 999px; padding: 9px 14px; }
+.fitxa form.fila button.primari { flex: 1 1 100%; }
+.fitxa .comp-barra + * { margin-top: 0; }
+.fitxa ul.composicio + p { margin-top: 12px; }
+.fitxa button.primari { color: var(--sobre-accent, var(--bg)); }
+.fitxa select { border-radius: 999px; padding: 9px 12px; }
+.fitxa button:disabled { opacity: .75; cursor: default; }
+.fitxa .avis { border-radius: 14px; }
+.fitxa-peu { padding: 10px 4px 0; font-size: 12.5px; line-height: 1.5; }
+.fitxa-peu p { margin: 0 0 6px; }
+@media (prefers-color-scheme: dark) {
+  :root { --sobre-accent: var(--bg); }
+  .fitxa-heroi { color: var(--fg); }
+  .fitxa-heroi::after { opacity: .35; }
+  .fitxa-heroi { background: var(--surface); border: 1px solid var(--line); }
+  .fitxa-dades li.preu { background: var(--accent); color: var(--bg); }
+  .fitxa .idiomes a.actiu { color: var(--bg); }
+}
+/* A la previsualització del tauler, sense barra de desplaçament dins el marc del mòbil. */
+html:has(main.previa) { scrollbar-width: none; }
+html:has(main.previa)::-webkit-scrollbar { display: none; }

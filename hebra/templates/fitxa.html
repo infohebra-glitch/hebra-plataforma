@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block titol %}{{ p.nom }}{% endblock %}
-{% block amplada %}estret{% endblock %}
+{% block amplada %}estret fitxa{% if previsualitza %} previa{% endif %}{% endblock %}
 {% block cap %}{# Color de la marca (validat #RRGGBB). Només en mode clar: en fosc es mantenen els colors de contrast. #}
-<style>@media (prefers-color-scheme: light) { :root { --accent: {{ ap.color_principal }}; --traza: {{ ap.color_principal }}; } }</style>
+<style>@media (prefers-color-scheme: light) { :root { --accent: {{ ap.color_principal }}; --traza: {{ ap.color_principal }}; --sobre-accent: {{ text_accent }}; } }</style>
 {% endblock %}
 {% block cos %}
 {# Fitxa NFC. Sense galetes: cada acció és un formulari que porta la sessió tècnica (s) en un camp ocult.
@@ -29,21 +29,27 @@
   </form>
 {% endmacro %}
 
-{% if previsualitza %}<p class="avis petit" role="note">Previsualització: no es registra cap esdeveniment.{% if p.origen_amagat_per_control and cfg.seccions.visibles.origen %} Avui la botiga és al grup «sense origen» (grup de control): el client no veu l'origen.{% endif %}</p>{% endif %}
+{% if previsualitza %}<p class="nota-previa" role="note">Previsualització: no es registra cap esdeveniment.{% if p.origen_amagat_per_control and cfg.seccions.visibles.origen %} Avui la botiga és al grup «sense origen» (grup de control): el client no veu l'origen.{% endif %}</p>{% endif %}
 
-<div class="fila entre">
-  {% if ap.logo_data_url %}<img src="{{ ap.logo_data_url }}" alt="{{ ap.nom_marca }}" height="28">{% else %}<span class="marca">{{ ap.nom_marca }}</span>{% endif %}
+<header class="fitxa-cap">
+  {% if ap.logo_data_url %}<img src="{{ ap.logo_data_url }}" alt="{{ ap.nom_marca }}" height="26">{% else %}<span class="marca">{{ ap.nom_marca }}</span>{% endif %}
   {% if idiomes|length > 1 %}
   <nav class="idiomes" aria-label="Idioma">
     {% for i in idiomes %}<a href="{{ url_idioma(i) }}" class="{{ 'actiu' if i == lang }}" hreflang="{{ i }}">{{ i|upper }}</a>{% endfor %}
   </nav>
   {% endif %}
-</div>
+</header>
 
-<h1>{{ p.nom }}</h1>
-<p class="muted">{{ p.color }} · {{ p.talla }}{% if p.preu %} · {{ '%.0f'|format(p.preu) }} €{% endif %}</p>
-{% if benvinguda %}<p>{{ benvinguda }}</p>{% endif %}
-<p>{{ p.descripcio }}</p>
+<div class="fitxa-heroi">
+  {% if benvinguda %}<p class="benvinguda">{{ benvinguda }}</p>{% endif %}
+  <h1>{{ p.nom }}</h1>
+  <ul class="fitxa-dades">
+    {% if p.color %}<li>{{ p.color }}</li>{% endif %}
+    {% if p.talla %}<li>{{ p.talla }}</li>{% endif %}
+    {% if p.preu %}<li class="preu">{{ '%.0f'|format(p.preu) }} €</li>{% endif %}
+  </ul>
+  {% if p.descripcio %}<p class="descripcio">{{ p.descripcio }}</p>{% endif %}
+</div>
 
 {% if ok == 'talla' %}<p class="avis" role="status">{{ t.peticio_ok }}</p>{% endif %}
 {% if ok == 'assistencia' %}<p class="avis" role="status">{{ t.assistencia_ok }}</p>{% endif %}
@@ -67,7 +73,10 @@
 {% elif seccio == 'composicio' and p.composicio %}
 <section class="panell">
   <h2>{{ t.composicio }}</h2>
-  <ul>{% for c in p.composicio %}<li>{{ c.pct }} % {{ c.material }}{% if c.pais %} · {{ pais(c.pais, lang) }}{% endif %}</li>{% endfor %}</ul>
+  <ul class="composicio">{% for c in p.composicio %}<li>
+    <span class="comp-nom"><b>{{ c.pct }} %</b> {{ c.material }}{% if c.pais %} <span class="muted">· {{ pais(c.pais, lang) }}</span>{% endif %}</span>
+    <span class="comp-barra" aria-hidden="true"><span style="width: {{ [[c.pct|float, 0]|max, 100]|min }}%"></span></span>
+  </li>{% endfor %}</ul>
   {% if p.teixit %}<p class="petit muted">{{ p.teixit }}</p>{% endif %}
 </section>
 {% elif seccio == 'origen' and p.mostra_origen and p.etapes %}
@@ -83,7 +92,7 @@
     {% if p.certificats %}<h3>{{ t.certificats }}</h3>
     <ul>{% for c in p.certificats %}<li>{{ c.nom }} <span class="muted petit">· {{ c.abast }}</span></li>{% endfor %}</ul>{% endif %}
   {% else %}
-    <p>{% for e in p.etapes %}{{ pais(e.pais, lang) }}{% if not loop.last %} → {% endif %}{% endfor %}</p>
+    {% set ruta = namespace(darrer=None) %}<ol class="ruta">{% for e in p.etapes %}{% if e.pais != ruta.darrer %}<li>{{ pais(e.pais, lang) }}</li>{% set ruta.darrer = e.pais %}{% endif %}{% endfor %}</ol>
     <form method="post" action="/p/{{ p.token }}/origen">{{ ocults() }}<button {{ inactiu }}>{{ t.veure_origen }}</button></form>
   {% endif %}
 </section>
@@ -138,15 +147,17 @@
 <section class="panell">
   <h2>{{ t.per_que }}</h2>
   <p class="petit muted">{{ t.per_que_ajuda }}</p>
-  <form method="post" action="/p/{{ p.token }}/motiu" class="fila">
+  <form method="post" action="/p/{{ p.token }}/motiu" class="xips">
     {{ ocults() }}
     {% for clau, text in motius %}<button name="motiu" value="{{ clau }}" {{ inactiu }}>{{ text }}</button>{% endfor %}
   </form>
 </section>
 {% endif %}
 
-{% if peu %}<p class="petit">{{ peu }}</p>{% endif %}
-<p class="petit muted">{{ t.privacitat }}</p>
+<footer class="fitxa-peu">
+  {% if peu %}<p>{{ peu }}</p>{% endif %}
+  <p class="muted">{{ t.privacitat }}</p>
+</footer>
 {% if not previsualitza %}
 <form id="seccions" method="post" action="/p/{{ p.token }}/seccio" hidden>{{ ocults() }}</form>
 <script>{{ script|safe }}</script>

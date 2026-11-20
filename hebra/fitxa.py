@@ -305,7 +305,19 @@ def context_pagina(con: sqlite3.Connection, peca: sqlite3.Row, botiga_id: str | 
                                   "text": fitxa_config.text_idioma(x.get("text"), idioma),
                                   "plegable": x.get("plegable", False)}
                         for x in cfg.get("seccions_propies", [])},
+            "text_accent": text_sobre(cfg["aparença"].get("color_principal") or "#14457D"),
             "previsualitza": previsualitza}
+
+
+def text_sobre(color: str) -> str:
+    """Color del text sobre el color de la marca: blanc si hi ha prou contrast (WCAG 4,5:1), si no, fosc."""
+    try:
+        canals = [int(color[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    except (ValueError, IndexError):
+        return "#FFFFFF"
+    lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in canals]
+    lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+    return "#FFFFFF" if 1.05 / (lum + 0.05) >= 4.5 else "#0B1522"
 
 
 def motius_pagina(cfg: dict, idioma: str) -> list[tuple[str, str]]:
