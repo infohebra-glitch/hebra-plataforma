@@ -411,3 +411,18 @@ Tots els informes (`GET /informes/{tipus}` i els lliurats) porten, a més dels b
 - `GET /api/v2/analitica/estat-sistema` inclou `passarelles`: id, última vegada vista, pendents, elements rebutjats i alertes (silenci de més de 10 min o rellotge desfasat més de 30 s).
 - `POST /api/v2/jo/contrasenya {actual, nova}` canvia la contrasenya pròpia i tanca les altres sessions d'aquest usuari.
 - Fitxa pública `/p/{token}`: `s` (sessió) i `b` (botiga) es validen; màxim 3 peticions obertes per visita i 20 per botiga cada 10 minuts (superat: redirecció amb `ok=limit`); les respostes porten `no-store` i `noindex`.
+
+### Lot de prova (`/api/v2/lot-prova`, marca o admin)
+
+Dades inventades per veure el tauler ple abans de tenir dades reals. Van a una botiga pròpia,
+`PROVA-01` («Botiga de prova», 3 cabines, antenes `PROVA-R700:n`), sense cap paràmetre general,
+cap programació d'informes de tota la marca ni cap destinatari de correu.
+
+| Mètode | Què fa | Errors |
+|---|---|---|
+| `GET` | `{carregat, botiga_id, nom, creat?, des?, fins?, resum?}` | 401, 403 |
+| `POST` | Crea 2 setmanes de pilot simulat que acaben ahir | 409 si ja n'hi ha, o si ja existeix una botiga `PROVA-01` real |
+| `DELETE` | Esborra la botiga de prova i el catàleg i les etiquetes que va crear. Res més | 409 si no n'hi ha |
+
+La prova `tests/test_lot_prova.py` comprova que, després de carregar i esborrar el lot, totes les
+taules queden exactament igual que abans.

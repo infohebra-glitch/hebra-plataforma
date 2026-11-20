@@ -4,8 +4,8 @@
  * desar res ni registrar cap esdeveniment. Amb backend, es fa servir l'iframe de
  * GET /fitxa/previsualitza (la versió desada).
  */
-import type { ConfigFitxa, ContingutModel, ModelDetall } from '../api/types';
-import { contrast } from '../lib/fitxa';
+import type { ConfigFitxa, ContingutModel, ModelDetall, SeccioFitxa } from '../api/types';
+import { contrast, esPropi, textEnIdioma } from '../lib/fitxa';
 import { motiuFitxa, textFitxa } from '../lib/textosFitxa';
 
 interface Etapa { etapa?: string; pais?: string; regio?: string }
@@ -17,7 +17,7 @@ export function FitxaPrevia({ config, idioma, contingut, origen, detall, nomsMod
 }) {
   const t = (k: string) => textFitxa(idioma, k);
   const ap = config['aparença'];
-  const color = /^#[0-9A-Fa-f]{6}$/.test(ap.color_principal) ? ap.color_principal : '#214F46';
+  const color = /^#[0-9A-Fa-f]{6}$/.test(ap.color_principal) ? ap.color_principal : '#14457D';
   const textBoto = contrast(color, '#FFFFFF') >= 4.5 ? '#FFFFFF' : '#1d201f';
   const nom = contingut.nom || (origen?.nom as string) || detall?.nom || 'Peça';
   const descripcio = contingut.descripcio || (origen?.descripcio as string) || '';
@@ -28,8 +28,22 @@ export function FitxaPrevia({ config, idioma, contingut, origen, detall, nomsMod
   const actual = talles[Math.floor(talles.length / 2)]?.talla;
   const estoc = config.accions.mostra_estoc;
 
+  const nomMotiu = (m: string) => {
+    if (esPropi(m)) return textEnIdioma(config.motius_propis?.find((x) => x.id === m)?.text, idioma) || m;
+    return textEnIdioma(config.textos_motius?.[m as keyof NonNullable<ConfigFitxa['textos_motius']>], idioma) || motiuFitxa(idioma, m);
+  };
+
   const seccio = (s: string) => {
-    if (!config.seccions.visibles[s as keyof ConfigFitxa['seccions']['visibles']]) return null;
+    if (esPropi(s)) {
+      const p = config.seccions_propies?.find((x) => x.id === s);
+      if (!p || config.seccions.visibles[s] === false) return null;
+      const titol = textEnIdioma(p.titol, idioma);
+      const cos = textEnIdioma(p.text, idioma).split('\n').filter((l) => l.trim()).map((l, i) => <p key={i}>{l}</p>);
+      return p.plegable
+        ? <details key={s} className="fp-panell"><summary><h2 style={{ display: 'inline' }}>{titol}</h2></summary>{cos}</details>
+        : <section key={s} className="fp-panell"><h2>{titol}</h2>{cos}</section>;
+    }
+    if (config.seccions.visibles[s as SeccioFitxa] === false) return null;
     switch (s) {
       case 'talles':
         return (
@@ -95,7 +109,7 @@ export function FitxaPrevia({ config, idioma, contingut, origen, detall, nomsMod
       )}
       {config.accions.per_que_no && config.motius.length > 0 && (
         <section className="fp-panell"><h2>{t('per_que')}</h2><p className="fp-petit">{t('per_que_ajuda')}</p>
-          <div className="fp-motius">{config.motius.map((m) => <span key={m} className="fp-xip">{motiuFitxa(idioma, m)}</span>)}</div>
+          <div className="fp-motius">{config.motius.map((m) => <span key={m} className="fp-xip">{nomMotiu(m)}</span>)}</div>
         </section>
       )}
       {config.textos.peu?.[idioma] && <p className="fp-peu">{config.textos.peu[idioma]}</p>}

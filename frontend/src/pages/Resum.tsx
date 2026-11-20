@@ -3,6 +3,7 @@ import { analitica } from '../api/endpoints';
 import type { Accio, EstatCopia as TEstatCopia, EstatSistema as TEstatSistema, Resum as TResum } from '../api/types';
 import { Consulta, Esquelet } from '../components/Estat';
 import { MostraPetita } from '../components/Insignies';
+import { TargetaLotProva, useLotProva } from '../components/LotProva';
 import { Rajola, type Delta } from '../components/Rajola';
 import { SerieTemporal } from '../components/grafics/SerieTemporal';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
@@ -103,6 +104,26 @@ function EstatDelSistema({ e }: { e: TEstatSistema }) {
   );
 }
 
+/** Quan encara no hi ha cap dada: què cal per començar i, per a la marca, el lot de prova. */
+function Benvinguda() {
+  const { lot } = useLotProva();
+  return (
+    <div className="benvinguda-buida">
+      <div>
+        <p className="kicker">Benvinguda</p>
+        <h2>Encara no hi ha dades en aquest període</h2>
+        <p>El tauler s’omple sol quan les cabines comencen a llegir les etiquetes i arriben les vendes. Per arrencar:</p>
+      </div>
+      <ol>
+        <li>Connecta la botiga en línia o el TPV a <Link to="/dades">Connexions i dades</Link> (o puja un CSV).</li>
+        <li>Revisa la <Link to="/fitxa">fitxa NFC</Link> que veurà el client quan toqui la peça.</li>
+        <li>Engega les cabines: cada prova apareixerà aquí i a <Link to="/provadors">Provadors en directe</Link>.</li>
+      </ol>
+      {lot && !lot.carregat && <TargetaLotProva compacta />}
+    </div>
+  );
+}
+
 export function Resum() {
   const { filtre, clau } = useFiltre();
   const q = useApi((s) => analitica.resum(filtre, s), [clau]);
@@ -111,7 +132,7 @@ export function Resum() {
     <>
       <TitolPagina titol="Resum">Què s’ha provat, què s’ha venut i què cal fer aquesta setmana.</TitolPagina>
       <Consulta q={q} esquelet={<><Esquelet tipus="rajoles" /><div style={{ height: 16 }} /><Esquelet tipus="grafic" /></>}>
-        {(r) => (
+        {(r) => r.kpi.sessions === 0 && r.serie_diaria.every((d) => !d.proves) ? <Benvinguda /> : (
           <>
             <Xifres r={r} />
             <div className="reixa-2" style={{ marginTop: 16 }}>

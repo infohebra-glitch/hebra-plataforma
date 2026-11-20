@@ -1,46 +1,61 @@
 /*
- * Fitxes de disseny de Hebra. Colors de la marca: Verd Traça #214F46,
- * Lli cru #EFE9DD, Coure mat #B07A5E, Grafit #2A2D2B (hebra/static/estil.css).
+ * Fitxes de disseny de Hebra (paleta de marca de l'11-11-2026, la mateixa que hebraia.com):
+ *   Blanc cotó #F9F9F9 · Blau Hebra #14457D · Grana #8C304B · Gris perla #B7B3B2 · Gris pedra #9E9997
+ * Tipografies de la web: Hanken Grotesk (tot el text i les xifres) i Fraunces cursiva (només accents).
  *
- * Gràfics: --serie-1 (verd) i --serie-2 (coure) són els colors de la marca
- * ajustats perquè passin el validador de paleta (daltonisme, contrast) sobre
- * la superfície clara i la fosca. No es fan servir mai per a text.
+ * Regles de color (direcció «editorial clara», triada per l'Iscle el 20-11-2026):
+ *   - el blau és la marca i l'acció; la grana és l'accent (~5 %): alertes, el que cal mirar;
+ *   - mai text blau sobre grana ni al revés (contrast 1,21:1); el gris pedra no és per a text;
+ *   - --serie-1 (blau) i --serie-2 (grana clara) es distingeixen també per lluminositat.
  */
+@import '@fontsource-variable/hanken-grotesk';
+@import '@fontsource-variable/fraunces/wght-italic.css';
+
 :root {
   color-scheme: light;
-  --traca: #214F46; --lli: #EFE9DD; --coure: #B07A5E; --grafit: #2A2D2B;
+  --blau: #14457D; --grana: #8C304B; --blanc: #F9F9F9; --perla: #B7B3B2; --pedra: #9E9997;
+  /* Noms antics que encara fan servir alguns components */
+  --traca: var(--blau); --lli: var(--blanc); --coure: var(--grana); --grafit: #0B1522;
 
-  --bg: #F6F3EC; --surface: #FFFFFF; --surface-2: #FBF9F4;
-  --fg: #2A2D2B; --fg-2: #4b504c; --muted: #646a63; --line: #DCD6C9; --line-2: #ebe6db;
-  --accent: #214F46; --accent-fg: #FFFFFF; --accent-soft: #E3ECE8; --accent-hover: #183c35;
-  --warn: #8a4f31; --warn-soft: #f6e8df; --good: #2E6B4F; --good-soft: #e1eee6;
-  --critical: #b3302f; --critical-soft: #f8e3e1;
+  --bg: #F3F3F2; --surface: #FFFFFF; --surface-2: #F9F9F9;
+  --fg: #0B1522; --fg-2: #2E3A4A; --muted: #5A6270; --line: #E2E1DF; --line-2: #EEEDEB;
+  --accent: #14457D; --accent-fg: #FFFFFF; --accent-soft: #E8EEF6; --accent-hover: #0E345F;
+  --marca-fons: #14457D; --marca-fons-2: #0F3A6B; --marca-text: #FFFFFF; --marca-text-2: rgba(255,255,255,.72);
+  --grana-soft: #F5E8EC;
+  --warn: #8C304B; --warn-soft: #F5E8EC; --good: #1E6B52; --good-soft: #E3F0EA;
+  --critical: #A3263F; --critical-soft: #F8E4E8;
 
-  --serie-1: #00765a; --serie-2: #cc7440; --serie-3: #5a6fa0; --serie-neutra: #b9b2a3;
-  --estat-ocupada: #b3302f; --estat-lliure: #2E6B4F; --estat-porta: #8a4f31;
-  --c4-text: #2A2D2B; --c5-text: #FFFFFF;
-  --grid: #ece7dd; --eix: #c9c2b3; --banda-origen: rgba(176, 122, 94, 0.10);
+  --serie-1: #14457D; --serie-2: #C0607C; --serie-3: #9E9997; --serie-neutra: #D6D3D1;
+  --estat-ocupada: #8C304B; --estat-lliure: #1E6B52; --estat-porta: #9A6A1E;
+  --c4-text: #FFFFFF; --c5-text: #FFFFFF;
+  --grid: #EEEDEB; --eix: #CFCDCA; --banda-origen: rgba(20, 69, 125, 0.06);
 
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif: "Fraunces Variable", Georgia, serif;
+  --sans: "Hanken Grotesk Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  --radi: 12px; --radi-petit: 8px;
-  --ombra: 0 1px 2px rgba(42, 45, 43, 0.06), 0 2px 8px rgba(42, 45, 43, 0.04);
+  --radi: 16px; --radi-petit: 10px;
+  --ombra: 0 1px 2px rgba(11, 21, 34, 0.04), 0 1px 1px rgba(11, 21, 34, 0.03);
+  --ombra-alta: 0 12px 32px -12px rgba(11, 21, 34, 0.18), 0 2px 6px rgba(11, 21, 34, 0.05);
   --gutter: 16px;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  /* Monograma de Hebra com a màscara (decoració de fons, p. ex. l'acció de la setmana). */
+  --logo-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1 -1 690 1001'%3E%3Cpath fill='black' fill-rule='evenodd' d='M3.7 734.3C3.3 589.9 3.0 366.2 3.0 237.3L3.0 2.9L36.2 3.3L69.5 3.7L95.5 7.9C201.4 25.0 257.6 35.4 323.5 50.1C467.4 82.3 568.8 120.4 618.8 160.9C622.2 163.7 625.2 166.0 625.5 166.0C625.8 166.0 626.0 129.3 626.0 84.5L626.0 3.0L655.4 3.0L684.9 3.0L685.2 286.8C685.4 442.8 685.4 666.5 685.2 783.8L684.9 997.0L656.0 997.0L627.2 997.0L604.8 982.6C434.3 872.9 63.8 635.0 63.4 635.0C63.2 635.0 63.0 716.5 63.0 816.0L63.0 997.0L33.7 997.0L4.3 997.0L3.7 734.3ZM626.0 783.5L626.0 642.0L625.2 642.1C624.8 642.1 590.4 683.6 548.7 734.2L472.9 826.3L473.8 827.2C474.7 828.1 625.2 925.0 625.8 925.0C625.9 925.0 626.0 861.3 626.0 783.5ZM443.6 768.2C455.1 754.1 491.2 710.3 523.6 671.0C556.1 631.6 582.9 598.9 583.4 598.2L584.1 597.0L350.1 596.8L116.0 596.5L116.2 597.2C116.5 597.9 421.2 794.0 422.0 793.9C422.3 793.9 432.0 782.3 443.6 768.2ZM626.0 437.4L626.0 337.8L618.9 344.1C553.3 403.0 438.3 460.0 254.0 525.0C236.7 531.1 222.4 536.3 222.1 536.6C221.9 536.8 312.6 537.0 423.8 537.0L626.0 537.0L626.0 437.4ZM105.0 511.8C325.7 442.1 478.1 376.9 556.0 318.7L569.5 308.6L582.1 296.1L594.8 283.5L599.8 275.7C602.6 271.4 605.9 265.3 607.1 262.2L609.3 256.5L609.4 249.4L609.4 242.3L605.7 234.8L602.0 227.3L595.4 220.1L588.8 213.0L579.7 206.2C564.0 194.4 548.5 185.5 526.3 175.2C442.4 136.3 300.3 100.7 108.5 70.5C89.2 67.5 71.1 64.6 68.2 64.1L63.0 63.3L63.0 294.1L63.0 524.9L68.2 523.3C71.1 522.5 87.7 517.3 105.0 511.8Z'/%3E%3C/svg%3E%0A");
 }
 
-/* Mode fosc: només si l'usuari el tria al menú (data-theme="dark"); el sistema no hi mana. */
+/* Mode fosc: només si l'usuari el tria al menú (data-theme="dark"); el sistema no hi mana. Tinta blava de la web. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #1d201f; --surface: #252927; --surface-2: #2a2e2c;
-  --fg: #ECE7DC; --fg-2: #cfcabf; --muted: #A6ACA4; --line: #3a403c; --line-2: #313633;
-  --accent: #8FC2B2; --accent-fg: #14211d; --accent-soft: #24372f; --accent-hover: #a9d3c5;
-  --warn: #E0AB8E; --warn-soft: #3b2c23; --good: #8FC2B2; --good-soft: #22352d;
-  --critical: #ec8b85; --critical-soft: #3d2423;
-  --serie-1: #2f9a7c; --serie-2: #d0703f; --serie-3: #8a9fd0; --serie-neutra: #5d625e;
-  --estat-ocupada: #ec8b85; --estat-lliure: #8FC2B2; --estat-porta: #E0AB8E;
-  --c4-text: #FFFFFF; --c5-text: #14211d;
-  --grid: #303532; --eix: #4a504c; --banda-origen: rgba(208, 112, 63, 0.08);
-  --ombra: none;
+  --bg: #07121F; --surface: #0D1C30; --surface-2: #11233A;
+  --fg: #EDEFF2; --fg-2: #C9D1DC; --muted: #9AA6B6; --line: #1E3150; --line-2: #172942;
+  --accent: #8FB3E0; --accent-fg: #07121F; --accent-soft: #15304F; --accent-hover: #B3CCEB;
+  --marca-fons: #0A1828; --marca-fons-2: #0D1C30; --marca-text: #EDEFF2; --marca-text-2: #9AA6B6;
+  --grana-soft: #3A1826;
+  --warn: #E4B3C1; --warn-soft: #3A1826; --good: #8FD1B5; --good-soft: #143528;
+  --critical: #F0A3B5; --critical-soft: #3D1A25;
+  --serie-1: #8FB3E0; --serie-2: #D98BA2; --serie-3: #9AA6B6; --serie-neutra: #2A3B55;
+  --estat-ocupada: #E4B3C1; --estat-lliure: #8FD1B5; --estat-porta: #E5C07B;
+  --c4-text: #07121F; --c5-text: #07121F;
+  --grid: #172942; --eix: #2A3B55; --banda-origen: rgba(143, 179, 224, 0.07);
+  --ombra: none; --ombra-alta: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
 }

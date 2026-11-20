@@ -59,7 +59,7 @@ def setmanal(con: sqlite3.Connection, botiga_id: str, dilluns: date) -> dict:
         "origen": {"grups": grups, "hi_ha_mostra": hi_ha_mostra, "diferencia": diferencia, "minim": minim},
         "demanda_perduda": [{"model": v["model"], "color": v["color"], "talla_demanada": v["talla"], "n": v["n"]}
                             for v in perduda],
-        "motius": [{"motiu": MOTIUS.get(m["motiu"], m["motiu"]), "n": m["n"]} for m in motius],
+        "motius": [{"motiu": base.nom_motiu(con, m["motiu"]), "n": m["n"]} for m in motius],
         "peticions": {"n": len(peticions), "segons_mitjans": round(sum(segons) / len(segons)) if segons else None},
         "accio": accio["text"] if accio else None,
     }

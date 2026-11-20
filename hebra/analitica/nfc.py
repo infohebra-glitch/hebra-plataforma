@@ -35,6 +35,8 @@ def motius(con: sqlite3.Connection, f: Filtre) -> dict:
         "per_motiu": [{"motiu": m, "n": k, "pct": base.frac(k, n)} for m, k in per_motiu.most_common()],
         "per_model": [{"model": m, "nom": base.nom_model(info, m), "respostes": sum(c.values()), "motius": dict(c)}
                       for m, c in sorted(per_model.items(), key=lambda kv: (-sum(kv[1].values()), kv[0]))],
+        # Nom de cada motiu que surt a les respostes (també els propis de la marca, «p-...»).
+        "etiquetes": {m: base.nom_motiu(con, m) for m in per_motiu},
     }
 
 

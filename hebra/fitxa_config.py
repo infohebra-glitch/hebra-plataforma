@@ -28,6 +28,11 @@ MODES_ESTOC = ("no", "disponibilitat", "unitats")
 ACCIONS_BOOL = ("demana_talla", "demana_assistencia", "per_que_no")
 TEXTOS = ("benvinguda", "peu")
 LOGO_MAX_BYTES = 100 * 1024
+# Seccions i motius propis de la marca (escrits a mà al tauler). Identificador «p-...».
+ID_PROPI = re.compile(r"^p-[a-z0-9-]{1,30}$")
+MAX_SECCIONS_PROPIES = 12
+MAX_MOTIUS_PROPIS = 10
+TEXT_SECCIO_MAX = 4000
 TEXT_MAX = 1000
 GENERAL = "*"
 
@@ -37,8 +42,14 @@ DEFECTE = {
                 "mostra_estoc": "disponibilitat"},
     "idiomes": list(IDIOMES),
     "textos": {"benvinguda": {}, "peu": {}},
-    "aparença": {"color_principal": "#214F46", "logo_data_url": None, "nom_marca": "Hebra"},
+    "aparença": {"color_principal": "#14457D", "logo_data_url": None, "nom_marca": "Hebra"},
     "motius": ["talla", "tall", "preu", "color", "qualitat", "altre"],
+    # [{"id": "p-...", "titol": {idioma: text}, "text": {idioma: text}, "plegable": bool}]
+    "seccions_propies": [],
+    # [{"id": "p-...", "text": {idioma: text}}]
+    "motius_propis": [],
+    # Redacció pròpia dels motius estàndard: {motiu: {idioma: text}}
+    "textos_motius": {},
 }
 
 _COLOR = re.compile(r"^#[0-9A-Fa-f]{6}$")
@@ -87,6 +98,60 @@ def _logo(valor) -> str | None:
     return valor
 
 
+def es_propi(clau) -> bool:
+    return isinstance(clau, str) and ID_PROPI.match(clau) is not None
+
+
+def _ids(valor, coneguts: tuple, nom: str, buida: bool = False) -> list:
+    """Com `_llista_coneguda`, però també admet identificadors propis («p-...»)."""
+    if not isinstance(valor, list) or (not valor and not buida):
+        raise ErrorConfig(f"«{nom}» ha de ser una llista{'' if buida else ' no buida'}")
+    dolents = [v for v in valor if v not in coneguts and not es_propi(v)]
+    if dolents:
+        raise ErrorConfig(f"Valors desconeguts a «{nom}»: {', '.join(map(str, dolents))}")
+    if len(set(valor)) != len(valor):
+        raise ErrorConfig(f"Valors repetits a «{nom}»")
+    return list(valor)
+
+
+def _per_idioma(valor, nom: str, maxim: int) -> dict:
+    valor = _diccionari(valor or {}, nom)
+    _llista_coneguda(list(valor), IDIOMES, nom, buida=True)
+    return {i: _text(x, f"{nom}.{i}", maxim).strip() for i, x in valor.items() if isinstance(x, str) and x.strip()}
+
+
+def _propis(valor, nom: str, maxim: int, camps: dict) -> list:
+    """Llista d'elements propis {"id": "p-...", camp: {idioma: text}, ...}."""
+    if not isinstance(valor, list):
+        raise ErrorConfig(f"«{nom}» ha de ser una llista")
+    if len(valor) > maxim:
+        raise ErrorConfig(f"«{nom}»: com a màxim {maxim}")
+    out, vistos = [], set()
+    for i, x in enumerate(valor):
+        x = _diccionari(x, f"{nom}[{i}]")
+        if not es_propi(x.get("id")):
+            raise ErrorConfig(f"«{nom}[{i}].id» ha de ser del tipus «p-nom» (minúscules, xifres i guions)")
+        if x["id"] in vistos:
+            raise ErrorConfig(f"Identificador repetit a «{nom}»: {x['id']}")
+        vistos.add(x["id"])
+        sobrants = set(x) - {"id", *camps}
+        if sobrants:
+            raise ErrorConfig(f"Camps desconeguts a «{nom}[{i}]»: {', '.join(sorted(sobrants))}")
+        net = {"id": x["id"]}
+        for camp, (tipus, llarg) in camps.items():
+            if tipus == "text":
+                net[camp] = _per_idioma(x.get(camp), f"{nom}[{i}].{camp}", llarg)
+            elif tipus == "bool":
+                if not isinstance(x.get(camp, False), bool):
+                    raise ErrorConfig(f"«{nom}[{i}].{camp}» ha de ser true o false")
+                net[camp] = x.get(camp, False)
+        primer = next(iter(camps))
+        if not net[primer]:
+            raise ErrorConfig(f"«{nom}[{i}]» necessita el text «{primer}» com a mínim en un idioma")
+        out.append(net)
+    return out
+
+
 def _diccionari(valor, nom: str) -> dict:
     if not isinstance(valor, dict):
         raise ErrorConfig(f"«{nom}» ha de ser un objecte")
@@ -111,10 +176,10 @@ def valida_config(cfg, parcial: bool = False) -> dict:
             raise ErrorConfig("«seccions» només admet «ordre» i «visibles»")
         net["seccions"] = {}
         if "ordre" in s:
-            net["seccions"]["ordre"] = _llista_coneguda(s["ordre"], SECCIONS, "seccions.ordre")
+            net["seccions"]["ordre"] = _ids(s["ordre"], SECCIONS, "seccions.ordre")
         if "visibles" in s:
             v = _diccionari(s["visibles"], "seccions.visibles")
-            _llista_coneguda(list(v), SECCIONS, "seccions.visibles", buida=True)
+            _ids(list(v), SECCIONS, "seccions.visibles", buida=True)
             if not all(isinstance(x, bool) for x in v.values()):
                 raise ErrorConfig("«seccions.visibles» ha de tenir valors true/false")
             net["seccions"]["visibles"] = dict(v)
@@ -150,7 +215,16 @@ def valida_config(cfg, parcial: bool = False) -> dict:
         if "nom_marca" in ap:
             net["aparença"]["nom_marca"] = _text(ap["nom_marca"], "aparença.nom_marca", 60).strip() or "Hebra"
     if "motius" in cfg:
-        net["motius"] = _llista_coneguda(cfg["motius"], MOTIUS, "motius")
+        net["motius"] = _ids(cfg["motius"], MOTIUS, "motius", buida=True)
+    if "seccions_propies" in cfg:
+        net["seccions_propies"] = _propis(cfg["seccions_propies"], "seccions_propies", MAX_SECCIONS_PROPIES,
+                                          {"titol": ("text", 80), "text": ("text", TEXT_SECCIO_MAX), "plegable": ("bool", 0)})
+    if "motius_propis" in cfg:
+        net["motius_propis"] = _propis(cfg["motius_propis"], "motius_propis", MAX_MOTIUS_PROPIS, {"text": ("text", 80)})
+    if "textos_motius" in cfg:
+        tm = _diccionari(cfg["textos_motius"], "textos_motius")
+        _llista_coneguda(list(tm), MOTIUS, "textos_motius", buida=True)
+        net["textos_motius"] = {m: _per_idioma(x, f"textos_motius.{m}", 80) for m, x in tm.items()}
     return net
 
 
@@ -166,10 +240,42 @@ def fusiona(base: dict, canvis: dict | None) -> dict:
 
 
 def normalitza(cfg: dict) -> dict:
-    """Completa l'ordre de seccions amb les que hi falten (al final): totes tenen un lloc."""
-    ordre = cfg["seccions"]["ordre"]
-    cfg["seccions"]["ordre"] = ordre + [s for s in SECCIONS if s not in ordre]
+    """Completa l'ordre de seccions amb les que hi falten (al final): totes tenen un lloc.
+
+    Les seccions i els motius propis que ja no existeixen (esborrats) es treuen de l'ordre,
+    de la visibilitat i de la llista de motius.
+    """
+    propies = [x["id"] for x in cfg.get("seccions_propies", [])]
+    totes = (*SECCIONS, *propies)
+    ordre = [s for s in cfg["seccions"]["ordre"] if s in totes]
+    cfg["seccions"]["ordre"] = ordre + [s for s in totes if s not in ordre]
+    cfg["seccions"]["visibles"] = {k: v for k, v in cfg["seccions"]["visibles"].items() if k in totes}
+    motius_propis = {x["id"] for x in cfg.get("motius_propis", [])}
+    cfg["motius"] = [m for m in cfg["motius"] if m in MOTIUS or m in motius_propis]
     return cfg
+
+
+def text_idioma(per_idioma: dict | None, idioma: str) -> str:
+    """El text en l'idioma demanat o, si no hi és, en el primer que hi hagi (ca, es, en, fr)."""
+    per_idioma = per_idioma or {}
+    for i in (idioma, "ca", "es", "en", "fr"):
+        if per_idioma.get(i):
+            return per_idioma[i]
+    return ""
+
+
+def noms_motius(con: sqlite3.Connection) -> dict[str, str]:
+    """Nom en català (per al tauler i els informes) dels motius propis i dels estàndard redactats per la marca.
+
+    Es busca a la configuració general i a la de cada botiga: un motiu propi d'una sola botiga també té nom.
+    """
+    out: dict[str, str] = {}
+    files = con.execute("SELECT botiga_id, config_json FROM config_fitxa ORDER BY botiga_id = '*' ").fetchall()
+    for f in files:
+        cfg = json.loads(f["config_json"])
+        for x in cfg.get("motius_propis", []):
+            out[x["id"]] = text_idioma(x.get("text"), "ca") or x["id"]
+    return out
 
 
 # ---------------------------------------------------------------- Lectura i escriptura

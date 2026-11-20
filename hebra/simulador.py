@@ -45,6 +45,12 @@ from .config import carrega
 ZONA = ZoneInfo("Europe/Madrid")
 BOTIGA = "BCN-01"
 CABINES = ["BCN-01-C1", "BCN-01-C2", "BCN-01-C3"]
+LECTOR = "R700-1"            # les antenes es diuen «LECTOR:port»
+NOM_BOTIGA = "Botiga de prova"
+SERIE_BASE = 900000          # número de sèrie de les etiquetes simulades
+# Mode aïllat (lot de prova dins d'una plataforma amb dades reals, hebra/lot_prova.py): només toca la botiga
+# simulada i els GTIN del fitxer de prova; no crea paràmetres generals ni informes de tota la marca.
+AILLAT = False
 ORIGEN_PROVA = Path(__file__).resolve().parent.parent / "dades" / "origen-prova.json"
 
 # Probabilitat de compra després d'una prova, per categoria (inventat).
@@ -56,6 +62,9 @@ SECCIONS_FITXA = ("talles", "cura", "preguntes")
 # Variants que ningú no prova: estoc parat (insight 14). No tenen etiqueta.
 EXTRES = [("08400000990017", "S", 6), ("08400000990024", "M", 4)]
 MODEL_EXTRA = ("FL-25-GRS", "Gris", "faldilla", 65.0)
+# Models del lot de prova: els del fitxer d'origen de prova i la faldilla extra.
+MODELS_PROVA = frozenset({p["model"] for p in json.loads(ORIGEN_PROVA.read_text(encoding="utf-8"))["peces"]}
+                         | {MODEL_EXTRA[0]})
 # v0.3: probabilitats per sessió (inventades)
 PROB_DUBTE_TALLA = 0.10    # el client s'emporta el mateix model en una altra talla
 PROB_COMPRA_DUBTE = 0.45   # i n'acaba comprant la segona talla
@@ -66,27 +75,32 @@ PROB_MOTIU = {"vestit": ["talla", "talla", "tall", "preu"], "default": ["preu", 
 
 
 def prepara_botiga(con: sqlite3.Connection) -> None:
-    con.execute("INSERT OR IGNORE INTO botiga (id, nom, nivell) VALUES (?, ?, 'cabina')", (BOTIGA, "Botiga de prova"))
+    con.execute("INSERT OR IGNORE INTO botiga (id, nom, nivell) VALUES (?, ?, 'cabina')", (BOTIGA, NOM_BOTIGA))
     for i, c in enumerate(CABINES):
         veines = ",".join(CABINES[j] for j in (i - 1, i + 1) if 0 <= j < len(CABINES))
         con.execute("INSERT OR IGNORE INTO cabina (id, botiga_id, nom, veines) VALUES (?, ?, ?, ?)",
                     (c, BOTIGA, f"Cabina {i + 1}", veines))
         con.execute("INSERT OR IGNORE INTO antena (id, cabina_id, port, llindar_rssi) VALUES (?, ?, ?, -60)",
-                    (f"R700-1:{i + 1}", c, i + 1))
+                    (f"{LECTOR}:{i + 1}", c, i + 1))
     con.commit()
     cataleg.importa_origen(con, ORIGEN_PROVA, genera_talles=True)
 
 
 def _peces_fisiques(con: sqlite3.Connection, per_sku: int = 3) -> list[tuple[str, sqlite3.Row]]:
-    """Crea `per_sku` etiquetes (EPC + token NFC) per a cada SKU del catàleg."""
+    """Crea `per_sku` etiquetes (EPC + token NFC) per a cada SKU del catàleg (en mode aïllat, només dels
+    models de prova)."""
     from . import epc as epc_mod
     peces = []
-    for k in con.execute("SELECT * FROM catalog_sku ORDER BY gtin").fetchall():
+    files = con.execute("SELECT * FROM catalog_sku ORDER BY gtin").fetchall()
+    if AILLAT:
+        models = set(MODELS_PROVA)
+        files = [k for k in files if k["model"] in models]
+    for k in files:
         g = k["gtin"]
         # GTIN-14 -> prefix d'empresa de 7 dígits (com al fitxer de prova) i referència.
         empresa, ref = g[1:8], g[0] + g[8:13]
         for s in range(per_sku):
-            sg = epc_mod.Sgtin(empresa, ref, str(900000 + s))
+            sg = epc_mod.Sgtin(empresa, ref, str(SERIE_BASE + s))
             con.execute("INSERT OR IGNORE INTO etiqueta (epc, nfc_token, gtin) VALUES (?, ?, ?)",
                         (sg.urn, cataleg.nou_token(), g))
             peces.append((sg.urn, k))
@@ -129,8 +143,8 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
     for dia in dies:
         grup = control.grup_del_dia(con, BOTIGA, "origen", dia.isoformat())
         for ci, cabina in enumerate(CABINES):
-            antena = f"R700-1:{ci + 1}"
-            veines = [f"R700-1:{j + 1}" for j in (ci - 1, ci + 1) if 0 <= j < len(CABINES)]
+            antena = f"{LECTOR}:{ci + 1}"
+            veines = [f"{LECTOR}:{j + 1}" for j in (ci - 1, ci + 1) if 0 <= j < len(CABINES)]
             t = datetime(dia.year, dia.month, dia.day, 10, rng.randint(0, 30), tzinfo=ZONA)
             while t.hour < 20:
                 durada = timedelta(seconds=rng.randint(150, 600))
@@ -308,7 +322,7 @@ def _dades_tauler(con: sqlite3.Connection, inici: date, setmanes: int, darrer_di
     actualitzat = datetime.combine(darrer_dia, datetime.min.time(), ZONA).replace(hour=21).isoformat()
     unitats: dict[str, int] = {g: u for g, _, u in EXTRES}
     for k in con.execute("SELECT gtin, model, talla, origen_json FROM catalog_sku WHERE origen_json IS NOT NULL"):
-        if k["gtin"] in unitats:
+        if k["gtin"] in unitats or (AILLAT and k["model"] not in MODELS_PROVA):
             continue
         u = (json.loads(k["origen_json"]).get("estoc") or {}).get(k["talla"]) or 0
         unitats[k["gtin"]] = ESTOC_VESTIT if k["model"] == "VV-26-VRD" and u else u
@@ -324,7 +338,7 @@ def _dades_tauler(con: sqlite3.Connection, inici: date, setmanes: int, darrer_di
             con.execute("INSERT INTO recompte_estoc (botiga_id, data, gtin, manual, rfid) VALUES (?, ?, ?, ?, ?)",
                         (BOTIGA, inici.isoformat(), g, manual, max(0, manual - rng.choice([0, 0, 0, 1, 2]))))
 
-    exp_id = f"origen-{inici:%Y-%m}"
+    exp_id = f"origen-{inici:%Y-%m}" + (f"-{BOTIGA.lower()}" if AILLAT else "")
     con.execute("""INSERT OR IGNORE INTO experiment (id, botiga_id, variable, hipotesi, unitat, inici, fi, proves_minimes, estat)
                    VALUES (?, ?, 'origen', ?, 'dia', ?, ?, 30, 'actiu')""",
                 (exp_id, BOTIGA, "Ensenyar l'origen a la fitxa NFC fa que es compri més després de provar.",
@@ -359,16 +373,18 @@ def _dades_tauler(con: sqlite3.Connection, inici: date, setmanes: int, darrer_di
               "experiment", None, "MKT", fi.isoformat(), "proposada", exp_id, None)])
 
     for clau, valor in (("marge_peca", "40"), ("quota_mensual", "350"), ("dades_simulades", "1")):
-        con.execute("INSERT OR IGNORE INTO parametre (botiga_id, clau, valor) VALUES ('*', ?, ?)", (clau, valor))
+        con.execute("INSERT OR IGNORE INTO parametre (botiga_id, clau, valor) VALUES (?, ?, ?)",
+                    (BOTIGA if AILLAT else "*", clau, valor))
     con.commit()
 
 
 def _abandonades(con: sqlite3.Connection, darrer_dia: date, rng: random.Random) -> int:
     """Unes quantes peces abandonades els darrers dies (insight 13); una ja resolta."""
     candidates = con.execute(
-        """SELECT p.epc, s.cabina_id, s.fi FROM prova p JOIN sessio s ON s.id = p.sessio_id
-           WHERE p.confianca != 'ambigua' AND s.inici >= ? ORDER BY p.id""",
-        ((darrer_dia - timedelta(days=2)).isoformat(),)).fetchall()
+        f"""SELECT p.epc, s.cabina_id, s.fi FROM prova p JOIN sessio s ON s.id = p.sessio_id
+           WHERE p.confianca != 'ambigua' AND s.inici >= ? AND s.cabina_id IN ({",".join("?" * len(CABINES))})
+           ORDER BY p.id""",
+        ((darrer_dia - timedelta(days=2)).isoformat(), *CABINES)).fetchall()
     tria = rng.sample(candidates, min(4, len(candidates)))
     for i, c in enumerate(tria):
         detectada = datetime.fromisoformat(c["fi"]) + timedelta(minutes=30)
@@ -409,12 +425,16 @@ def _tasques(con: sqlite3.Connection, inici: date, darrer_dia: date) -> int:
     return len(noves)
 
 
-PROGRAMACIONS = [  # (tipus, botiga, dia_setmana, dia_mes, destinataris)
-    ("diari", BOTIGA, None, None, ["botiga.bcn@marca.example"]),
-    ("setmanal", BOTIGA, 0, None, ["botiga.bcn@marca.example", "direccio@marca.example"]),
-    ("mensual", None, None, 1, ["direccio@marca.example", "producte@marca.example"]),
-    ("temporada", None, None, None, ["direccio@marca.example", "producte@marca.example"]),
-]
+def programacions() -> list[tuple]:
+    """(tipus, botiga, dia_setmana, dia_mes, destinataris). En mode aïllat, només les de la botiga simulada
+    i sense destinataris: un lot de prova no ha d'enviar mai cap correu."""
+    p = [("diari", BOTIGA, None, None, ["botiga.bcn@marca.example"]),
+         ("setmanal", BOTIGA, 0, None, ["botiga.bcn@marca.example", "direccio@marca.example"]),
+         ("mensual", None, None, 1, ["direccio@marca.example", "producte@marca.example"]),
+         ("temporada", None, None, None, ["direccio@marca.example", "producte@marca.example"])]
+    if AILLAT:
+        return [(t, b, ds, dm, []) for t, b, ds, dm, _ in p if b == BOTIGA]
+    return p
 
 
 def _informes(con: sqlite3.Connection, inici: date, setmanes: int, fins: date | None) -> int:
@@ -428,7 +448,7 @@ def _informes(con: sqlite3.Connection, inici: date, setmanes: int, fins: date | 
     # «Creades» el primer dia simulat a les 0 h: el primer lliurat és el diari d'aquell dia.
     creada = datetime.combine(inici + timedelta(days=1), datetime.min.time(), ZONA).isoformat()
     n = 0
-    for tipus, botiga, dia_setmana, dia_mes, destinataris in PROGRAMACIONS:
+    for tipus, botiga, dia_setmana, dia_mes, destinataris in programacions():
         fila = con.execute("SELECT * FROM programacio_informe WHERE tipus = ? AND botiga_id IS ?",
                            (tipus, botiga)).fetchone()
         if fila is None:

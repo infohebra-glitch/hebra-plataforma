@@ -91,7 +91,7 @@ def accio_principal(con: sqlite3.Connection, f: Filtre, dies_limit: int = 7) -> 
     marcats = [m for m in taula if m["molt_provat_poc_venut"]]
     if marcats:
         m = marcats[0]
-        motiu = (f" El motiu més citat a la fitxa és «{base.MOTIUS.get(m['motiu_principal'], m['motiu_principal'])}»."
+        motiu = (f" El motiu més citat a la fitxa és «{base.nom_motiu(con, m['motiu_principal'])}»."
                  if m["motiu_principal"] else "")
         return base.accio(
             f"Revisar «{m['nom']}»: {m['proves']} proves i {m['compres']} compres ({base.pct_txt(m['conversio'])}), "

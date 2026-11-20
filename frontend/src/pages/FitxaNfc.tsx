@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { analitica, fitxa } from '../api/endpoints';
-import type { ConfigFitxa, ConfigFitxaParcial, ContingutModel, DetallModelFitxa, ModelFitxa, MostraEstoc, MotiuFitxa, SeccioFitxa } from '../api/types';
+import type { ConfigFitxa, ConfigFitxaParcial, ContingutModel, DetallModelFitxa, IdPropi, ModelFitxa, MostraEstoc, MotiuFitxa, MotiuPropi, SeccioFitxa, SeccioPropia, TextIdiomes } from '../api/types';
 import { Consulta, ErrorEstat, Esquelet } from '../components/Estat';
 import { FitxaPrevia } from '../components/FitxaPrevia';
 import { Icona } from '../components/Icones';
@@ -13,7 +13,8 @@ import { TitolPagina } from '../components/TitolPagina';
 import { useFiltre } from '../context/Filtre';
 import { useSessio } from '../context/Sessio';
 import { idioma as nomIdioma } from '../lib/etiquetes';
-import { GRUPS, IDIOMES_FITXA, MAX_LOGO, MOTIUS_FITXA, SECCIONS_FITXA, colorValid, combina, contrast, mou, nomSeccioFitxa, validaLogo } from '../lib/fitxa';
+import { GRUPS, IDIOMES_FITXA, MAX_LOGO, MOTIUS_FITXA, SECCIONS_FITXA, colorValid, combina, contrast, esPropi, mou, nomSeccioFitxa, nouId, textEnIdioma, validaLogo } from '../lib/fitxa';
+import { motiuFitxa } from '../lib/textosFitxa';
 import { esMock } from '../lib/mode';
 import { useApi } from '../lib/useApi';
 
@@ -125,7 +126,7 @@ function EditorConfig({ ambit, nomBotiga, general, parcial, efectiva, desat, set
   };
   const desa = async () => {
     const ap = efectiva['aparença'];
-    if (!colorValid(ap.color_principal)) { setMissatge({ ok: false, text: 'El color ha de ser del tipus #214F46.' }); return; }
+    if (!colorValid(ap.color_principal)) { setMissatge({ ok: false, text: 'El color ha de ser del tipus #14457D.' }); return; }
     if (!efectiva.idiomes.length) { setMissatge({ ok: false, text: 'Tria com a mínim un idioma.' }); return; }
     setDesant(true); setMissatge(null);
     try {
@@ -156,24 +157,10 @@ function EditorConfig({ ambit, nomBotiga, general, parcial, efectiva, desat, set
     <div className="pila">
       {ambit && <p className="avis" style={{ margin: 0 }}>Estàs editant <b>{nomBotiga}</b>. Només canvien els apartats marcats com a «Diferent»; la resta segueix la configuració general.</p>}
 
-      {targeta('seccions', 'L’ordre de la llista és l’ordre a la fitxa. Les ocultes no surten.', (
-        <ol className="llista-ordenable">
-          {c.seccions.ordre.map((s, i) => {
-            const def = SECCIONS_FITXA.find((x) => x.clau === s);
-            const visible = c.seccions.visibles[s];
-            return (
-              <li key={s} className={visible ? undefined : 'oculta'}>
-                <span className="ordre-num" aria-hidden="true">{i + 1}</span>
-                <span className="ordre-text"><b>{nomSeccioFitxa(s)}</b><small>{def?.ajuda}</small></span>
-                <label className="interruptor petit"><input type="checkbox" checked={visible} onChange={(e) => edita('seccions', { ...c.seccions, visibles: { ...c.seccions.visibles, [s]: e.target.checked } })} />{visible ? 'Visible' : 'Oculta'}</label>
-                <span className="fila" style={{ gap: 4 }}>
-                  <button type="button" className="boto-icona" disabled={i === 0} onClick={() => edita('seccions', { ...c.seccions, ordre: mou(c.seccions.ordre, i, -1) as SeccioFitxa[] })} aria-label={`Puja ${nomSeccioFitxa(s)}`}><Icona nom="amunt" mida={16} /></button>
-                  <button type="button" className="boto-icona" disabled={i === c.seccions.ordre.length - 1} onClick={() => edita('seccions', { ...c.seccions, ordre: mou(c.seccions.ordre, i, 1) as SeccioFitxa[] })} aria-label={`Baixa ${nomSeccioFitxa(s)}`}><Icona nom="avall" mida={16} /></button>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+      {targeta('seccions', 'L’ordre de la llista és l’ordre a la fitxa. Les ocultes no surten. Pots afegir-hi seccions vostres, escrites a mà.', (
+        <EditorSeccions c={c} general={!ambit} idiomes={c.idiomes}
+          onSeccions={(v) => edita('seccions', v)}
+          onPropies={(propies, seccions) => { setMissatge(null); setGeneral({ ...general, seccions_propies: propies, seccions }); }} />
       ))}
 
       {targeta('accions', 'Els botons que pot prémer el client i on arriben.', (
@@ -204,17 +191,10 @@ function EditorConfig({ ambit, nomBotiga, general, parcial, efectiva, desat, set
         <EditorAparenca ap={c['aparença']} onChange={(v) => edita('aparença', v)} />
       ))}
 
-      {targeta('motius', 'Les respostes que pot triar el client. Com menys n’hi ha, més en contesten.', (
-        <div className="xips-tria">
-          {MOTIUS_FITXA.map((m) => {
-            const on = c.motius.includes(m.clau);
-            return (
-              <label key={m.clau} className={on ? 'on' : undefined}>
-                <input type="checkbox" checked={on} onChange={(e) => edita('motius', e.target.checked ? MOTIUS_FITXA.map((x) => x.clau).filter((k) => k === m.clau || c.motius.includes(k)) as MotiuFitxa[] : c.motius.filter((k) => k !== m.clau))} />{m.nom}
-              </label>
-            );
-          })}
-        </div>
+      {targeta('motius', 'Les respostes que pot triar el client quan no s’emporta la peça. Pots canviar-ne la redacció i afegir-ne de vostres. Com menys n’hi ha, més en contesten.', (
+        <EditorMotius c={c} general={!ambit}
+          onMotius={(v) => edita('motius', v)}
+          onTextos={(canvis) => { setMissatge(null); setGeneral({ ...general, ...canvis }); }} />
       ))}
 
       <div className={`barra-desa${brut ? ' bruta' : ''}`} role="region" aria-label="Desar els canvis">
@@ -226,6 +206,154 @@ function EditorConfig({ ambit, nomBotiga, general, parcial, efectiva, desat, set
           <button type="button" className="boto-primari" onClick={desa} disabled={!brut || desant}>{desant ? 'Desant…' : 'Desa'}</button>
         </span>
       </div>
+    </div>
+  );
+}
+
+// ── Seccions (també les pròpies) ─────────────────────────────────────────
+
+function EditorSeccions({ c, general, idiomes, onSeccions, onPropies }: {
+  c: ConfigFitxa; general: boolean; idiomes: string[];
+  onSeccions: (v: ConfigFitxa['seccions']) => void;
+  onPropies: (propies: SeccioPropia[], seccions: ConfigFitxa['seccions']) => void;
+}) {
+  const [obert, setObert] = useState<string | null>(null);
+  const propies = c.seccions_propies ?? [];
+  const afegeix = () => {
+    const id = nouId('seccio', propies.map((x) => x.id));
+    const nova: SeccioPropia = { id, titol: { [idiomes[0] ?? 'ca']: '' }, text: {}, plegable: false };
+    onPropies([...propies, nova], { ordre: [...c.seccions.ordre, id], visibles: { ...c.seccions.visibles, [id]: true } });
+    setObert(id);
+  };
+  const canvia = (x: SeccioPropia) => onPropies(propies.map((p) => (p.id === x.id ? x : p)), c.seccions);
+  const esborra = (id: IdPropi) => {
+    const visibles = { ...c.seccions.visibles }; delete visibles[id];
+    onPropies(propies.filter((p) => p.id !== id), { ordre: c.seccions.ordre.filter((s) => s !== id), visibles });
+    setObert(null);
+  };
+  return (
+    <div className="pila" style={{ gap: 10 }}>
+      <ol className="llista-ordenable">
+        {c.seccions.ordre.map((s, i) => {
+          const def = SECCIONS_FITXA.find((x) => x.clau === s);
+          const propia = esPropi(s) ? propies.find((p) => p.id === s) : undefined;
+          if (esPropi(s) && !propia) return null;
+          const visible = c.seccions.visibles[s] !== false;
+          const nom = nomSeccioFitxa(s, c);
+          return (
+            <li key={s} className={`${visible ? '' : 'oculta'}${propia ? ' propia' : ''}`}>
+              <span className="ordre-num" aria-hidden="true">{i + 1}</span>
+              <span className="ordre-text">
+                <b>{nom}{propia && <span className="insignia insignia-marca">Vostra</span>}</b>
+                <small>{propia ? (textEnIdioma(propia.text, 'ca').slice(0, 90) || 'Encara sense text: no sortirà a la fitxa.') : def?.ajuda}</small>
+              </span>
+              {propia && general && (
+                <button type="button" className="boto-fantasma petit" aria-expanded={obert === s} onClick={() => setObert(obert === s ? null : s)}>
+                  <Icona nom="edita" mida={16} />{obert === s ? 'Tanca' : 'Edita'}
+                </button>
+              )}
+              <label className="interruptor petit"><input type="checkbox" checked={visible} onChange={(e) => onSeccions({ ...c.seccions, visibles: { ...c.seccions.visibles, [s]: e.target.checked } })} />{visible ? 'Visible' : 'Oculta'}</label>
+              <span className="fila" style={{ gap: 4 }}>
+                <button type="button" className="boto-icona" disabled={i === 0} onClick={() => onSeccions({ ...c.seccions, ordre: mou(c.seccions.ordre, i, -1) as SeccioFitxa[] })} aria-label={`Puja ${nom}`}><Icona nom="amunt" mida={16} /></button>
+                <button type="button" className="boto-icona" disabled={i === c.seccions.ordre.length - 1} onClick={() => onSeccions({ ...c.seccions, ordre: mou(c.seccions.ordre, i, 1) as SeccioFitxa[] })} aria-label={`Baixa ${nom}`}><Icona nom="avall" mida={16} /></button>
+              </span>
+              {propia && obert === s && general && (
+                <EditorSeccioPropia seccio={propia} idiomes={idiomes} onChange={canvia} onEsborra={() => esborra(propia.id)} />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {general ? (
+        <div className="fila">
+          <button type="button" onClick={afegeix} disabled={propies.length >= 12}><Icona nom="afegeix" mida={16} />Afegeix una secció</button>
+          <span className="petit muted">Per exemple: arranjaments, garantia, com s’ha fet, la història de la col·lecció. Màxim 12.</span>
+        </div>
+      ) : propies.length > 0 && <p className="petit muted" style={{ margin: 0 }}>El text de les seccions vostres s’escriu a la configuració general; aquí en pots canviar l’ordre i amagar-les.</p>}
+    </div>
+  );
+}
+
+function EditorSeccioPropia({ seccio, idiomes, onChange, onEsborra }: {
+  seccio: SeccioPropia; idiomes: string[]; onChange: (x: SeccioPropia) => void; onEsborra: () => void;
+}) {
+  const [i, setI] = useState(idiomes[0] ?? 'ca');
+  const actiu = idiomes.includes(i) ? i : idiomes[0];
+  const posa = (camp: 'titol' | 'text', v: string) => onChange({ ...seccio, [camp]: { ...seccio[camp], [actiu]: v } });
+  return (
+    <div className="editor-propi">
+      <SelectorIdioma idiomes={idiomes} actiu={actiu} setActiu={setI} amb={(x) => !!(seccio.titol[x] || seccio.text[x])} />
+      <label className="camp"><span>Títol ({nomIdioma(actiu)})</span>
+        <input maxLength={80} value={seccio.titol[actiu] ?? ''} onChange={(e) => posa('titol', e.target.value)} placeholder="Arranjaments gratuïts" />
+      </label>
+      <label className="camp"><span>Text ({nomIdioma(actiu)})</span>
+        <textarea rows={4} maxLength={4000} value={seccio.text[actiu] ?? ''} onChange={(e) => posa('text', e.target.value)} placeholder="Fem la vora dels pantalons sense cost. Està llest en 48 hores." />
+        <small className="muted">Cada salt de línia és un paràgraf. Si un idioma no en té, surt el català.</small>
+      </label>
+      <div className="fila entre">
+        <label className="interruptor petit"><input type="checkbox" checked={seccio.plegable} onChange={(e) => onChange({ ...seccio, plegable: e.target.checked })} />Plegada (el client l’obre si vol; comptem quantes vegades)</label>
+        <button type="button" className="boto-perill" onClick={onEsborra}><Icona nom="paperera" mida={16} />Esborra la secció</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Motius de «per què no» (també els propis) ────────────────────────────
+
+function EditorMotius({ c, general, onMotius, onTextos }: {
+  c: ConfigFitxa; general: boolean;
+  onMotius: (v: MotiuFitxa[]) => void;
+  onTextos: (canvis: Partial<Pick<ConfigFitxa, 'motius_propis' | 'textos_motius' | 'motius'>>) => void;
+}) {
+  const [i, setI] = useState(c.idiomes[0] ?? 'ca');
+  const actiu = c.idiomes.includes(i) ? i : c.idiomes[0];
+  const propis = c.motius_propis ?? [];
+  const textos = c.textos_motius ?? {};
+  const tots: MotiuFitxa[] = [...MOTIUS_FITXA.map((m) => m.clau), ...propis.map((p) => p.id)];
+  const ordenats = [...c.motius, ...tots.filter((m) => !c.motius.includes(m))];
+  const commuta = (m: MotiuFitxa, on: boolean) => onMotius(on ? ordenats.filter((k) => k === m || c.motius.includes(k)) : c.motius.filter((k) => k !== m));
+  const textDe = (m: MotiuFitxa): string => {
+    const propi = propis.find((p) => p.id === m);
+    if (propi) return propi.text[actiu] ?? '';
+    return (textos as Record<string, TextIdiomes | undefined>)[m]?.[actiu] ?? '';
+  };
+  const posaText = (m: MotiuFitxa, v: string) => {
+    if (esPropi(m)) onTextos({ motius_propis: propis.map((p) => (p.id === m ? { ...p, text: { ...p.text, [actiu]: v } } : p)) });
+    else onTextos({ textos_motius: { ...textos, [m]: { ...((textos as Record<string, TextIdiomes>)[m] ?? {}), [actiu]: v } } });
+  };
+  const afegeix = () => {
+    const id = nouId('motiu', propis.map((p) => p.id));
+    const nou: MotiuPropi = { id, text: { [actiu]: '' } };
+    onTextos({ motius_propis: [...propis, nou], motius: [...c.motius, id] });
+  };
+  const esborra = (id: IdPropi) => onTextos({ motius_propis: propis.filter((p) => p.id !== id), motius: c.motius.filter((m) => m !== id) });
+  return (
+    <div className="pila" style={{ gap: 10 }}>
+      <SelectorIdioma idiomes={c.idiomes} actiu={actiu} setActiu={setI} amb={(x) => propis.some((p) => p.text[x]) || Object.values(textos).some((t) => t?.[x])} />
+      <ul className="llista-motius">
+        {ordenats.map((m) => {
+          const on = c.motius.includes(m);
+          const propi = esPropi(m);
+          const defecte = propi ? 'Escriu el motiu…' : motiuFitxa(actiu, m);
+          return (
+            <li key={m} className={on ? 'on' : undefined}>
+              <label className="interruptor petit" title={on ? 'El client el veu' : 'Amagat'}>
+                <input type="checkbox" checked={on} onChange={(e) => commuta(m, e.target.checked)} aria-label={`Ensenya «${textDe(m) || defecte}»`} />
+              </label>
+              <input className="text-motiu" maxLength={80} value={textDe(m)} placeholder={defecte} disabled={!general}
+                onChange={(e) => posaText(m, e.target.value)} aria-label={`Text del motiu en ${nomIdioma(actiu)}`} />
+              {propi ? <span className="insignia insignia-marca">Vostre</span> : <span className="petit muted nom-estandard">{MOTIUS_FITXA.find((x) => x.clau === m)?.nom}</span>}
+              {propi && general && <button type="button" className="boto-icona" onClick={() => esborra(m)} aria-label="Esborra aquest motiu"><Icona nom="paperera" mida={16} /></button>}
+            </li>
+          );
+        })}
+      </ul>
+      {general ? (
+        <div className="fila">
+          <button type="button" onClick={afegeix} disabled={propis.length >= 10}><Icona nom="afegeix" mida={16} />Afegeix un motiu</button>
+          <span className="petit muted">Si deixes buit el text d’un motiu estàndard, el client veu la frase per defecte (en gris).</span>
+        </div>
+      ) : <p className="petit muted" style={{ margin: 0 }}>La redacció dels motius es fa a la configuració general; aquí tries quins veu aquesta botiga.</p>}
     </div>
   );
 }
@@ -309,12 +437,12 @@ function EditorAparenca({ ap, onChange }: { ap: ConfigFitxa['aparença']; onChan
       <div className="camp">
         <label htmlFor="color-text">Color principal</label>
         <div className="fila">
-          <input type="color" aria-label="Tria el color" value={valid ? hex : '#214F46'} onChange={(e) => { setHex(e.target.value.toUpperCase()); onChange({ ...ap, color_principal: e.target.value.toUpperCase() }); }} style={{ width: 52, padding: 2 }} />
+          <input type="color" aria-label="Tria el color" value={valid ? hex : '#14457D'} onChange={(e) => { setHex(e.target.value.toUpperCase()); onChange({ ...ap, color_principal: e.target.value.toUpperCase() }); }} style={{ width: 52, padding: 2 }} />
           <input id="color-text" value={hex} maxLength={7} style={{ width: 110, fontFamily: 'var(--mono)' }} aria-invalid={!valid} aria-describedby="ajuda-color"
             onChange={(e) => { const v = e.target.value.trim(); setHex(v); if (colorValid(v)) onChange({ ...ap, color_principal: v.toUpperCase() }); }} />
           <span className="mostra-color" style={{ background: valid ? hex : 'transparent' }} aria-hidden="true">Aa</span>
         </div>
-        <small id="ajuda-color">{!valid ? <span className="missatge-error">Escriu-lo com #214F46.</span> : ratio !== null && ratio < 4.5 ? <span className="missatge-error">Poc contrast amb el blanc ({ratio.toFixed(1)}:1): el text dels botons serà fosc perquè es llegeixi.</span> : `Contrast amb el blanc: ${ratio?.toFixed(1)}:1 (bé).`}</small>
+        <small id="ajuda-color">{!valid ? <span className="missatge-error">Escriu-lo com #14457D.</span> : ratio !== null && ratio < 4.5 ? <span className="missatge-error">Poc contrast amb el blanc ({ratio.toFixed(1)}:1): el text dels botons serà fosc perquè es llegeixi.</span> : `Contrast amb el blanc: ${ratio?.toFixed(1)}:1 (bé).`}</small>
       </div>
       <div className="camp">
         <label htmlFor="logo">Logo (PNG o SVG, com a màxim 100 KB)</label>
