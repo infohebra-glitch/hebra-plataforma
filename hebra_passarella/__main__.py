@@ -36,14 +36,26 @@ def fil_lector(cfg: dict, cua: Cua, atura: threading.Event) -> None:
         **{k: l[k] for k in ("cami_preset", "cami_inici", "cami_aturada", "cami_flux") if k in l})
     agregador = Agregador(l.get("nom", "R700-1"), cfg.get("finestra_s", 10),
                           tuple(p.upper() for p in l.get("prefixos_epc", [])))
-    darrer_buidat = time.monotonic()
+    # Per defecte es fa servir el rellotge de la passarel·la (Raspberry, sincronitzat per NTP): el del
+    # lector pot estar desajustat i les proves es calculen amb les hores.
+    usa_lector = l.get("usa_rellotge_lector", False)
+    avisat = [0.0]
+
+    def buida() -> None:  # una finestra tancada no ha d'esperar que arribi una altra lectura
+        while not atura.is_set():
+            atura.wait(1)
+            cua.afegeix("lectura", agregador.tanca(datetime.now(timezone.utc)))
+    threading.Thread(target=buida, daemon=True, name="buidat").start()
+
     for lectura in ClientLector(config).lectures():
         if atura.is_set():
             break
-        agregador.afegeix(lectura.epc_hex, lectura.port, lectura.rssi_dbm, lectura.ts)
-        if time.monotonic() - darrer_buidat >= 1:
-            cua.afegeix("lectura", agregador.tanca(datetime.now(timezone.utc)))
-            darrer_buidat = time.monotonic()
+        ara = datetime.now(timezone.utc)
+        if abs((lectura.ts - ara).total_seconds()) > 30 and time.monotonic() - avisat[0] > 600:
+            log.warning("El rellotge del lector va %.0f s desfasat respecte a la passarel·la",
+                        (lectura.ts - ara).total_seconds())
+            avisat[0] = time.monotonic()
+        agregador.afegeix(lectura.epc_hex, lectura.port, lectura.rssi_dbm, lectura.ts if usa_lector else ara)
     cua.afegeix("lectura", agregador.tanca(datetime.now(timezone.utc), tot=True))
 
 
@@ -65,7 +77,17 @@ def main() -> None:
 
     threading.Thread(target=bucle_enviament, args=(cua, cfg["plataforma"]["url"], cfg["plataforma"]["clau"]),
                      kwargs={"atura": atura}, daemon=True, name="enviament").start()
-    threading.Thread(target=fil_lector, args=(cfg, cua, atura), daemon=True, name="lector").start()
+    def lector_amb_vigilancia() -> None:
+        try:
+            fil_lector(cfg, cua, atura)
+            log.error("El lector ha tancat el flux de lectures")
+        except Exception:
+            log.exception("El fil del lector ha caigut")
+        atura.set()  # sortir fa que systemd reiniciï la passarel·la en lloc de quedar-se sorda
+        errors.append(1)
+
+    errors: list[int] = []
+    threading.Thread(target=lector_amb_vigilancia, daemon=True, name="lector").start()
     log.info("Passarel·la en marxa. Plataforma: %s", cfg["plataforma"]["url"])
     try:
         while not atura.is_set():
@@ -73,6 +95,8 @@ def main() -> None:
     except KeyboardInterrupt:
         pass
     log.info("Aturant (%s elements pendents a la cua, s'enviaran en tornar a arrencar)", cua.mida())
+    if errors:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

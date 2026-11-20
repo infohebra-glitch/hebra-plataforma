@@ -128,3 +128,68 @@ def test_punta_a_punta_lector_fals_fins_a_prova(con):
         assert _LectorFals.rebut[-1][1] == "/api/v1/lots"
     finally:
         srv.shutdown()
+
+
+def test_diagnosi_amb_lector_fals(tmp_path, capsys):
+    """La diagnosi desa el preset, llegeix el flux, desa les línies crues i resumeix per antena i etiqueta."""
+    from hebra_passarella import diagnosi
+    ara = datetime.now(timezone.utc)
+    _LectorFals.linies = [json.dumps({"TagInventoryEvent": {"epcHex": "3034257BF7194E4000001A85", "antennaPort": 2,
+                                                            "peakRssiCdbm": -5000 - 100 * i},
+                                      "timestamp": ara.isoformat().replace("+00:00", "Z")}) for i in range(5)]
+    _LectorFals.linies += ['{"EndOfCycleEvent": {}}', "no soc json"]
+    _LectorFals.rebut = []
+    srv, url = _servidor()
+    try:
+        conf = tmp_path / "passarella.toml"
+        conf.write_text(f'[lector]\nurl = "{url}"\nports = [2]\n', encoding="utf-8")
+        sortida = tmp_path / "crues.jsonl"
+        rc = diagnosi.main([str(conf), "--segons", "2", "--sortida", str(sortida), "--sense-plataforma"])
+    finally:
+        srv.shutdown()
+    text = capsys.readouterr().out
+    assert ("PUT", "/api/v1/profiles/inventory/presets/hebra") in [(m, p) for m, p, _ in _LectorFals.rebut]
+    assert ("POST", "/api/v1/profiles/stop") in [(m, p) for m, p, _ in _LectorFals.rebut]
+    assert len(sortida.read_text(encoding="utf-8").splitlines()) == 7
+    assert "3034257BF7194E4000001A85" in text and "-52.0" in text  # RSSI mitjà de -50..-54
+    assert "EndOfCycleEvent" in text
+    assert rc == 1 and "no són JSON" in text  # la línia dolenta compta com a error
+
+
+def test_diagnosi_comprova_la_clau_de_la_plataforma(tmp_path, monkeypatch, capsys):
+    import importlib
+    from fastapi.testclient import TestClient
+    from hebra_passarella import diagnosi
+    monkeypatch.setenv("HEBRA_BD", str(tmp_path / "diag.db"))
+    monkeypatch.setenv("HEBRA_CLAU_PASSARELLA", "clau-de-prova")
+    from hebra import app as app_mod
+    app_mod = importlib.reload(app_mod)
+    client = TestClient(app_mod.app)
+
+    class Resposta:
+        def __init__(self, r):
+            self.r = r
+
+        def __enter__(self):
+            if self.r.status_code >= 400:
+                raise diagnosi.urllib.error.HTTPError("u", self.r.status_code, "x", {}, None)
+            return self
+
+        def __exit__(self, *a):
+            pass
+
+        def read(self, n=-1):
+            return self.r.content
+
+    def urlopen(req, timeout=0):
+        if isinstance(req, str):
+            return Resposta(client.get(req.replace("http://srv", "")))
+        return Resposta(client.post(req.full_url.replace("http://srv", ""), content=req.data,
+                                    headers=dict(req.header_items())))
+
+    monkeypatch.setattr(diagnosi.urllib.request, "urlopen", urlopen)
+    inf = diagnosi.Informe()
+    diagnosi.comprova_plataforma({"plataforma": {"url": "http://srv", "clau": app_mod.cfg.clau_passarella}}, inf)
+    assert inf.errors == 0
+    diagnosi.comprova_plataforma({"plataforma": {"url": "http://srv", "clau": "dolenta"}}, inf)
+    assert inf.errors == 1 and "clau" in capsys.readouterr().out

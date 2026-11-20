@@ -47,6 +47,22 @@ MOTIUS = {
     "altre": "Altre",
 }
 
+
+
+def nom_motiu(con, clau: str | None) -> str | None:
+    """Nom d'un motiu per al tauler: els estàndard, o el text que la marca ha escrit per als propis («p-...»)."""
+    if clau is None or clau in MOTIUS:
+        return MOTIUS.get(clau) if clau else clau
+    from .. import fitxa_config
+    return fitxa_config.noms_motius(con).get(clau, clau)
+
+
+def noms_motius(con) -> dict[str, str]:
+    """{clau: nom} de tots els motius coneguts (estàndard i propis)."""
+    from .. import fitxa_config
+    return {**MOTIUS, **fitxa_config.noms_motius(con)}
+
+
 ROLS = ("CEO", "PROD", "BOT", "MKT", "SOST")
 
 _LLETRES = ["XXS", "XS", "S", "M", "L", "XL", "XXL"]

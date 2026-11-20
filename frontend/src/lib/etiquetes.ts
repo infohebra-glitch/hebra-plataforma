@@ -1,10 +1,16 @@
 /** Noms en català dels codis que retorna l'API. */
 import type { EstatDecisio, EstatPeticio, Motiu, Seccio, TipusAlerta, TipusInforme } from '../api/types';
 
-export const MOTIUS: Record<Motiu, string> = {
+export const MOTIUS: Record<Exclude<Motiu, `p-${string}`>, string> = {
   talla: 'Talla', tall: 'Tall o patró', preu: 'Preu', color: 'Color', qualitat: 'Qualitat o teixit', nomes_mirava: 'Només mirava', altre: 'Altre',
 };
-export const motiu = (m: string | null | undefined): string => (m ? MOTIUS[m as Motiu] ?? m : '—');
+/** Noms dels motius escrits per la marca («p-...»), tal com els retorna l'API. */
+const NOMS_PROPIS: Record<string, string> = {};
+export function registraNomsMotius(noms: Record<string, string> | undefined) { Object.assign(NOMS_PROPIS, noms ?? {}); }
+/** Si encara no en sabem el nom, «p-massa-llarg» es llegeix «Massa llarg». */
+const llegible = (id: string) => { const t = id.slice(2).replace(/-/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
+export const motiu = (m: string | null | undefined): string =>
+  (m ? (MOTIUS as Record<string, string>)[m] ?? NOMS_PROPIS[m] ?? (m.startsWith('p-') ? llegible(m) : m) : '—');
 
 export const SECCIONS: Record<Seccio, string> = {
   origen: 'Origen', talles: 'Guia de talles', cura: 'Cura de la peça', preguntes: 'Preguntes', motiu: 'Per què no me l’emporto', peticio_talla: 'Demanar una altra talla',

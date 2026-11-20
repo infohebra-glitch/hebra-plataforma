@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { operacio } from '../api/endpoints';
 import type { ResultatImport } from '../api/types';
 import { Connexions } from '../components/Connexions';
+import { TargetaLotProva } from '../components/LotProva';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
 import { useSessio } from '../context/Sessio';
 import { enter, plural } from '../lib/format';
@@ -62,6 +63,7 @@ export function Dades() {
         {marca ? 'D’on treu Hebra el catàleg, les vendes i l’estoc. Connecta la botiga en línia o el TPV i es sincronitza sol; si no, puja un CSV a mà.' : 'Puja aquí els fitxers CSV de vendes i d’estoc de la teva botiga.'}
       </TitolPagina>
       {marca && <Connexions />}
+      {marca && <div style={{ marginTop: 24 }}><TargetaLotProva /></div>}
       <Seccio titol="Pujada manual de CSV" subtitol="Separador coma o punt i coma, codificació UTF-8, amb capçalera a la primera fila. Serveix si el TPV no es pot connectar.">
         <div className="reixa-3">
           {TIPUS.filter((t) => !t.nomesAdmin || admin).map((t) => <Importador key={t.tipus} t={t} />)}

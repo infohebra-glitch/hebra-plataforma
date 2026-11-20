@@ -11,7 +11,7 @@ export function TitolPagina({ titol, children, accions, senseperiode }: { titol:
       <div>
         <h1 id="titol-pagina" tabIndex={-1}>{titol}</h1>
         {children && <p>{children}</p>}
-        {!senseperiode && <p className="petit">Període: {rang(periode.des, periode.fins)} · només proves de confiança alta i mitjana</p>}
+        {!senseperiode && <p className="periode" title="Només proves de confiança alta i mitjana">{rang(periode.des, periode.fins).replace(/^del /, 'Del ')}</p>}
       </div>
       {accions && <div className="accions">{accions}</div>}
     </div>

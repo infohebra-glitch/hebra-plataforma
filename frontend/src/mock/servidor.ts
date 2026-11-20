@@ -141,7 +141,7 @@ function modelDetall(f: FiltreMock, codi: string): T.ModelDetall | null {
       estoc: m.estocTalla[i], demanda_perduda: m.estocTalla[i] === 0 ? escala(f, 5) : 0, canvis_de_talla: Math.round(p * 0.05),
     };
   });
-  const totalMotius = Object.values(m.motius).reduce((s, n) => s + (n ?? 0), 0);
+  const totalMotius = Object.values(m.motius).reduce<number>((s, n) => s + (n ?? 0), 0);
   const factor = Math.max(0.3, nSetmanes(f) * (f.botigues.length / BOTIGUES.length));
   const motius = (Object.entries(m.motius) as [T.Motiu, number][])
     .map(([motiu, n]) => ({ motiu, n: Math.round(n * factor), pct: arr(n / totalMotius, 2) }))
@@ -223,7 +223,7 @@ function motius(f: FiltreMock): T.Motius {
       const n = Math.round(v * factor);
       if (n) { ms[k] = n; tots.set(k, (tots.get(k) ?? 0) + n); }
     }
-    return { model: m.model, nom: m.nom, respostes: Object.values(ms).reduce((s, n) => s + (n ?? 0), 0), motius: ms };
+    return { model: m.model, nom: m.nom, respostes: Object.values(ms).reduce<number>((s, n) => s + (n ?? 0), 0), motius: ms };
   }).filter((m) => m.respostes > 0).sort((a, b) => b.respostes - a.respostes);
   const respostes = [...tots.values()].reduce((s, n) => s + n, 0);
   const sessions_fitxa = Math.round(respostes / 0.12);
@@ -231,8 +231,10 @@ function motius(f: FiltreMock): T.Motius {
     respostes, sessions_fitxa, taxa_resposta: sessions_fitxa ? arr(respostes / sessions_fitxa, 2) : null,
     per_motiu: [...tots.entries()].map(([motiu, n]) => ({ motiu, n, pct: arr(n / respostes, 2) })).sort((a, b) => b.n - a.n),
     per_model,
+    etiquetes: Object.fromEntries([...tots.keys()].map((k) => [k, NOMS_MOTIUS_MOCK[k] ?? k])),
   };
 }
+const NOMS_MOTIUS_MOCK: Record<string, string> = { talla: 'Talla', tall: 'Tall o patró', preu: 'Preu', color: 'Color', qualitat: 'Qualitat o teixit', nomes_mirava: 'Només mirava', altre: 'Altre', 'p-massa-llarg': 'És massa llarg per a mi' };
 
 function servei(f: FiltreMock): T.Servei {
   const r = resum(f);
@@ -298,6 +300,7 @@ function estatSistema(): T.EstatSistema {
     })),
     darrera_venda: fa(60 * 20), dies_sense_vendes: 1, peces_llegides: 412, peces_desconegudes: 3,
     pct_desconegudes: 3 / 412, hores_alerta: 24, generat: fa(0), periode: { des: '2026-11-16', fins: '2026-11-22' },
+    copia_seguretat: { darrera: fa(60 * 6), hores: 6, remot: 'copies:hebra-copies', error_remot: null, alerta: false, hores_alerta: 36 },
   };
 }
 
@@ -385,6 +388,14 @@ export function respon(metode: string, url: URL, cos: unknown): Resposta {
   if (ruta === '/sessio' && metode === 'DELETE') { desaSessio('fora'); return ok({ ok: true }); }
   if (ruta === '/jo') return ok({ usuari: u, botigues: u.rol === 'botiga' ? BOTIGUES.filter((b) => b.id === u.botiga_id) : BOTIGUES });
 
+  if (ruta === '/lot-prova') {
+    if (u.rol === 'botiga') return error(403, 'Només la marca pot gestionar el lot de prova.');
+    if (metode === 'POST') estat.lotProva = true;
+    if (metode === 'DELETE') { estat.lotProva = false; return ok({ esborrat: true, files: 61234 }); }
+    return ok(estat.lotProva
+      ? { carregat: true, botiga_id: 'PROVA-01', nom: 'Botiga de prova', creat: new Date().toISOString(), des: '2026-11-09', fins: '2026-11-19', resum: { sessions: 612, proves: 1184, vendes: 310, peces: 5 } }
+      : { carregat: false, botiga_id: 'PROVA-01', nom: 'Botiga de prova' });
+  }
   const fq = new URLSearchParams(q);
   if (u.rol === 'botiga') fq.set('botiga', u.botiga_id ?? 'BCN-01');
   const f = filtre(fq);

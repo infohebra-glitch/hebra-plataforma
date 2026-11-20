@@ -79,7 +79,7 @@ def test_talles_demanda_motius(con):
     assert d["total"] >= 3
     claus(d["per_variant"][0], "model", "nom", "color", "talla", "n", "estoc")
     m = A.motius(con, F)
-    claus(m, "respostes", "sessions_fitxa", "taxa_resposta", "per_motiu", "per_model")
+    claus(m, "respostes", "sessions_fitxa", "taxa_resposta", "per_motiu", "per_model", "etiquetes")
     assert set(p["motiu"] for p in m["per_motiu"]) <= {"talla", "tall", "preu", "color", "qualitat", "altre"}
 
 

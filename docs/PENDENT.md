@@ -14,7 +14,10 @@
 - **Devolucions de Shopify**: la sincronització importa comandes i estoc, però encara no els reemborsaments.
 - **Gestió de botigues, cabines i antenes** des del tauler (ara: `python -m hebra.admin`).
 - **Alertes en directe amb diversos processos**: el bus d'alertes és en memòria; cal un sol procés `uvicorn`. Per escalar, Redis o PostgreSQL LISTEN/NOTIFY.
-- **Recàlcul incremental de proves**: ara es recalcula la història guardada de cada cabina cada 5 minuts. Per a una botiga i 8 setmanes va bé (la simulació de 8 setmanes triga ~1 min a generar-se, però les consultes del tauler responen en < 150 ms).
+- **Revisió tècnica (nov. 2026)**: el recàlcul de proves ja és incremental (8 setmanes: de 81 s a 0,2 s per passada, mateix resultat que el recàlcul complet; `python -m hebra.admin processa` i `/api/v1/processa?tot=1` ho fan tot). Les lectures i els sensors de la passarel·la porten un `ref` i un lot repetit no es compta dues vegades. L'estat de les passarel·les (`passarelles` a l'estat del sistema) avisa si una passarel·la no s'ha vist en 10 minuts o té el rellotge desfasat.
+- **Allotjament i còpies (18-11-2026)**: preparat. Ordinador propi (Raspberry Pi 5 del pilot o un ordinador sempre engegat) + Cloudflare Tunnel (gratuït, sense obrir ports) a `plataforma.hebraia.com`, script d'instal·lació i d'actualització, còpia diària comprovada i xifrada a Google Drive, avís a l'estat del sistema ([`docs/ALLOTJAMENT.md`](ALLOTJAMENT.md)). Oracle Cloud gratuït descartat (sense capacitat a Madrid). Falta fer-ho de veritat: passar els DNS de `hebraia.com` a Cloudflare, instal·lar-ho, configurar Drive i provar una restauració.
+- **Prova amb el R700 real**: preparada amb `python3 -m hebra_passarella.diagnosi` i el protocol [`docs/PROVA-R700.md`](PROVA-R700.md). La fa qui tingui el maquinari.
+- **Encara pendent després de la revisió**: una instal·lació per marca (no hi ha multi-marca), un sol procés (l'SSE és en memòria) i fer servir `HEBRA_ENTORN=produccio` amb claus pròpies.
 - **Notificacions push** al mòbil del dependent amb la pantalla bloquejada (ara: la pàgina oberta rep les alertes en directe, amb so i vibració).
 
 ## Comparació amb el manual del client (doc 18, 06-11)
@@ -34,7 +37,7 @@
 - `HEBRA_ENTORN=produccio`, `HEBRA_SECRET`, `HEBRA_COOKIE_SECURE=1`, claus i contrasenyes noves, i només HTTPS.
 - Crear els usuaris reals (`python -m hebra.admin usuari ...`) i no fer servir l'usuari bàsic de `/botiga/*`.
 - Revisió de l'advocat: avaluació d'impacte, textos de privacitat de la fitxa, retenció (`HEBRA_RETENCIO_DIES`).
-- Còpies de seguretat diàries de la base de dades.
+- Còpies de seguretat diàries amb destí fora del servidor configurat (`HEBRA_COPIES_DESTI`) i una restauració provada.
 
 ## Notes sobre les dades de prova
 

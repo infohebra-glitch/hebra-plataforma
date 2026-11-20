@@ -1,4 +1,4 @@
-# Servei systemd de la plataforma (servidor al núvol). Vegeu docs/INSTAL-LACIO.md.
+# Servei systemd de la plataforma (servidor al núvol). Vegeu docs/ALLOTJAMENT.md i docs/INSTAL-LACIO.md.
 [Unit]
 Description=Hebra - plataforma web
 After=network.target
@@ -7,9 +7,14 @@ After=network.target
 User=hebra
 WorkingDirectory=/opt/hebra-plataforma
 EnvironmentFile=/etc/hebra/plataforma.env
+# Un sol procés (sense --workers): les alertes en directe viuen a la memòria del procés.
 ExecStart=/opt/hebra-plataforma/.venv/bin/uvicorn hebra.app:app --host 127.0.0.1 --port 8000 --proxy-headers
 Restart=always
 RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target

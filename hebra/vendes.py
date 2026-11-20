@@ -77,6 +77,18 @@ def importa_csv(con: sqlite3.Connection, text: str) -> tuple[int, list[str]]:
     return importades, errors
 
 
+def importa_csv_sense_repetir(con: sqlite3.Connection, text: str) -> tuple[int, list[str], int]:
+    """Com `importa_csv`, però salta les línies que ja són a la base de dades.
+
+    Pujar dues vegades el mateix fitxer (o un fitxer que se solapa amb l'anterior) no
+    duplica vendes. Retorna (importades, errors, repetides).
+    """
+    from .integracions.csv_url import sense_repetides  # import tardà: csv_url importa aquest mòdul
+    text, repetides = sense_repetides(con, text)
+    n, errors = importa_csv(con, text)
+    return n, errors, repetides
+
+
 def atribueix(con: sqlite3.Connection, botiga_id: str) -> int:
     """Recalcula totes les atribucions d'una botiga. Retorna quantes n'ha fet."""
     con.execute(

@@ -230,7 +230,7 @@ def test_assistencia_des_de_la_fitxa(entorn):
     app_mod, con = entorn
     p = _peca(con)
     c = TestClient(app_mod.app)
-    r = c.post(f"/p/{p['nfc_token']}/assistencia", data={"cabina": "Cabina 2", "b": "BCN-01", "lang": "ca", "s": "s1"},
+    r = c.post(f"/p/{p['nfc_token']}/assistencia", data={"cabina": "Cabina 2", "b": "BCN-01", "lang": "ca", "s": "sessio-prova1"},
                follow_redirects=False)
     assert r.status_code == 303 and "ok=assistencia" in r.headers["location"]
     assert "Ara ve algú a la cabina." in c.get(r.headers["location"]).text
@@ -270,7 +270,7 @@ def test_altres_botigues(entorn):
     assert pet["altres_botigues"] == [{"botiga_id": "GIR-01", "nom": "Girona", "unitats": 3}]
     con.execute("UPDATE estoc SET unitats = 2 WHERE botiga_id = 'BCN-01'")
     con.commit()
-    pid2 = fitxa.demana_talla(con, "s", "BCN-01", p["gtin"], altra, "ca")
+    pid2 = fitxa.demana_talla(con, "s2", "BCN-01", p["gtin"], altra, "ca")
     assert alertes.peticio(con, pid2)["altres_botigues"] == []  # n'hi ha a la botiga
 
 

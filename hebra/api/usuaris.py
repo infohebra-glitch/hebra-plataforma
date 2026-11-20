@@ -55,10 +55,13 @@ def canvia(uid: int, cos: CanviUsuari, con: sqlite3.Connection = Depends(bd),
     if cos.nom:
         con.execute("UPDATE usuari SET nom = ? WHERE id = ?", (cos.nom.strip(), uid))
     if cos.actiu is not None:
-        con.execute("UPDATE usuari SET actiu = ? WHERE id = ?", (int(cos.actiu), uid))
+        con.execute("UPDATE usuari SET actiu = ?, versio_sessio = versio_sessio + 1 WHERE id = ?",
+                    (int(cos.actiu), uid))
     if cos.contrasenya:
         if len(cos.contrasenya) < 10:
             raise HTTPException(400, "La contrasenya ha de tenir 10 caràcters o més")
-        con.execute("UPDATE usuari SET hash_contrasenya = ? WHERE id = ?", (auth.hash_contrasenya(cos.contrasenya), uid))
+        # Canviar la contrasenya tanca les sessions obertes d'aquest usuari.
+        con.execute("UPDATE usuari SET hash_contrasenya = ?, versio_sessio = versio_sessio + 1 WHERE id = ?",
+                    (auth.hash_contrasenya(cos.contrasenya), uid))
     con.commit()
     return {"usuari": _json(con.execute("SELECT * FROM usuari WHERE id = ?", (uid,)).fetchone())}

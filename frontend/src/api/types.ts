@@ -30,6 +30,13 @@ export interface Botiga {
 export interface RespostaSessio { usuari: Usuari }
 export interface RespostaJo { usuari: Usuari; botigues: Botiga[] }
 
+/** GET/POST/DELETE /lot-prova: dades inventades en una botiga pròpia, que s'esborren d'un clic. */
+export interface EstatLotProva {
+  carregat: boolean; botiga_id: string; nom: string;
+  creat?: DataHora; des?: string; fins?: string;
+  resum?: { sessions: number; proves: number; vendes: number; peces: number };
+}
+
 /** Filtre comú de totes les rutes d'analítica. */
 export interface Filtre {
   botiga?: string;
@@ -112,7 +119,8 @@ export interface Resum {
 }
 
 // ── GET /models ──────────────────────────────────────────────────────────
-export type Motiu = 'talla' | 'tall' | 'preu' | 'color' | 'qualitat' | 'nomes_mirava' | 'altre';
+/** Motius estàndard i els propis de la marca («p-...»). */
+export type Motiu = 'talla' | 'tall' | 'preu' | 'color' | 'qualitat' | 'nomes_mirava' | 'altre' | `p-${string}`;
 
 export interface ModelResum {
   model: string;
@@ -214,6 +222,8 @@ export interface Motius {
   taxa_resposta: Fraccio;
   per_motiu: MotiuCompte[];
   per_model: MotiusModel[];
+  /** Nom de cada motiu de les respostes (també els escrits per la marca). */
+  etiquetes?: Record<string, string>;
 }
 
 // ── GET /servei ──────────────────────────────────────────────────────────
@@ -311,6 +321,17 @@ export interface EstatSistema {
   hores_alerta: number;
   generat: DataHora;
   periode: { des: string; fins: string };
+  /** Darrera còpia de seguretat de la base de dades (hebra/copies.py). */
+  copia_seguretat?: EstatCopia;
+}
+export interface EstatCopia {
+  darrera: DataHora | null;
+  hores: number | null;
+  /** Destí remot on es va enviar (null = només local). */
+  remot: string | null;
+  error_remot: string | null;
+  alerta: boolean;
+  hores_alerta: number;
 }
 
 // ── GET /valor ───────────────────────────────────────────────────────────
@@ -487,16 +508,29 @@ export interface Sessions {
 }
 
 // ── Fitxa NFC configurable (A) ───────────────────────────────────────────
-export type SeccioFitxa = 'talles' | 'composicio' | 'origen' | 'cura' | 'combina' | 'faq';
-export type MotiuFitxa = 'talla' | 'preu' | 'tall' | 'qualitat' | 'color' | 'nomes_mirava' | 'altre';
+export type SeccioEstandard = 'talles' | 'composicio' | 'origen' | 'cura' | 'combina' | 'faq';
+export type MotiuEstandard = 'talla' | 'preu' | 'tall' | 'qualitat' | 'color' | 'nomes_mirava' | 'altre';
+/** Identificador d'una secció o un motiu escrits per la marca: «p-...». */
+export type IdPropi = `p-${string}`;
+export type SeccioFitxa = SeccioEstandard | IdPropi;
+export type MotiuFitxa = MotiuEstandard | IdPropi;
+export type TextIdiomes = Record<string, string>;
+export interface SeccioPropia { id: IdPropi; titol: TextIdiomes; text: TextIdiomes; plegable: boolean }
+export interface MotiuPropi { id: IdPropi; text: TextIdiomes }
 export type MostraEstoc = 'no' | 'disponibilitat' | 'unitats';
 export interface ConfigFitxa {
-  seccions: { ordre: SeccioFitxa[]; visibles: Record<SeccioFitxa, boolean> };
+  seccions: { ordre: SeccioFitxa[]; visibles: Partial<Record<SeccioFitxa, boolean>> };
   accions: { demana_talla: boolean; demana_assistencia: boolean; per_que_no: boolean; mostra_estoc: MostraEstoc };
   idiomes: string[];
   textos: { benvinguda?: Record<string, string>; peu?: Record<string, string> };
   'aparença': { color_principal: string; logo_data_url: string | null; nom_marca: string };
   motius: MotiuFitxa[];
+  /** Seccions escrites a mà per la marca (només a la configuració general). */
+  seccions_propies: SeccioPropia[];
+  /** Motius de «per què no» escrits per la marca. */
+  motius_propis: MotiuPropi[];
+  /** Redacció pròpia dels motius estàndard, per idioma. */
+  textos_motius: Partial<Record<MotiuEstandard, TextIdiomes>>;
 }
 /** Configuració d'una botiga: només els camps que sobreescriu. */
 export interface ConfigFitxaParcial {
@@ -506,6 +540,9 @@ export interface ConfigFitxaParcial {
   textos?: ConfigFitxa['textos'];
   'aparença'?: Partial<ConfigFitxa['aparença']>;
   motius?: MotiuFitxa[];
+  seccions_propies?: SeccioPropia[];
+  motius_propis?: MotiuPropi[];
+  textos_motius?: ConfigFitxa['textos_motius'];
 }
 export interface RespostaConfigFitxa { general: ConfigFitxa; botiga: ConfigFitxaParcial | null; efectiva: ConfigFitxa }
 export interface ModelFitxa { model: string; nom: string; categoria: string; idiomes_amb_contingut: string[]; te_origen: boolean }

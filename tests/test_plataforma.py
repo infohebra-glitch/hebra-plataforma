@@ -222,6 +222,7 @@ def test_shopify_sincronitza(con, shopify_fals, monkeypatch):
     with pytest.raises(shopify.ErrorShopify, match="HEBRA_SHOPIFY_TOKEN_B"):
         shopify.sincronitza(con, "B")
     monkeypatch.setenv("HEBRA_SHOPIFY_TOKEN_B", "shpat_prova")
+    monkeypatch.setenv("HEBRA_PERMET_XARXA_INTERNA", "1")
 
     assert shopify.sincronitza(con, "B") == {"comandes": 1, "linies": 2, "estoc": 2}
     linies = con.execute("SELECT * FROM venda_linia ORDER BY gtin").fetchall()

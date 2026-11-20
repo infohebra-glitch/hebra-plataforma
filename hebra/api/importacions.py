@@ -38,11 +38,11 @@ async def importa_vendes(fitxer: UploadFile, con: sqlite3.Connection = Depends(b
                          u: dict = Depends(rol(*BOTIGA_O_MES))) -> dict:
     text = await _text(fitxer)
     _nomes_la_seva(u, text)
-    n, errors = vendes.importa_csv(con, text)
+    n, errors, repetides = vendes.importa_csv_sense_repetir(con, text)
     botigues = [u["botiga_id"]] if u["rol"] == "botiga" else [f["id"] for f in con.execute("SELECT id FROM botiga")]
     for b in botigues:
         vendes.atribueix(con, b)
-    return {"importades": n, "errors": errors[:200]}
+    return {"importades": n, "repetides": repetides, "errors": errors[:200]}
 
 
 @router.post("/estoc")

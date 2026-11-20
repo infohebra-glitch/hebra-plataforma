@@ -11,6 +11,12 @@ export const sessio = {
   jo: () => api.get<T.RespostaJo>('/jo'),
 };
 
+export const lotProva = {
+  estat: (s?: AbortSignal) => api.get<T.EstatLotProva>('/lot-prova', undefined, s),
+  carrega: () => api.post<T.EstatLotProva>('/lot-prova', {}),
+  esborra: () => api.del<{ esborrat: boolean; files: number }>('/lot-prova'),
+};
+
 export const analitica = {
   resum: (x: T.Filtre, s?: AbortSignal) => api.get<T.Resum>('/resum', f(x), s),
   models: (x: T.Filtre, s?: AbortSignal) => api.get<T.RespostaModels>('/models', f(x), s),

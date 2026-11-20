@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { analitica } from '../api/endpoints';
-import type { Accio, EstatSistema as TEstatSistema, Resum as TResum } from '../api/types';
+import type { Accio, EstatCopia as TEstatCopia, EstatSistema as TEstatSistema, Resum as TResum } from '../api/types';
 import { Consulta, Esquelet } from '../components/Estat';
 import { MostraPetita } from '../components/Insignies';
+import { TargetaLotProva, useLotProva } from '../components/LotProva';
 import { Rajola, type Delta } from '../components/Rajola';
 import { SerieTemporal } from '../components/grafics/SerieTemporal';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
@@ -56,6 +57,20 @@ function Xifres({ r }: { r: TResum }) {
 
 const quan = (iso: string | null) => (iso ? `${diaCurt(iso)}${iso.length > 10 ? `, ${hora(iso)}` : ''}` : 'mai');
 
+function CopiaSeguretat({ c }: { c: TEstatCopia }) {
+  return (
+    <p className="petit" style={{ marginTop: 6 }}>
+      <b>Còpia de seguretat:</b> {quan(c.darrera)}
+      {c.darrera && (c.remot ? ' (guardada fora del servidor)' : ' (només al servidor)')}
+      {c.alerta && (
+        <span className="insignia insignia-critic" style={{ marginLeft: 6 }}>
+          {c.error_remot ? 'no s’ha pogut enviar fora' : c.darrera ? `fa més de ${c.hores_alerta} h` : 'cap còpia'}
+        </span>
+      )}
+    </p>
+  );
+}
+
 /** Pantalla «Estat del sistema» del manual: si cada cabina envia dades i si arriben les vendes. */
 function EstatDelSistema({ e }: { e: TEstatSistema }) {
   const alertes = e.cabines.filter((c) => c.alerta).length;
@@ -83,8 +98,29 @@ function EstatDelSistema({ e }: { e: TEstatSistema }) {
           {(e.dies_sense_vendes ?? 99) > 7 && <> · <Link to="/dades">Importa les vendes</Link></>}
           {alertes > 0 && <> · {alertes === 1 ? 'Una cabina' : `${alertes} cabines`} sense dades: mira la xarxa, el lector i la passarel·la (manual, capítol 19).</>}
         </p>
+        {e.copia_seguretat && <CopiaSeguretat c={e.copia_seguretat} />}
       </div>
     </Seccio>
+  );
+}
+
+/** Quan encara no hi ha cap dada: què cal per començar i, per a la marca, el lot de prova. */
+function Benvinguda() {
+  const { lot } = useLotProva();
+  return (
+    <div className="benvinguda-buida">
+      <div>
+        <p className="kicker">Benvinguda</p>
+        <h2>Encara no hi ha dades en aquest període</h2>
+        <p>El tauler s’omple sol quan les cabines comencen a llegir les etiquetes i arriben les vendes. Per arrencar:</p>
+      </div>
+      <ol>
+        <li>Connecta la botiga en línia o el TPV a <Link to="/dades">Connexions i dades</Link> (o puja un CSV).</li>
+        <li>Revisa la <Link to="/fitxa">fitxa NFC</Link> que veurà el client quan toqui la peça.</li>
+        <li>Engega les cabines: cada prova apareixerà aquí i a <Link to="/provadors">Provadors en directe</Link>.</li>
+      </ol>
+      {lot && !lot.carregat && <TargetaLotProva compacta />}
+    </div>
   );
 }
 
@@ -96,7 +132,7 @@ export function Resum() {
     <>
       <TitolPagina titol="Resum">Què s’ha provat, què s’ha venut i què cal fer aquesta setmana.</TitolPagina>
       <Consulta q={q} esquelet={<><Esquelet tipus="rajoles" /><div style={{ height: 16 }} /><Esquelet tipus="grafic" /></>}>
-        {(r) => (
+        {(r) => r.kpi.sessions === 0 && r.serie_diaria.every((d) => !d.proves) ? <Benvinguda /> : (
           <>
             <Xifres r={r} />
             <div className="reixa-2" style={{ marginTop: 16 }}>
