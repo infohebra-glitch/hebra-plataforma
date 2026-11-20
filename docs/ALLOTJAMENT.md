@@ -112,7 +112,7 @@ Per enviar-les a Google Drive (calen dos ordinadors: la Raspberry i el de casa, 
 1. A l'ordinador de casa, instal·leu rclone: <https://rclone.org/downloads/> (Mac: descarregueu el zip, o `brew install rclone` si teniu Homebrew).
 2. A la Raspberry:
    ```
-   sudo -u hebra RCLONE_CONFIG=/etc/hebra/rclone.conf rclone config
+   sudo -u hebra RCLONE_CONFIG=/var/lib/hebra/rclone.conf rclone config
    ```
    Responeu així (prémer Retorn vol dir deixar el valor per defecte):
    - `n` (nou) → nom: `drive`
@@ -137,13 +137,13 @@ Per enviar-les a Google Drive (calen dos ordinadors: la Raspberry i el de casa, 
 ```
 sudo hebra-admin copies                       # llista les còpies que hi ha a l'ordinador
 # Si l'ordinador s'ha perdut, primer baixeu-ne una de Drive a l'ordinador nou (amb el mateix rclone.conf):
-sudo -u hebra RCLONE_CONFIG=/etc/hebra/rclone.conf rclone copy copies:hebra-2026-11-20T033012Z.db.gz /var/lib/hebra/copies/
+sudo -u hebra RCLONE_CONFIG=/var/lib/hebra/rclone.conf rclone copy copies:hebra-2026-11-20T033012Z.db.gz /var/lib/hebra/copies/
 sudo systemctl stop hebra-web
 sudo hebra-admin restaura /var/lib/hebra/copies/hebra-2026-11-20T033012Z.db.gz
 sudo systemctl start hebra-web
 ```
 
-La restauració comprova la suma i la integritat abans de tocar res, i guarda la base de dades que hi havia com a `hebra.db.abans-de-restaurar-<hora>`. Guardeu també una còpia de `/etc/hebra/plataforma.env` i `/etc/hebra/rclone.conf` al gestor de contrasenyes: sense `HEBRA_SECRET` les connexions amb Shopify o Square s'han de tornar a entrar.
+La restauració comprova la suma i la integritat abans de tocar res, i guarda la base de dades que hi havia com a `hebra.db.abans-de-restaurar-<hora>`. Guardeu també una còpia de `/etc/hebra/plataforma.env` i `/var/lib/hebra/rclone.conf` al gestor de contrasenyes: sense `HEBRA_SECRET` les connexions amb Shopify o Square s'han de tornar a entrar.
 
 ## Pas 5. Avís si la plataforma cau (5 min)
 

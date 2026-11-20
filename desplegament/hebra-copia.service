@@ -11,7 +11,7 @@ User=hebra
 WorkingDirectory=/opt/hebra-plataforma
 EnvironmentFile=/etc/hebra/plataforma.env
 # rclone llegeix la configuració del destí remot d'aquí (rclone config --config ...)
-Environment=RCLONE_CONFIG=/etc/hebra/rclone.conf
+Environment=RCLONE_CONFIG=/var/lib/hebra/rclone.conf
 ExecStart=/opt/hebra-plataforma/.venv/bin/python -m hebra.admin copia
 Nice=10
 IOSchedulingClass=idle
