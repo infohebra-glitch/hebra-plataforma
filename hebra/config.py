@@ -63,6 +63,9 @@ class Config:
     smtp_usuari: str = field(default_factory=lambda: os.environ.get("HEBRA_SMTP_USUARI", ""))
     smtp_contrasenya: str = field(default_factory=lambda: os.environ.get("HEBRA_SMTP_CONTRASENYA", ""))
     smtp_remitent: str = field(default_factory=lambda: os.environ.get("HEBRA_SMTP_REMITENT", ""))
+    # Mode de proves: si té una adreça, TOTS els correus van només aquí (l'assumpte diu a qui anaven).
+    # Per enviar als destinataris de veritat, deixeu-la buida (desplegament/configura-correu.sh).
+    correu_redirigeix: str = field(default_factory=lambda: os.environ.get("HEBRA_CORREU_REDIRIGEIX", "").strip())
 
     @property
     def produccio(self) -> bool:

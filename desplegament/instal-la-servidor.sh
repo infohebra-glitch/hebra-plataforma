@@ -15,10 +15,14 @@
 #   TUNNEL_TOKEN  opcional: testimoni d'un túnel creat al tauler de Cloudflare
 #   DOMINI        domini públic (per defecte plataforma.hebraia.com)
 #   BRANCA        branca del repositori a instal·lar (per defecte: main)
+#   TUNEL         nom del túnel de Cloudflare (per defecte: hebra-<primera part del domini>, p. ex.
+#                 plataforma.hebraia.com -> hebra-plataforma, marca.hebraia.com -> hebra-marca)
 #   REPO          URL del repositori (si és privat, feu servir una clau de desplegament)
 set -euo pipefail
 
 DOMINI="${DOMINI:-plataforma.hebraia.com}"
+# Un túnel per instal·lació: cada client té la seva màquina i la seva adreça.
+TUNEL="${TUNEL:-hebra-${DOMINI%%.*}}"
 TUNNEL_TOKEN="${TUNNEL_TOKEN:-}"
 ACCES="${ACCES:-tunel}"
 case "$ACCES" in tunel|caddy) ;; *) echo "ACCES ha de ser tunel o caddy"; exit 1 ;; esac
@@ -90,12 +94,7 @@ HEBRA_COPIES_DIARIES=14
 HEBRA_COPIES_SETMANALS=8
 HEBRA_COPIES_DESTI=
 HEBRA_COPIES_REMOT_DIES=60
-# Correu dels informes programats (opcional)
-# HEBRA_SMTP_HOST=
-# HEBRA_SMTP_PORT=587
-# HEBRA_SMTP_USUARI=
-# HEBRA_SMTP_CONTRASENYA=
-# HEBRA_SMTP_REMITENT=Hebra <informes@hebraia.com>
+# Correu dels informes: es configura amb  sudo bash desplegament/configura-correu.sh
 EOF
     echo "Claus noves generades."
 else
@@ -136,7 +135,15 @@ if [ "$ACCES" = tunel ]; then
             echo ">>> Quan el navegador digui que ja està, aquí continuarà sol."
             cloudflared tunnel login
         fi
-        [ -f "$CF/hebra.json" ] || cloudflared tunnel create --credentials-file "$CF/hebra.json" hebra-plataforma
+        if [ ! -f "$CF/hebra.json" ]; then
+            if cloudflared tunnel info "$TUNEL" >/dev/null 2>&1; then
+                echo "Ja hi ha un túnel «$TUNEL» al compte de Cloudflare, d'una altra màquina."
+                echo "Si aquella màquina ja no es fa servir, esborreu-lo:  cloudflared tunnel delete $TUNEL"
+                echo "Si no, torneu a executar l'script amb un altre nom:  sudo TUNEL=hebra-altre-nom DOMINI=$DOMINI ..."
+                exit 1
+            fi
+            cloudflared tunnel create --credentials-file "$CF/hebra.json" "$TUNEL"
+        fi
         ID="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['TunnelID'])" "$CF/hebra.json")"
         printf 'tunnel: %s\ncredentials-file: %s/hebra.json\ningress:\n  - hostname: %s\n    service: http://localhost:8000\n  - service: http_status:404\n' \
             "$ID" "$CF" "$DOMINI" > "$CF/config.yml"
@@ -167,4 +174,5 @@ Fet. Passos que queden (docs/ALLOTJAMENT.md):
        sudo hebra-admin usuari --correu nom@hebraia.com --nom Nom --rol admin
   3. Configureu el destí remot de les còpies (secció «Còpies de seguretat»).
   4. Doneu d'alta un monitor gratuït a https://$DOMINI/salut.
+  5. Correu dels informes: sudo bash $APP/desplegament/configura-correu.sh
 EOF
