@@ -102,7 +102,8 @@ else
     echo "Ja existeix: no es toca."
 fi
 chown root:hebra "$ENVF" && chmod 640 "$ENVF"
-[ -f /etc/hebra/rclone.conf ] || install -o hebra -g hebra -m 600 /dev/null /etc/hebra/rclone.conf
+# rclone hi desa el testimoni de Google renovat: ha de ser en una carpeta on hebra pugui escriure
+[ -f "$DADES/rclone.conf" ] || install -o hebra -g hebra -m 600 /dev/null "$DADES/rclone.conf"
 
 pas "Serveis"
 install -m 644 "$APP/desplegament/hebra-web.service" "$APP/desplegament/hebra-copia.service" \
