@@ -213,9 +213,9 @@ def registra(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str | None, gt
              tipus: str, idioma: str, valor: str | None = None, ts: str | None = None) -> None:
     if tipus not in TIPUS:
         raise ValueError(f"tipus d'esdeveniment desconegut: {tipus}")
-    if tipus == "motiu_no_compra" and valor not in MOTIUS_VALIDS:
+    if tipus == "motiu_no_compra" and valor not in MOTIUS_VALIDS and not fitxa_config.es_propi(valor):
         raise ValueError(f"motiu desconegut: {valor}")
-    if tipus == "veu_seccio" and valor not in SECCIONS:
+    if tipus == "veu_seccio" and valor not in SECCIONS and not fitxa_config.es_propi(valor):
         raise ValueError(f"secció desconeguda: {valor}")
     ts = ts or temps.ara()
     grup = control.grup_del_dia(con, botiga_id, "origen", ts[:10]) if botiga_id else None
@@ -300,8 +300,30 @@ def context_pagina(con: sqlite3.Connection, peca: sqlite3.Row, botiga_id: str | 
             "accions": cfg["accions"], "ap": cfg["aparença"],
             "benvinguda": tr(cfg["textos"].get("benvinguda") or None, idioma) or "",
             "peu": tr(cfg["textos"].get("peu") or None, idioma) or "",
-            "motius": [(m, t["motius"].get(m, m)) for m in cfg["motius"]],
+            "motius": motius_pagina(cfg, idioma),
+            "propies": {x["id"]: {"titol": fitxa_config.text_idioma(x.get("titol"), idioma),
+                                  "text": fitxa_config.text_idioma(x.get("text"), idioma),
+                                  "plegable": x.get("plegable", False)}
+                        for x in cfg.get("seccions_propies", [])},
             "previsualitza": previsualitza}
+
+
+def motius_pagina(cfg: dict, idioma: str) -> list[tuple[str, str]]:
+    """[(clau, text)] dels motius que veu el client: els estàndard (amb la redacció de la marca, si en té)
+    i els propis, en l'ordre de la configuració."""
+    from . import textos
+    t = textos.TEXTOS[idioma]
+    propis = {x["id"]: x for x in cfg.get("motius_propis", [])}
+    redactats = cfg.get("textos_motius", {})
+    out = []
+    for m in cfg["motius"]:
+        if m in propis:
+            text = fitxa_config.text_idioma(propis[m].get("text"), idioma)
+        else:
+            text = (redactats.get(m) or {}).get(idioma) or t["motius"].get(m, m)
+        if text:
+            out.append((m, text))
+    return out
 
 
 def resol_peticio(con: sqlite3.Connection, peticio_id: int, estat: str, ts: str | None = None) -> bool:

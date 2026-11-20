@@ -1,7 +1,7 @@
 /** Ajudes pures per a l'editor de la fitxa NFC (A). */
-import type { ConfigFitxa, ConfigFitxaParcial, MotiuFitxa, SeccioFitxa } from '../api/types';
+import type { ConfigFitxa, ConfigFitxaParcial, IdPropi, MotiuEstandard, SeccioEstandard, SeccioFitxa, TextIdiomes } from '../api/types';
 
-export const SECCIONS_FITXA: { clau: SeccioFitxa; nom: string; ajuda: string }[] = [
+export const SECCIONS_FITXA: { clau: SeccioEstandard; nom: string; ajuda: string }[] = [
   { clau: 'talles', nom: 'Talles i ajust', ajuda: 'Les talles, com queda i el botó per demanar-ne una altra.' },
   { clau: 'composicio', nom: 'Composició', ajuda: 'Materials i percentatges.' },
   { clau: 'origen', nom: 'Origen', ajuda: 'D’on ve cada etapa. Només surt els dies que la prova d’origen ho permet.' },
@@ -9,9 +9,31 @@ export const SECCIONS_FITXA: { clau: SeccioFitxa; nom: string; ajuda: string }[]
   { clau: 'combina', nom: 'Combina amb', ajuda: 'Altres peces que queden bé amb aquesta.' },
   { clau: 'faq', nom: 'Preguntes freqüents', ajuda: 'Dubtes habituals, amb la resposta.' },
 ];
-export const nomSeccioFitxa = (s: SeccioFitxa) => SECCIONS_FITXA.find((x) => x.clau === s)?.nom ?? s;
+/** Nom d'una secció al tauler. Les pròpies, pel títol que ha escrit la marca. */
+export function nomSeccioFitxa(s: SeccioFitxa, config?: Pick<ConfigFitxa, 'seccions_propies'>): string {
+  const propia = config?.seccions_propies?.find((x) => x.id === s);
+  if (propia) return textEnIdioma(propia.titol, 'ca') || 'Secció sense títol';
+  return SECCIONS_FITXA.find((x) => x.clau === s)?.nom ?? s;
+}
+export const esPropi = (x: string): x is IdPropi => /^p-[a-z0-9-]{1,30}$/.test(x);
 
-export const MOTIUS_FITXA: { clau: MotiuFitxa; nom: string }[] = [
+/** Text en un idioma o, si no n'hi ha, en el primer disponible (com el backend). */
+export function textEnIdioma(t: TextIdiomes | undefined, idioma: string): string {
+  if (!t) return '';
+  for (const i of [idioma, 'ca', 'es', 'en', 'fr']) if (t[i]?.trim()) return t[i];
+  return Object.values(t).find((x) => x?.trim()) ?? '';
+}
+
+/** Identificador nou «p-...» a partir d'un text, que no xoqui amb cap dels existents. */
+export function nouId(text: string, existents: string[]): IdPropi {
+  const base = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24) || 'nou';
+  let id = `p-${base}` as IdPropi, n = 2;
+  while (existents.includes(id)) id = `p-${base}-${n++}` as IdPropi;
+  return id;
+}
+
+export const MOTIUS_FITXA: { clau: MotiuEstandard; nom: string }[] = [
   { clau: 'talla', nom: 'No hi ha la meva talla' }, { clau: 'preu', nom: 'El preu' }, { clau: 'tall', nom: 'El tall o com queda' },
   { clau: 'qualitat', nom: 'La qualitat o el teixit' }, { clau: 'color', nom: 'El color' }, { clau: 'nomes_mirava', nom: 'Només mirava' }, { clau: 'altre', nom: 'Un altre motiu' },
 ];
@@ -48,7 +70,7 @@ export function contrast(a: string, b: string): number {
 }
 
 /** Els grups de primer nivell que una botiga pot personalitzar. */
-export const GRUPS: (keyof ConfigFitxa)[] = ['seccions', 'accions', 'idiomes', 'textos', 'aparença', 'motius'];
+export const GRUPS = ['seccions', 'accions', 'idiomes', 'textos', 'aparença', 'motius'] as const satisfies readonly (keyof ConfigFitxa)[];
 
 /** Configuració efectiva = general + els grups que la botiga sobreescriu. */
 export function combina(general: ConfigFitxa, botiga: ConfigFitxaParcial | null): ConfigFitxa {

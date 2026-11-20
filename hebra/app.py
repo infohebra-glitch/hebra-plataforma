@@ -413,6 +413,8 @@ def motiu(request: Request, token: str, motiu: str = Form(...), b: str = Form(""
     _accio_activa(b, "per_que_no")
     if fitxa.ja_ha_dit_motiu(con, s, peca["gtin"]):  # un motiu per visita i peça
         return _torna(token, b, lang, s, "motiu")
+    if fitxa_config.es_propi(motiu) and motiu not in fitxa_config.efectiva(con, b)["motius"]:
+        raise HTTPException(400, "Motiu desconegut")  # un motiu propi ha d'existir a la configuració
     try:
         fitxa.registra(con, s, b, peca["gtin"], "motiu_no_compra", lang, motiu)
     except ValueError:
@@ -452,6 +454,8 @@ def seccio(request: Request, token: str, seccio: str = Form(...), b: str = Form(
            s: str = Form(...)):
     """Balisa (navigator.sendBeacon) quan el client obre una secció plegable de la fitxa (insight 16)."""
     peca, s, b = _peca(request, token), _sessio_form(s), fitxa.botiga_existent(con, b)
+    if fitxa_config.es_propi(seccio) and seccio not in fitxa_config.efectiva(con, b)["seccions"]["ordre"]:
+        raise HTTPException(400, "Secció desconeguda")
     try:
         fitxa.registra(con, s, b, peca["gtin"], "veu_seccio", lang, seccio)
     except ValueError:

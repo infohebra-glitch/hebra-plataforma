@@ -11,6 +11,7 @@ import { NOMS_PERIODE, type TipusPeriode } from '../lib/periode';
 import { esMock } from '../lib/mode';
 import { aplicaTema, desaTema, llegeixTema, type Tema } from '../lib/tema';
 import { Icona, LogoHebra } from './Icones';
+import { FranjaLotProva, ProveidorLotProva } from './LotProva';
 
 interface Enllac { a: string; nom: string; icona: string; rols?: Rol[]; grup: string }
 const MARCA: Rol[] = ['admin', 'marca'];
@@ -144,11 +145,13 @@ export function Shell() {
   }, [loc.pathname]);
 
   return (
+    <ProveidorLotProva>
     <div className="shell">
       <a href="#principal" className="salta">Salta al contingut</a>
       <aside className="barra-lateral">
         <NavLink to="/" className="marca-hebra" aria-label="Hebra, inici"><LogoHebra />Hebra</NavLink>
         <Navegacio />
+        <div className="peu-lateral"><b>{usuari.nom}</b><span>{ROLS[usuari.rol]}{esMock() ? ' · demostració' : ''}</span></div>
       </aside>
       <div style={{ minWidth: 0 }}>
         <header className="capcalera">
@@ -156,6 +159,7 @@ export function Shell() {
           <SelectorFiltres />
           <MenuUsuari />
         </header>
+        <FranjaLotProva />
         <main id="principal" className="contingut"><Outlet /></main>
       </div>
       <nav className="nav-inferior" aria-label="Navegació principal">
@@ -174,5 +178,6 @@ export function Shell() {
         </>
       )}
     </div>
+    </ProveidorLotProva>
   );
 }

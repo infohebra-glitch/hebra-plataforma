@@ -127,7 +127,7 @@ def _peces_per_sessio(proves: list) -> dict:
 def _motius_donut(con, f) -> dict:
     m = nfc_mod.motius(con, f)
     return grafic("motius", "Per què no se l'emporten", "donut", "enter",
-                  [base.MOTIUS.get(x["motiu"], x["motiu"]) for x in m["per_motiu"]],
+                  [base.nom_motiu(con, x["motiu"]) for x in m["per_motiu"]],
                   [serie("Respostes", [x["n"] for x in m["per_motiu"]])],
                   f"{m['respostes']} respostes a la fitxa ({base.pct_txt(m['taxa_resposta'])} de les sessions de fitxa).")
 
@@ -348,7 +348,7 @@ def _temporada(con, f, k, inf) -> None:
 
     motius = {m["model"]: m["motiu_principal"] for m in taula}
     canviar = [f"«{m['nom']}» ({base.pct_txt(m['conversio'])}"
-               + (f", motiu: {base.MOTIUS.get(motius[m['model']], motius[m['model']]).lower()}" if motius.get(m["model"]) else "")
+               + (f", motiu: {base.nom_motiu(con, motius[m['model']]).lower()}" if motius.get(m["model"]) else "")
                + ")" for m in cua]
     corba = talles_mod.talles(con, f)["corba"]
     recomana = []

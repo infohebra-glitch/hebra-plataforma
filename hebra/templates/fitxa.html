@@ -97,6 +97,19 @@
   <h2>{{ p.titol_combina }}</h2>
   <ul>{% for nom in p.combina %}<li>{{ nom }}</li>{% endfor %}</ul>
 </section>
+{% elif seccio in propies and propies[seccio].text %}
+{% set sp = propies[seccio] %}
+{% if sp.plegable %}
+<details class="panell seccio-propia" data-seccio="{{ seccio }}">
+  <summary><h2>{{ sp.titol }}</h2></summary>
+  {% for par in sp.text.split('\n') if par.strip() %}<p>{{ par }}</p>{% endfor %}
+</details>
+{% else %}
+<section class="panell seccio-propia">
+  <h2>{{ sp.titol }}</h2>
+  {% for par in sp.text.split('\n') if par.strip() %}<p>{{ par }}</p>{% endfor %}
+</section>
+{% endif %}
 {% elif seccio == 'faq' and p.faq %}
 <details class="panell" data-seccio="preguntes">
   <summary><h2>{{ t.preguntes }}</h2></summary>
