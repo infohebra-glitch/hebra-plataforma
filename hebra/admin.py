@@ -137,6 +137,24 @@ def sincronitza_shopify(con: sqlite3.Connection, clau: str, botiga_id: str) -> d
     return shopify.sincronitza(con, botiga_id)
 
 
+def correu_prova(cfg, a: str | None) -> int:
+    """Envia un correu de prova. Retorna 0 si ha anat bé (per a configura-correu.sh)."""
+    from . import correu
+    if not correu.configurat(cfg):
+        print("El correu no està configurat (falta HEBRA_SMTP_HOST). Executeu desplegament/configura-correu.sh.")
+        return 1
+    desti = a or cfg.correu_redirigeix or cfg.smtp_usuari
+    try:
+        enviats = correu.envia(cfg, [desti], "Correu de prova de Hebra",
+                               "Si llegeixes això, la plataforma ja pot enviar informes per correu.")
+    except correu.ErrorCorreu as e:
+        print(e)
+        return 1
+    print(f"Correu de prova enviat a {', '.join(enviats)}"
+          + (f" (mode de proves: tot va a {cfg.correu_redirigeix})" if cfg.correu_redirigeix else ""))
+    return 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Administració de Hebra")
     sub = ap.add_subparsers(dest="ordre", required=True)
@@ -159,6 +177,10 @@ def main() -> None:
     u.add_argument("--rol", required=True, choices=auth.ROLS)
     u.add_argument("--botiga", help="obligatori per al rol botiga")
     u.add_argument("--contrasenya", help="si no s'indica, es demana (no queda a l'historial)")
+    cc = sub.add_parser("contrasenya", help="posa una contrasenya nova a un usuari que ja existeix")
+    cc.add_argument("--correu", required=True)
+    cp = sub.add_parser("correu", help="envia un correu de prova amb la configuració SMTP actual")
+    cp.add_argument("--a", dest="a", help="destinatari (per defecte, HEBRA_CORREU_REDIRIGEIX)")
     sub.add_parser("estoc").add_argument("fitxer")
     sub.add_parser("shopify").add_argument("--botiga", required=True)
     sub.add_parser("retencio")
@@ -172,6 +194,8 @@ def main() -> None:
     cfg = carrega()
     if args.ordre in ("copia", "copies", "restaura"):
         sys.exit(_copies(args, cfg.ruta_bd))
+    if args.ordre == "correu":
+        sys.exit(correu_prova(cfg, args.a))
     con = db.connecta(cfg.ruta_bd)
     db.inicialitza(con)
     if args.ordre == "botiga":
@@ -204,6 +228,15 @@ def main() -> None:
         except ValueError as e:
             sys.exit(str(e))
         print(f"Usuari {uid} creat: {args.correu} ({args.rol})")
+    elif args.ordre == "contrasenya":
+        nova = getpass.getpass("Contrasenya nova: ")
+        if nova != getpass.getpass("Repeteix-la: "):
+            sys.exit("Les contrasenyes no coincideixen")
+        try:
+            auth.canvia_contrasenya(con, args.correu, nova)
+        except ValueError as e:
+            sys.exit(str(e))
+        print(f"Contrasenya canviada: {args.correu}. Les sessions obertes d'aquest usuari s'han tancat.")
     elif args.ordre == "estoc":
         n, errors = estoc.importa_csv(con, Path(args.fitxer).read_text(encoding="utf-8-sig"))
         print(f"{n} files d'estoc importades" + (f"; errors: {errors[:10]}" if errors else ""))

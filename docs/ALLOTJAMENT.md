@@ -151,6 +151,46 @@ La restauració comprova la suma i la integritat abans de tocar res, i guarda la
 2. *New monitor → HTTP(s)* → `https://plataforma.hebraia.com/salut`, cada 5 minuts.
 3. Avís per correu a l'Iscle i al Xavier.
 
+## Pas 6. Correu dels informes (10 min)
+
+```
+sudo bash /opt/hebra-plataforma/desplegament/configura-correu.sh
+```
+
+Pregunta el servidor, l'usuari, la contrasenya, el remitent i l'adreça del **mode de proves**, ho desa a
+`/etc/hebra/plataforma.env`, reinicia la plataforma i envia un correu de prova. Es pot tornar a executar
+sempre que calgui (per canviar de compte o sortir del mode de proves).
+
+- **Mode de proves** (`HEBRA_CORREU_REDIRIGEIX`): amb una adreça, *tots* els correus van només allà, amb els
+  destinataris de veritat a l'assumpte. Per defecte, `clientes@hebraia.com`. Per enviar als clients,
+  torneu a executar l'script i escriviu `-` en aquesta pregunta.
+- **Amb Gmail**: servidor `smtp.gmail.com`, port `587`, usuari = l'adreça de Gmail, contrasenya = una
+  *contrasenya d'aplicació* (Compte de Google → Seguretat → Verificació en 2 passos → Contrasenyes
+  d'aplicacions; escriviu-la sense espais). Perquè el remitent sigui `clientes@hebraia.com`, a Gmail:
+  Configuració → Comptes → *Envia el correu com a* → afegiu `clientes@hebraia.com`.
+- Per provar-lo després: `sudo hebra-admin correu` (o `--a altra@adreca.com`).
+
+## Una instal·lació per client
+
+La plataforma és d'una sola marca: cada client té la seva màquina (recomanat: la Raspberry Pi del kit del
+pilot) i la seva adreça. A la màquina nova, el pas 3 amb el domini del client:
+
+```
+sudo DOMINI=marca.hebraia.com BRANCA=claude/project-thread-372x5d bash hebra-plataforma/desplegament/instal-la-servidor.sh
+```
+
+El túnel de Cloudflare es diu `hebra-<primera part del domini>` (`hebra-marca`), així no xoca amb el de
+`plataforma.hebraia.com` (`hebra-plataforma`). Es pot triar un altre nom amb `TUNEL=...`.
+
+**Moure una instal·lació amb les seves dades** (p. ex. de Google Cloud a una Raspberry): instal·leu la nova
+amb el mateix domini i un altre nom de túnel (`sudo TUNEL=hebra-plataforma-2 DOMINI=plataforma.hebraia.com ...`;
+en aquell moment l'adreça ja passa a la màquina nova), feu `sudo hebra-admin copia` a la vella, copieu el fitxer `.db.gz` a la nova i
+`sudo systemctl stop hebra-web && sudo hebra-admin restaura FITXER.db.gz && sudo systemctl start hebra-web`.
+Copieu també `HEBRA_SECRET` de `/etc/hebra/plataforma.env` (si no, caldrà tornar a connectar Shopify o Square).
+Quan la nova funcioni, atureu el túnel de la vella (`sudo systemctl disable --now cloudflared`).
+
+**Contrasenya oblidada**: `sudo hebra-admin contrasenya --correu nom@hebraia.com`.
+
 ## Altres maneres (si algun dia cal)
 
 - **Servidor al núvol amb IP pública** (Hetzner, Oracle si torna a tenir capacitat...): el mateix script amb `ACCES=caddy` posa HTTPS amb Caddy. Cal un registre `A` cap a la IP i obrir els ports 80 i 443.

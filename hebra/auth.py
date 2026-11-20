@@ -113,6 +113,18 @@ def usuari_json(fila: sqlite3.Row) -> dict:
             "botiga_id": fila["botiga_id"]}
 
 
+def canvia_contrasenya(con: sqlite3.Connection, correu: str, nova: str) -> None:
+    """Contrasenya nova per a un usuari existent (des del servidor). Tanca totes les seves sessions."""
+    correu = correu.strip().lower()
+    if len(nova) < 10:
+        raise ValueError("La contrasenya ha de tenir 10 caràcters o més")
+    cur = con.execute("UPDATE usuari SET hash_contrasenya = ?, versio_sessio = versio_sessio + 1 WHERE correu = ?",
+                      (hash_contrasenya(nova), correu))
+    if cur.rowcount == 0:
+        raise ValueError(f"No hi ha cap usuari amb el correu {correu}")
+    con.commit()
+
+
 def crea_usuari(con: sqlite3.Connection, correu: str, nom: str, rol: str, contrasenya: str,
                 botiga_id: str | None = None) -> int:
     correu = correu.strip().lower()

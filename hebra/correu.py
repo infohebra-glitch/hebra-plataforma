@@ -4,6 +4,9 @@ Configuració per variables d'entorn (hebra/config.py): HEBRA_SMTP_HOST,
 HEBRA_SMTP_PORT (587), HEBRA_SMTP_USUARI, HEBRA_SMTP_CONTRASENYA i
 HEBRA_SMTP_REMITENT. Sense host, `configurat` és fals i `envia` no fa res.
 
+Mode de proves: amb HEBRA_CORREU_REDIRIGEIX=<adreça>, tots els correus van només a aquella adreça,
+amb els destinataris originals a l'assumpte i al començament del text. Buida = enviament normal.
+
 Privacitat: els destinataris són sempre persones de l'EQUIP de la marca o de la
 botiga (els informes programats i el botó «Envia per correu»). Mai s'envia res a
 clients finals: la plataforma no en desa cap correu.
@@ -61,9 +64,15 @@ def envia(cfg: Config, destinataris: list[str], assumpte: str, text: str,
     remitent = cfg.smtp_remitent or cfg.smtp_usuari
     if not remitent:
         raise ErrorCorreu("El correu no està configurat (falta HEBRA_SMTP_REMITENT)")
+    reals = destinataris
+    if cfg.correu_redirigeix:
+        reals = valida_destinataris([cfg.correu_redirigeix])
+        assumpte = f"[Proves, per a {', '.join(destinataris)}] {assumpte}"
+        text = (f"Mode de proves: aquest correu anava a {', '.join(destinataris)} i s'ha enviat només a "
+                f"{reals[0]} (HEBRA_CORREU_REDIRIGEIX).\n\n{text}")
     m = EmailMessage()
     m["From"] = remitent
-    m["To"] = ", ".join(destinataris)
+    m["To"] = ", ".join(reals)
     m["Subject"] = assumpte
     m["Date"] = formatdate(localtime=True)
     m["Message-ID"] = make_msgid(domain=cfg.smtp_host)
