@@ -1,0 +1,96 @@
+---
+// Cuatro momentos, de la cabina al lunes. En pantallas grandes la sección se fija y avanza con el scroll.
+import type { Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+const T = {
+  es: {
+    k: 'De la cabina al lunes',
+    steps: [
+      ['Se prueba', 'La prenda entra en la cabina. Sin que nadie haga nada, queda contado qué modelo, qué talla y cuánto rato.', 'cabinas', 'Cabinas de una tienda de moda'],
+      ['Se pide', 'Desde la cabina, el cliente toca la etiqueta con el móvil y pide otra talla. La tienda lo ve al momento.', 'percha', 'Prendas colgadas en una percha'],
+      ['Se decide', 'Se la lleva o no. Si no, nos dice por qué: talla, corte, precio, color o calidad.', 'espejo', 'Una clienta frente al espejo del probador'],
+      ['Se actúa', 'Cada lunes, una página por tienda con una acción, una persona responsable y una fecha.', 'tienda', 'Interior de una tienda de ropa'],
+    ],
+  },
+  ca: {
+    k: 'De la cabina al dilluns',
+    steps: [
+      ['S’emprova', 'La peça entra a la cabina. Sense que ningú faci res, queda comptat quin model, quina talla i quanta estona.', 'cabinas', 'Cabines d’una botiga de moda'],
+      ['Es demana', 'Des de la cabina, el client toca l’etiqueta amb el mòbil i demana una altra talla. La botiga ho veu a l’instant.', 'percha', 'Peces penjades en una perxa'],
+      ['Es decideix', 'Se l’endú o no. Si no, ens diu per què: talla, tall, preu, color o qualitat.', 'espejo', 'Una clienta davant del mirall de l’emprovador'],
+      ['S’actua', 'Cada dilluns, una pàgina per botiga amb una acció, una persona responsable i una data.', 'tienda', 'Interior d’una botiga de roba'],
+    ],
+  },
+  en: {
+    k: 'From the room to Monday',
+    steps: [
+      ['Tried on', 'The garment goes into the room. Without anyone doing a thing, we count which style, which size and for how long.', 'cabinas', 'Fitting rooms in a fashion store'],
+      ['Asked for', 'From the room, the customer taps the tag with their phone and asks for another size. The store sees it instantly.', 'percha', 'Garments hanging on a rail'],
+      ['Decided', 'They buy it or they don’t. If not, they tell us why: size, fit, price, colour or quality.', 'espejo', 'A customer in front of the fitting room mirror'],
+      ['Acted on', 'Every Monday, one page per store with an action, an owner and a date.', 'tienda', 'Inside a clothing store'],
+    ],
+  },
+}[lang];
+---
+<section class="proc" data-process>
+  <div class="proc-pin" data-process-pin>
+    <div class="wrap proc-in">
+      <div class="proc-text">
+        <p class="kick">{T.k}</p>
+        <ol class="proc-list">
+          {T.steps.map(([h, p], i) => (
+            <li class={i === 0 ? 'on' : ''} data-step>
+              <span class="proc-n">{String(i + 1).padStart(2, '0')}</span>
+              <h3>{h}</h3>
+              <p>{p}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div class="proc-media" aria-hidden="true">
+        {T.steps.map(([, , img, alt], i) => (
+          <figure class={i === 0 ? 'on' : ''} data-step-img>
+            <img src={`/img/foto/${img}.webp`} alt={alt} loading="lazy" width="1200" height="1500" />
+          </figure>
+        ))}
+        <div class="proc-count"><b data-step-now>01</b> / 0{T.steps.length}</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .proc { background: var(--ink); color: var(--on-dark); }
+  .proc-pin { min-height: 100svh; display: grid; align-items: center; padding: clamp(5rem, 10vw, 8rem) 0; }
+  .proc-in { display: grid; gap: 3rem; }
+  .proc .kick { color: var(--on-dark-2); }
+  .proc .kick::before { background: var(--tint); }
+  .proc-list { list-style: none; margin: 0; padding: 0; }
+  .proc-list li { position: relative; padding: 1.1rem 0 1.1rem 3.2rem; border-top: 1px solid var(--rule-dark); }
+  .proc-n { position: absolute; left: 0; top: 1.55rem; font-size: var(--step--1); color: var(--on-dark-2); font-variant-numeric: tabular-nums; }
+  .proc-list h3 { font: 300 italic clamp(2.2rem, 1.4rem + 3.4vw, 5rem)/1 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 100; letter-spacing: -0.04em; margin: 0; color: var(--on-dark); transition: color .6s var(--ease); }
+  .proc-list p { margin: .8rem 0 .2rem; color: var(--on-dark-2); max-width: 38ch; }
+  .proc-media { position: relative; aspect-ratio: 4 / 5; border-radius: var(--radius); overflow: hidden; background: var(--ink-2); }
+  .proc-media figure { position: absolute; inset: 0; margin: 0; }
+  .proc-media img { width: 100%; height: 100%; object-fit: cover; }
+  .proc-count { position: absolute; left: 1rem; bottom: 1rem; padding: .45rem .8rem; border-radius: 999px; background: color-mix(in srgb, var(--ink) 55%, transparent); backdrop-filter: blur(10px); font-size: .8rem; color: var(--on-dark-2); font-variant-numeric: tabular-nums; }
+  .proc-count b { color: var(--on-dark); font-weight: 600; }
+
+  /* En pantallas grandes: un paso cada vez, la foto cambia con una cortina */
+  @media (min-width: 960px) {
+    .proc-in { grid-template-columns: 1.1fr 1fr; align-items: center; gap: clamp(3rem, 7vw, 7rem); }
+    .proc-media { max-height: 78svh; justify-self: end; width: 100%; }
+    :global(.js) .proc-list li:not(.on) h3 { color: color-mix(in srgb, var(--on-dark) 22%, transparent); }
+    :global(.js) .proc-list li p { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .7s var(--ease), opacity .5s; opacity: 0; margin: 0; overflow: hidden; }
+    :global(.js) .proc-list li.on p { opacity: 1; margin-top: .8rem; }
+    :global(.js) .proc-media figure { clip-path: inset(100% 0 0 0); transition: clip-path 1s var(--ease); }
+    :global(.js) .proc-media figure.on { clip-path: inset(0 0 0 0); }
+    :global(.js) .proc-media figure.on img { animation: proc-zoom 1.4s var(--ease-out) both; }
+  }
+  @media (max-width: 959px) {
+    .proc-media { display: none; }
+    .proc-list li { padding-bottom: 1.6rem; }
+  }
+  @keyframes proc-zoom { from { transform: scale(1.12); } to { transform: none; } }
+</style>

@@ -1,0 +1,182 @@
+---
+// Alta a la newsletter mensual. Envía el correo a MailerLite con fetch (sin su script ni cookies).
+// Sin JavaScript, el formulario se envía directamente a MailerLite.
+import { path, type Lang } from '../i18n';
+interface Props { lang: Lang; compact?: boolean }
+const { lang, compact = false } = Astro.props;
+const T = {
+  es: {
+    kick: 'Newsletter',
+    cH: 'Una carta al mes para tiendas de moda.',
+    cP: 'Cinco minutos, tres cosas útiles. Y de regalo, el calendario normativo 2026‑2030 en PDF.',
+    ph: 'nombre@tutienda.com',
+    items: [['Un dato del probador', 'Qué se prueba y no se vende, y por qué. Con cifras reales, explicado en dos líneas.'], ['Una novedad de normativa', 'Lo que cambia para una marca con tienda y cuándo te toca.'], ['Un enlace útil', 'Un estudio, una herramienta o un caso que vale la pena leer.']],
+    facts: ['1 vez al mes', 'Gratis', 'Baja con un clic'],
+    gift: 'Regalo al apuntarte', giftT: 'Calendario normativo 2026‑2030 (PDF)', cover: 'Portada del calendario normativo 2026-2030 de Hebra',
+    h: 'Una carta al mes para <em>tiendas de moda.</em>',
+    p: 'Para quien lleva una tienda de moda y no tiene tiempo de leerlo todo. Cinco minutos al mes, tres cosas:',
+    email: 'Tu correo profesional',
+    consentA: 'Quiero recibir la newsletter de Hebra (como máximo una vez al mes). He leído la',
+    consentL: 'política de privacidad',
+    consentB: 'y puedo darme de baja cuando quiera.',
+    layer: '<strong>Responsable:</strong> Hebra. <strong>Finalidad:</strong> enviarte la newsletter. <strong>Base legal:</strong> tu consentimiento. <strong>Destinatarios:</strong> MailerLite (UE) la envía por encargo nuestro. <strong>Derechos:</strong> baja en cada correo y los demás de la política de privacidad.',
+    send: 'Apuntarme',
+    sending: 'Enviando…',
+    ok: '<strong>¡Ya estás dentro!</strong> Recibirás la primera carta el mes que viene. Aquí tienes el calendario:',
+    pdf: 'Descargar el calendario (PDF)',
+    err: 'No se ha podido enviar. Vuelve a probarlo o escríbenos a clientes@hebraia.com.',
+  },
+  ca: {
+    kick: 'Newsletter',
+    cH: 'Una carta al mes per a botigues de moda.',
+    cP: 'Cinc minuts, tres coses útils. I de regal, el calendari normatiu 2026‑2030 en PDF.',
+    ph: 'nom@latevabotiga.cat',
+    items: [['Una dada de l’emprovador', 'Què es prova i no es ven, i per què. Amb xifres reals, explicat en dues línies.'], ['Una novetat de normativa', 'El que canvia per a una marca amb botiga i quan et toca.'], ['Un enllaç útil', 'Un estudi, una eina o un cas que val la pena llegir.']],
+    facts: ['1 cop al mes', 'Gratis', 'Baixa amb un clic'],
+    gift: 'Regal en apuntar-t’hi', giftT: 'Calendari normatiu 2026‑2030 (PDF)', cover: 'Portada del calendari normatiu 2026-2030 d’Hebra',
+    h: 'Una carta al mes per a <em>botigues de moda.</em>',
+    p: 'Per a qui porta una botiga de moda i no té temps de llegir-ho tot. Cinc minuts al mes, tres coses:',
+    email: 'El teu correu professional',
+    consentA: 'Vull rebre la newsletter d’Hebra (com a màxim un cop al mes). He llegit la',
+    consentL: 'política de privacitat',
+    consentB: 'i me’n puc donar de baixa quan vulgui.',
+    layer: '<strong>Responsable:</strong> Hebra. <strong>Finalitat:</strong> enviar-te la newsletter. <strong>Base legal:</strong> el teu consentiment. <strong>Destinataris:</strong> MailerLite (UE) l’envia per encàrrec nostre. <strong>Drets:</strong> baixa a cada correu i els altres de la política de privacitat.',
+    send: 'Apuntar-me',
+    sending: 'Enviant…',
+    ok: '<strong>Ja hi ets!</strong> Rebràs la primera carta el mes que ve. Aquí tens el calendari:',
+    pdf: 'Descarregar el calendari (PDF)',
+    err: 'No s’ha pogut enviar. Torna-ho a provar o escriu-nos a clientes@hebraia.com.',
+  },
+  en: {
+    kick: 'Newsletter',
+    cH: 'One letter a month for fashion stores.',
+    cP: 'Five minutes, three useful things. Plus a free 2026‑2030 regulation calendar (PDF).',
+    ph: 'name@yourstore.com',
+    items: [['One fitting-room insight', 'What gets tried on but not bought, and why. Real figures, explained in two lines.'], ['One regulation update', 'What changes for a brand with shops, and when it applies to you.'], ['One useful link', 'A study, a tool or a case worth reading.']],
+    facts: ['Once a month', 'Free', 'One-click unsubscribe'],
+    gift: 'Free when you sign up', giftT: '2026‑2030 regulation calendar (PDF)', cover: 'Cover of Hebra’s 2026-2030 regulation calendar',
+    h: 'One letter a month for <em>fashion stores.</em>',
+    p: 'For people who run a fashion store and don’t have time to read everything. Five minutes a month, three things:',
+    email: 'Your work email',
+    consentA: 'I’d like to receive Hebra’s newsletter (no more than once a month). I have read the',
+    consentL: 'privacy policy',
+    consentB: 'and can unsubscribe at any time.',
+    layer: '<strong>Controller:</strong> Hebra. <strong>Purpose:</strong> sending you the newsletter. <strong>Legal basis:</strong> your consent. <strong>Recipients:</strong> MailerLite (EU) sends it on our behalf. <strong>Rights:</strong> unsubscribe in every email, plus the others in the privacy policy.',
+    send: 'Sign me up',
+    sending: 'Sending…',
+    ok: '<strong>You’re in!</strong> Your first letter arrives next month. Here is the calendar:',
+    pdf: 'Download the calendar (PDF)',
+    err: 'Something went wrong. Please try again or write to clientes@hebraia.com.',
+  },
+}[lang];
+const pdf = `/descargas/hebra-calendario-normativo-2026-2030-${lang}.pdf`;
+---
+{compact ? (
+<section class="nlc" id="newsletter" aria-label={T.kick}>
+  <div class="wrap nlc-in">
+    <div class="nlc-copy">
+      <p class="kick">{T.kick}</p>
+      <p class="nlc-h">{T.cH}</p>
+      <p class="nlc-p">{T.cP}</p>
+    </div>
+    <form class="f nl-form nlc-form" method="POST" action="/api/subscribe" data-newsletter data-sending={T.sending} data-err={T.err}>
+        <input type="hidden" name="ml-submit" value="1" />
+        <input type="hidden" name="anticsrf" value="true" />
+        <input type="hidden" name="fields[idioma]" value={lang} />
+        <p class="hp"><label>Web <input name="web-url" tabindex="-1" autocomplete="off" /></label></p>
+        <div class="nl-row">
+          <label class="nl-mail"><span>{T.email}</span> <input name="fields[email]" type="email" autocomplete="email" placeholder={T.ph} required /></label>
+          <button class="btn" type="submit">{T.send}</button>
+        </div>
+        <label class="check"><input type="checkbox" name="consent" required /> <span>{T.consentA}{' '}<a class="textlink" href={path(lang, '/privacidad/')}>{T.consentL}</a>{' '}{T.consentB}</span></label>
+        <p class="layer" set:html={T.layer} />
+        <p class="nl-msg" data-nl-msg role="status" aria-live="polite" hidden></p>
+        <p class="nl-ok" data-nl-ok hidden><span set:html={T.ok} />{' '}<a class="btn" href={pdf} download>{T.pdf}</a></p>
+      </form>
+  </div>
+</section>
+) : (
+<section class="nl" id="newsletter">
+  <div class="wrap nl-in">
+    <div class="nl-copy">
+      <p class="kick">{T.kick}</p>
+      <h2 set:html={T.h} />
+      <p class="nl-lead">{T.p}</p>
+      <ol class="nl-items">
+        {T.items.map(([h, d], i) => (
+          <li><span class="nl-n">0{i + 1}</span><div><strong>{h}</strong><span>{d}</span></div></li>
+        ))}
+      </ol>
+      <ul class="nl-facts">{T.facts.map((f) => <li>{f}</li>)}</ul>
+    </div>
+    <div class="nl-card">
+      <div class="nl-gift">
+        <img src={`/img/newsletter-portada-${lang}.jpg`} width="414" height="585" alt={T.cover} loading="lazy" decoding="async" />
+        <div><p class="nl-gift-k">{T.gift}</p><p class="nl-gift-t">{T.giftT}</p></div>
+      </div>
+      <form class="f nl-form" method="POST" action="/api/subscribe" data-newsletter data-sending={T.sending} data-err={T.err}>
+        <input type="hidden" name="ml-submit" value="1" />
+        <input type="hidden" name="anticsrf" value="true" />
+        <input type="hidden" name="fields[idioma]" value={lang} />
+        <p class="hp"><label>Web <input name="web-url" tabindex="-1" autocomplete="off" /></label></p>
+        <div class="nl-row">
+          <label class="nl-mail"><span>{T.email}</span> <input name="fields[email]" type="email" autocomplete="email" placeholder={T.ph} required /></label>
+          <button class="btn" type="submit">{T.send}</button>
+        </div>
+        <label class="check"><input type="checkbox" name="consent" required /> <span>{T.consentA}{' '}<a class="textlink" href={path(lang, '/privacidad/')}>{T.consentL}</a>{' '}{T.consentB}</span></label>
+        <p class="layer" set:html={T.layer} />
+        <p class="nl-msg" data-nl-msg role="status" aria-live="polite" hidden></p>
+        <p class="nl-ok" data-nl-ok hidden><span set:html={T.ok} />{' '}<a class="btn" href={pdf} download>{T.pdf}</a></p>
+      </form>
+    </div>
+  </div>
+</section>
+)}
+
+<style>
+  .nl { border-bottom: 1px solid var(--rule-dark); background: var(--ink); color: var(--on-dark); padding: clamp(4.5rem, 9vw, 8rem) 0; position: relative; overflow: hidden; isolation: isolate; }
+  .nl::before { content: ''; position: absolute; z-index: -1; width: 60vw; aspect-ratio: 1; right: -18vw; top: -30%; border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 55%, transparent), transparent 70%); opacity: .7; }
+  .nl .kick { color: var(--on-dark-2); }
+  .nl .kick::before { background: var(--tint); }
+  .nl-in { display: grid; gap: 3rem 5rem; align-items: center; }
+  @media (min-width: 960px) { .nl-in { grid-template-columns: 6fr 5fr; } }
+  .nl h2 { font-size: var(--step-3); line-height: 1; letter-spacing: -0.04em; margin: 0 0 1.4rem; max-width: 14ch; }
+  .nl h2 :global(em) { color: var(--tint); }
+  .nl-lead { color: var(--on-dark-2); font-size: var(--step-1); max-width: 34ch; margin: 0 0 2rem; }
+  .nl-items { list-style: none; padding: 0; margin: 0; display: grid; border-top: 1px solid var(--rule-dark); }
+  .nl-items li { display: grid; grid-template-columns: 3rem 1fr; gap: 1rem; padding: 1.1rem 0; border-bottom: 1px solid var(--rule-dark); }
+  .nl-n { font-family: var(--serif); font-style: italic; color: var(--tint); font-size: var(--step-1); line-height: 1.2; }
+  .nl-items strong { display: block; font-weight: 600; margin-bottom: .2rem; }
+  .nl-items span:not(.nl-n) { color: var(--on-dark-2); font-size: var(--step-0); }
+  .nl-facts { list-style: none; padding: 0; margin: 1.6rem 0 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+  .nl-facts li { font-size: var(--step--1); border: 1px solid var(--rule-dark); border-radius: 999px; padding: .35rem .85rem; color: var(--on-dark); }
+  .nl-card { background: var(--blanc); color: var(--on-light); border-radius: var(--radius); padding: clamp(1.4rem, 3vw, 2.2rem); box-shadow: 0 30px 80px -30px rgba(0,0,0,.55); }
+  .nl-gift { display: grid; grid-template-columns: 5.5rem 1fr; gap: 1.2rem; align-items: center; padding-bottom: 1.4rem; margin-bottom: 1.4rem; border-bottom: 1px solid var(--rule-light); }
+  .nl-gift img { width: 100%; height: auto; border-radius: 4px; box-shadow: 0 10px 24px -8px rgba(11,21,34,.45); transform: rotate(-4deg); }
+  .nl-gift-k { margin: 0 0 .25rem; font-size: var(--step--1); color: var(--grana); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .nl-gift-t { margin: 0; font-family: var(--serif); font-size: var(--step-1); line-height: 1.2; }
+  .nl-form { max-width: none; gap: 1rem; }
+  .nl-row { display: grid; gap: .7rem; align-items: end; }
+  @media (min-width: 560px) { .nl-row { grid-template-columns: 1fr auto; } }
+  .nl-mail { margin: 0; }
+  .nl .btn { white-space: nowrap; }
+  .nl .layer { font-size: .74rem; line-height: 1.5; color: var(--on-light-2); margin: 0; }
+  .nl-msg { color: var(--grana); margin: 0; }
+  .nl-ok { margin: 0; display: grid; gap: 1rem; justify-items: start; }
+  .nlc { background: var(--grana); color: var(--blanc); padding: clamp(2.6rem, 5vw, 3.6rem) 0; }
+  .nlc .kick { color: color-mix(in srgb, var(--blanc) 75%, transparent); }
+  .nlc .kick::before { background: var(--blanc); }
+  .nlc-in { display: grid; gap: 1.6rem 4rem; align-items: center; }
+  @media (min-width: 960px) { .nlc-in { grid-template-columns: 5fr 6fr; } }
+  .nlc-h { font-family: var(--serif); font-size: var(--step-2); line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 .6rem; }
+  .nlc-p { margin: 0; color: color-mix(in srgb, var(--blanc) 85%, transparent); max-width: 40ch; }
+  .nlc-form { max-width: none; gap: .8rem; color: var(--blanc); }
+  .nlc-form .nl-mail > span { color: var(--blanc); }
+  .nlc-form input[type=email] { background: var(--blanc); color: var(--on-light); }
+  .nlc-form .check, .nlc-form .check a, .nlc-form .layer { color: color-mix(in srgb, var(--blanc) 88%, transparent); }
+  .nlc-form .layer { font-size: .72rem; line-height: 1.5; margin: 0; }
+  .nlc-form .btn { background: var(--ink); color: var(--blanc); border-color: var(--ink); white-space: nowrap; }
+  .nlc-form .nl-msg { color: var(--blanc); font-weight: 600; margin: 0; }
+  .nlc-form .nl-ok { margin: 0; display: grid; gap: .8rem; justify-items: start; }
+</style>

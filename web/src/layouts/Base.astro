@@ -1,0 +1,226 @@
+---
+import '../styles/global.css';
+import { ui, path, langs, langShort, langName, contacts, mainEmail, type Lang } from '../i18n';
+import { seo } from '../seo';
+import Newsletter from '../components/Newsletter.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  lang?: Lang;
+  route?: string; // ruta sin idioma, p. ej. '/probador/', para enlazar las otras versiones
+  current?: string;
+  bare?: boolean; // ficha NFC: sin cabecera ni pie de la web
+  dark?: boolean; // la página empieza sobre fondo azul
+  noindex?: boolean; // 404 y páginas sin valor de búsqueda
+  article?: { published: Date; modified?: Date; section?: string }; // artículos del blog
+}
+const { title, description: descProp, lang = 'es', route = '/', current = route, bare = false, dark = false, article } = Astro.props;
+const t = ui[lang];
+const nlStrip = route !== '/' && !route.startsWith('/blog') && !route.startsWith('/p/') && route !== '/gracias/';
+const hasNl = nlStrip || route === '/' || route.startsWith('/blog');
+const nav = t.nav.map(([href, label]) => ({ route: href, href: path(lang, href), label }));
+const entry = article ? undefined : seo[lang][route];
+const fullTitle = entry?.title ?? (title === 'Hebra' ? t.titleHome : `${title} · Hebra`.length > 60 ? title : `${title} · Hebra`);
+const description = entry?.desc ?? descProp;
+const noindex = Astro.props.noindex || entry?.noindex || false;
+const canonical = new URL(path(lang, route), Astro.site);
+const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
+const site = Astro.site!.href.replace(/\/$/, '');
+const ogImage = `${site}/img/og-${lang}.jpg`;
+// Datos estructurados (Schema.org): la organización y la web en todas las páginas; la página y, en el blog, el artículo.
+const org = {
+  '@type': 'Organization', '@id': `${site}/#organization`, name: 'Hebra', url: `${site}/`,
+  logo: { '@type': 'ImageObject', url: `${site}/img/logo-hebra-512.png`, width: 512, height: 512 },
+  email: mainEmail, slogan: 'Trace the truth',
+  description: seo[lang]['/'].desc,
+  address: { '@type': 'PostalAddress', addressLocality: 'Barcelona', addressCountry: 'ES' },
+  areaServed: 'EU',
+  sameAs: ['https://www.instagram.com/hebra.trace/', 'https://www.tiktok.com/@hebra.trace'],
+  contactPoint: { '@type': 'ContactPoint', contactType: 'sales', email: mainEmail, availableLanguage: ['es', 'ca', 'en'] },
+};
+const website = { '@type': 'WebSite', '@id': `${site}/#website`, url: `${site}/`, name: 'Hebra', inLanguage: ['es', 'ca', 'en'], publisher: { '@id': `${site}/#organization` } };
+const crumbs = [{ name: t.home, url: new URL(path(lang, '/'), Astro.site).href }];
+if (route !== '/') {
+  if (route.startsWith('/blog/') && route !== '/blog/') crumbs.push({ name: 'Blog', url: new URL(path(lang, '/blog/'), Astro.site).href });
+  crumbs.push({ name: (title === 'Hebra' ? fullTitle : title), url: canonical.href });
+}
+const page = {
+  '@type': article ? 'WebPage' : (route === '/contacto/' ? 'ContactPage' : route === '/nosotros/' ? 'AboutPage' : route === '/blog/' ? 'CollectionPage' : 'WebPage'),
+  '@id': `${canonical.href}#webpage`, url: canonical.href, name: fullTitle, description, inLanguage: lang,
+  isPartOf: { '@id': `${site}/#website` }, about: { '@id': `${site}/#organization` },
+  primaryImageOfPage: { '@type': 'ImageObject', url: ogImage },
+  breadcrumb: crumbs.length > 1 ? { '@type': 'BreadcrumbList', itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.url })) } : undefined,
+};
+const graph: object[] = [org, website, page];
+if (article) graph.push({
+  '@type': 'BlogPosting', '@id': `${canonical.href}#article`, headline: title, description, inLanguage: lang,
+  datePublished: article.published.toISOString().slice(0, 10), dateModified: (article.modified ?? article.published).toISOString().slice(0, 10),
+  articleSection: article.section, image: ogImage, url: canonical.href, mainEntityOfPage: { '@id': `${canonical.href}#webpage` },
+  author: { '@id': `${site}/#organization` }, publisher: { '@id': `${site}/#organization` },
+});
+const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replace(/</g, '\\u003c');
+---
+<!doctype html>
+<html lang={lang}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{fullTitle}</title>
+  <meta name="description" content={description} />
+  {noindex ? <meta name="robots" content="noindex, follow" /> : <link rel="canonical" href={canonical} />}
+  {!noindex && langs.map((l) => <link rel="alternate" hreflang={l} href={new URL(path(l, route), Astro.site)} />)}
+  {!noindex && <link rel="alternate" hreflang="x-default" href={new URL(path('es', route), Astro.site)} />}
+  {!noindex && <link rel="sitemap" type="application/xml" href="/sitemap.xml" />}
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content={{ es: '#07121F', ca: '#160810', en: '#121110' }[lang]} />
+  <meta property="og:type" content={article ? 'article' : 'website'} />
+  <meta property="og:site_name" content="Hebra" />
+  <meta property="og:title" content={fullTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content={seo[lang]['/'].title} />
+  <meta property="og:locale" content={locale} />
+  {langs.filter((l) => l !== lang).map((l) => <meta property="og:locale:alternate" content={{ es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[l]} />)}
+  {article && <meta property="article:published_time" content={article.published.toISOString()} />}
+  <meta name="twitter:card" content="summary_large_image" />
+  {!bare && <script type="application/ld+json" set:html={jsonld} />}
+  <script is:inline>document.documentElement.classList.add('js');</script>
+</head>
+<body class={bare ? 'bare' : ''}>
+  {!bare && (
+    <>
+      <div class="progress" data-progress aria-hidden="true"><i></i></div>
+      <a class="brand-fixed" href={path(lang, '/')}>
+        <img src="/img/logo-blanc.png" alt={`Hebra, ${t.home.toLowerCase()}`} width="20" height="29" />
+      </a>
+      <div class="top-right">
+        <span class="top-langs" aria-label={t.langLabel}>
+          {langs.map((l) => (
+            <a href={path(l, route)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} title={langName[l]}>{langShort[l]}</a>
+          ))}
+        </span>
+        {hasNl && <a class="nl-fixed" href="#newsletter">{t.newsletter}</a>}
+        <a class="cta-fixed" href={path(lang, '/contacto/#demo')} data-magnetic>{t.demo}</a>
+      </div>
+      <nav class="dock" aria-label={t.navMain} data-dock>
+        <a class="dock-word" href={path(lang, '/')}>Hebra<sup>®</sup></a>
+        <ul class="dock-links">
+          {nav.map((n) => (
+            <li><a href={n.href} aria-current={current === n.route || (n.route !== '/' && current.startsWith(n.route)) ? 'page' : undefined}>{n.label}</a></li>
+          ))}
+        </ul>
+        <button class="dock-menu" type="button" aria-expanded="false" aria-controls="overlay" data-menu data-close={t.close}>{t.menu}</button>
+      </nav>
+      <!-- El menú móvil se monta con JS a partir de estos datos (no son enlaces en el HTML: así no repiten los de la barra) -->
+      <div class="overlay" id="overlay" data-overlay hidden data-items={JSON.stringify({
+        links: [...nav.map((n) => [n.href, n.label]), [path(lang, '/contacto/'), t.contact]],
+        langs: langs.map((l) => [path(l, route), langName[l], l, l === lang]),
+        demo: [path(lang, '/contacto/#demo'), t.demo],
+      })}></div>
+      <div class="cursor" aria-hidden="true" data-cursor><span></span></div>
+    </>
+  )}
+  <main id="main"><slot />{!bare && nlStrip && <Newsletter lang={lang} compact />}</main>
+  {!bare && (
+    <footer class="foot">
+      <div class="wrap">
+        <div class="foot-grid">
+          <nav aria-label={t.navFoot}>
+            <ul>
+              <li><a href={path(lang, '/piloto/')}>{t.pilot}</a></li>
+              <li><a href={path(lang, '/contacto/')}>{t.contact}</a></li>
+              <li><a href={'#newsletter'}>{t.newsletter}</a></li>
+            </ul>
+            <ul>
+              {contacts.map((c) => <li><a href={`mailto:${c.email}`}>{c.email}</a></li>)}
+              <li><a href="https://www.instagram.com/hebra.trace/" rel="noopener">Instagram</a></li>
+              <li><a href="https://www.tiktok.com/@hebra.trace" rel="noopener">TikTok</a></li>
+              <li><a href={path(lang, '/p/demo/')}>{t.fichaDemo}</a></li>
+            </ul>
+          </nav>
+          <p class="foot-claim">{t.footClaim}</p>
+        </div>
+        <p class="foot-word" aria-hidden="true">Hebra</p>
+        <p class="foot-base"><span>{t.base}</span><span class="foot-legal"><a href={path(lang, '/privacidad/')}>{t.privacy}</a><a href={path(lang, '/aviso-legal/')}>{t.legal}</a><a href={path(lang, '/cookies/')}>{t.cookies}</a></span></p>
+      </div>
+    </footer>
+  )}
+  <script>
+    import '../scripts/motion.js';
+  </script>
+</body>
+</html>
+
+<style is:global>
+  .progress { position: fixed; inset: 0 0 auto; height: 3px; z-index: 80; cursor: pointer; }
+  .progress i { display: block; height: 100%; background: var(--tint); transform-origin: left; transform: scaleX(0); }
+  .brand-fixed { position: fixed; top: 1.4rem; left: var(--gutter); z-index: 60; mix-blend-mode: difference; }
+  .brand-fixed img { height: 30px; width: auto; }
+  .top-right { position: fixed; top: 1.1rem; right: var(--gutter); z-index: 60; display: flex; align-items: center; gap: 1rem; }
+  .top-langs { display: flex; gap: .2rem; padding: .3rem; border-radius: 999px; background: color-mix(in srgb, var(--ink) 55%, transparent); border: 1px solid var(--rule-dark); backdrop-filter: blur(10px); }
+  .top-langs a { font: 600 .74rem/1 var(--sans); letter-spacing: .02em; color: var(--on-dark-2); text-decoration: none; padding: .5rem .6rem; border-radius: 999px; transition: color .3s, background .3s; }
+  .top-langs a:hover { color: var(--on-dark); }
+  .top-langs a[aria-current] { background: var(--on-dark); color: var(--ink); }
+  .nl-fixed { padding: .75em 1.2em; border-radius: 999px; font: 560 .92rem/1 var(--sans); text-decoration: none; color: var(--blanc); background: var(--grana); transition: filter .3s; }
+  .nl-fixed:hover { filter: brightness(1.12); }
+  @media (max-width: 720px) { .nl-fixed { display: none; } }
+  .cta-fixed { padding: .75em 1.3em; border-radius: 999px; font: 560 .92rem/1 var(--sans); text-decoration: none; color: var(--ink); background: var(--on-dark); transition: background .4s var(--ease); }
+  .cta-fixed:hover { background: var(--tint); }
+
+  /* La barra viaja: empieza arriba, baja con el scroll y se queda abajo en el centro */
+  .dock { position: fixed; left: 50%; bottom: 1.4vh; z-index: 70; display: flex; align-items: center; gap: 2rem; padding: .7rem 1.1rem .7rem 1.3rem; translate: -50% 0; color: #fff; mix-blend-mode: difference; font-size: .9rem; white-space: nowrap; }
+  .dock a { text-decoration: none; }
+  .dock-word { font-weight: 640; letter-spacing: -0.04em; font-size: 1.02rem; }
+  .dock-word sup { font-size: .5em; font-weight: 400; margin-left: 1px; }
+  .dock-links { display: flex; gap: 1.5rem; list-style: none; margin: 0; padding: 0; }
+  .dock-links a { position: relative; opacity: .82; transition: opacity .3s; }
+  .dock-links a:hover, .dock-links a[aria-current] { opacity: 1; }
+  .dock-links a::after { content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .5s var(--ease); }
+  .dock-links a:hover::after, .dock-links a[aria-current]::after { transform: scaleX(1); transform-origin: left; }
+  .dock-langs { display: flex; gap: .7rem; font-size: .78rem; }
+  .dock > .dock-langs { display: none; }
+  .dock-langs a { opacity: .55; }
+  .dock-langs a[aria-current], .dock-langs a:hover { opacity: 1; }
+  .dock-menu { display: none; background: none; border: 0; color: inherit; font: 560 .92rem/1 var(--sans); cursor: pointer; padding: .3rem 0; }
+  @media (max-width: 1100px) {
+    .dock { gap: 1.6rem; padding: .75rem 1.3rem; mix-blend-mode: normal; color: var(--on-dark); background: color-mix(in srgb, var(--ink) 78%, transparent); border: 1px solid var(--rule-dark); border-radius: 999px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .dock-links, .dock > .dock-langs { display: none; }
+    .dock-menu { display: block; }
+  }
+  @media (max-width: 520px) { .cta-fixed { font-size: .8rem; padding: .7em 1em; } .top-right { gap: .5rem; } .top-langs a { padding: .45rem .5rem; } }
+
+  .overlay { position: fixed; inset: 0; z-index: 65; background: var(--ink); color: var(--on-dark); display: grid; align-content: center; padding: 6rem var(--gutter) 7rem; }
+  .overlay ul { list-style: none; margin: 0; padding: 0; }
+  .overlay li a { display: block; padding: .5rem 0; font: 420 clamp(2.2rem, 9vw, 4rem)/1.05 var(--sans); letter-spacing: -0.05em; text-decoration: none; }
+  .overlay li a:hover { font-family: var(--serif); font-style: italic; font-weight: 300; }
+  .overlay-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.5rem; margin-top: 3rem; }
+  .overlay .dock-langs { font-size: .95rem; gap: 1.2rem; }
+  .overlay .btn { background: var(--on-dark); color: var(--ink); border-color: var(--on-dark); }
+
+  .cursor { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; width: 0; height: 0; }
+  .cursor span { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.18), inset 0 0 0 1px rgba(0,0,0,.12); display: grid; place-items: center; font: 600 .7rem/1 var(--sans); color: var(--ink); transition: width .35s var(--ease), height .35s var(--ease), left .35s var(--ease), top .35s var(--ease), background .35s, transform .2s var(--ease), opacity .3s; opacity: 0; }
+  .cursor.on span { opacity: 1; }
+  .cursor.link span { width: 34px; height: 34px; left: -17px; top: -17px; background: rgba(255,255,255,.18); backdrop-filter: blur(2px); }
+  .cursor.label span { width: 72px; height: 72px; left: -36px; top: -36px; background: #fff; border-color: #fff; }
+  .cursor.down span { transform: scale(.6); }
+  @media (hover: none), (max-width: 860px) { .cursor { display: none; } }
+
+  .foot { background: var(--ink); color: var(--on-dark); padding: clamp(4rem, 8vw, 6rem) 0 calc(5.5rem + 2vh); overflow: hidden; }
+  .foot-grid { display: grid; gap: 3rem; }
+  @media (min-width: 860px) { .foot-grid { grid-template-columns: 1fr 1fr; align-items: end; } }
+  .foot-claim { font: 300 italic var(--step-2)/1.15 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 100; letter-spacing: -0.03em; color: var(--on-dark); max-width: 22ch; margin: 0; justify-self: end; }
+  .foot nav { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; font-size: .95rem; }
+  .foot nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; align-content: start; }
+  .foot nav a { text-decoration: none; color: var(--on-dark-2); transition: color .3s; }
+  .foot nav a:hover { color: var(--on-dark); }
+  .foot-word { margin: clamp(3rem, 7vw, 6rem) 0 0; font: 600 clamp(6rem, 27vw, 26rem)/.78 var(--sans); letter-spacing: -0.075em; color: var(--ink-2); max-width: none; user-select: none; }
+  .foot-base { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin: 2rem 0 0; font-size: var(--step--1); color: var(--on-dark-2); max-width: none; }
+  .foot-legal { display: flex; gap: 1.5rem; }
+  .foot-legal a { text-decoration: none; }
+  .foot-legal a:hover { color: var(--on-dark); }
+</style>
