@@ -411,3 +411,18 @@ CREATE TABLE IF NOT EXISTS imatge_peca (
     actualitzada TEXT NOT NULL,
     PRIMARY KEY (model, color)
 );
+
+-- v0.6: més fotos del mateix model (detall, posada...). La foto principal continua a `imatge_peca`;
+-- aquestes surten després, a la galeria de la fitxa NFC. `fons`: color de les vores si la foto té
+-- un fons llis (es mostra sencera sobre aquest color); '' si és una foto ambientada (s'omple el marc).
+CREATE TABLE IF NOT EXISTS imatge_galeria (
+    clau        TEXT PRIMARY KEY,           -- identificador públic aleatori
+    model       TEXT NOT NULL,
+    ordre       INTEGER NOT NULL DEFAULT 0,
+    mime        TEXT NOT NULL,
+    dades       BLOB NOT NULL,
+    fons        TEXT,
+    versio      TEXT NOT NULL,
+    actualitzada TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_imatge_galeria_model ON imatge_galeria(model, ordre);

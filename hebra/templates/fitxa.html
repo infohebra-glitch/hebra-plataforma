@@ -15,7 +15,7 @@
 {% macro estoc_talla(v) %}{% if accions.mostra_estoc == 'unitats' and v.estoc is not none %} · {{ v.estoc }} {{ t.unitats }}{% elif accions.mostra_estoc != 'no' and v.estoc == 0 %} ({{ t.no_disponible }}){% endif %}{% endmacro %}
 
 {% macro form_talla() %}
-  <h3>{{ t.demana }}</h3>
+  <h3 id="demana">{{ t.demana }}</h3>
   <p class="petit muted">{{ t.demana_ajuda }}</p>
   <form method="post" action="/p/{{ p.token }}/talla">
     {{ ocults() }}
@@ -31,29 +31,50 @@
 
 {% if previsualitza %}<p class="nota-previa" role="note">Previsualització: no es registra cap esdeveniment.{% if p.origen_amagat_per_control and cfg.seccions.visibles.origen %} Avui la botiga és al grup «sense origen» (grup de control): el client no veu l'origen.{% endif %}</p>{% endif %}
 
-<header class="fitxa-cap">
-  {% if ap.logo_data_url %}<img src="{{ ap.logo_data_url }}" alt="{{ ap.nom_marca }}" height="26">{% else %}<span class="marca">{{ ap.nom_marca }}</span>{% endif %}
-  {% if idiomes|length > 1 %}
-  <nav class="idiomes" aria-label="Idioma">
-    {% for i in idiomes %}<a href="{{ url_idioma(i) }}" class="{{ 'actiu' if i == lang }}" hreflang="{{ i }}">{{ i|upper }}</a>{% endfor %}
-  </nav>
+{# v0.6: galeria a tota l'amplada. Les fotos amb fons llis es veuen senceres sobre el seu color (sense retallar);
+   les ambientades omplen el marc. Es llisca amb el dit (scroll-snap); l'script només mou els punts. #}
+{% set nf = p.fotos|length %}
+<div class="fx-galeria{{ ' fx-una' if nf < 2 }}">
+  <div class="fx-pista" id="galeria" tabindex="0" aria-label="{{ p.nom }}{% if nf > 1 %} · {{ t.llisca }}{% endif %}">
+    {% for f in p.fotos %}<figure class="fx-foto{{ ' fx-sencera' if f.fons or f.silueta }}" id="foto-{{ loop.index }}"{% if f.fons %} style="--fons: {{ f.fons }}"{% endif %}>
+      <img src="{{ f.url }}" alt="{{ p.nom }}{% if p.color %} · {{ p.color }}{% endif %}{% if nf > 1 %} · {{ t.foto }} {{ loop.index }}/{{ nf }}{% endif %}" width="1200" height="1500"{% if loop.first %} fetchpriority="high"{% else %} loading="lazy"{% endif %}>
+    </figure>{% endfor %}
+  </div>
+  <header class="fitxa-cap fx-cap">
+    {% if ap.logo_data_url %}<img src="{{ ap.logo_data_url }}" alt="{{ ap.nom_marca }}" height="22">{% else %}<span class="marca">{{ ap.nom_marca }}</span>{% endif %}
+    {% if idiomes|length > 1 %}
+    <nav class="idiomes" aria-label="Idioma">
+      {% for i in idiomes %}<a href="{{ url_idioma(i) }}" class="{{ 'actiu' if i == lang }}" hreflang="{{ i }}">{{ i|upper }}</a>{% endfor %}
+    </nav>
+    {% endif %}
+  </header>
+  {% if nf > 1 %}
+  <div class="fx-punts">{% for f in p.fotos %}<a href="#foto-{{ loop.index }}" class="{{ 'actiu' if loop.first }}" aria-label="{{ t.foto }} {{ loop.index }}"></a>{% endfor %}</div>
+  <span class="fx-comptador" aria-hidden="true"><span id="fx-n">1</span> / {{ nf }}</span>
   {% endif %}
-</header>
-
-<figure class="fitxa-foto{{ ' silueta' if p.imatge.silueta }}">
-  <img src="{{ p.imatge.url }}" alt="{{ p.nom }}{% if p.color %} · {{ p.color }}{% endif %}" width="800" height="1000" fetchpriority="high">
-</figure>
-
-<div class="fitxa-heroi">
-  {% if benvinguda %}<p class="benvinguda">{{ benvinguda }}</p>{% endif %}
-  <h1>{{ p.nom }}</h1>
-  <ul class="fitxa-dades">
-    {% if p.color %}<li>{{ p.color }}</li>{% endif %}
-    {% if p.talla %}<li>{{ p.talla }}</li>{% endif %}
-    {% if p.preu %}<li class="preu">{{ '%.0f'|format(p.preu) }} €</li>{% endif %}
-  </ul>
-  {% if p.descripcio %}<p class="descripcio">{{ p.descripcio }}</p>{% endif %}
 </div>
+
+<section class="fx-full">
+  {% if p.marca %}<p class="fx-marca">{{ p.marca }}</p>{% endif %}
+  <div class="fx-titol">
+    <h1>{{ p.nom }}</h1>
+    {% if p.preu %}<p class="fx-preu">{{ '%.0f'|format(p.preu) }}&nbsp;€</p>{% endif %}
+  </div>
+  {% if benvinguda %}<p class="benvinguda">{{ benvinguda }}</p>{% endif %}
+  {% if p.color %}<p class="fx-color">{% if p.color_hex %}<span class="fx-mostra" style="background: {{ p.color_hex }}"></span>{% endif %}{{ p.color }}</p>{% endif %}
+  {% if p.talles|length > 1 %}
+  <ul class="fx-talles" aria-label="{{ t.talles }}">
+    {% for v in p.talles %}<li class="{{ 'actual' if v.actual }}{{ ' esgotada' if v.estoc == 0 and accions.mostra_estoc != 'no' }}"{% if v.actual %} aria-current="true"{% endif %}>{{ v.talla }}</li>{% endfor %}
+  </ul>
+  {% elif p.talla %}<ul class="fx-talles"><li class="actual" aria-current="true">{{ p.talla }}</li></ul>{% endif %}
+  {% if p.composicio or (p.fet_a and p.mostra_origen) %}
+  <ul class="fx-fets">
+    {% if p.composicio %}<li>{{ p.composicio[0].pct }}&nbsp;% {{ p.composicio[0].material|lower }}</li>{% endif %}
+    {% if p.fet_a and p.mostra_origen %}<li>{{ bandera(p.fet_a) }} {{ t.fet_a }} {{ pais(p.fet_a, lang) }}</li>{% endif %}
+  </ul>
+  {% endif %}
+  {% if p.descripcio %}<p class="descripcio">{{ p.descripcio }}</p>{% endif %}
+</section>
 
 {% if ok == 'talla' %}<p class="avis" role="status">{{ t.peticio_ok }}</p>{% endif %}
 {% if ok == 'assistencia' %}<p class="avis" role="status">{{ t.assistencia_ok }}</p>{% endif %}
@@ -110,8 +131,8 @@
   <h2>{{ p.titol_combina }}</h2>
   {% if p.nota_combina %}<p class="petit muted">{{ p.nota_combina }}</p>{% endif %}
   <ul class="look">
-    <li class="look-actual"><img src="{{ p.imatge.url }}" alt="" loading="lazy" width="400" height="500"><span class="look-nom">{{ p.nom }}</span></li>
-    {% for c in p.combina %}<li><img src="{{ c.imatge.url }}" alt="{{ c.nom }}" loading="lazy" width="400" height="500">
+    <li class="look-actual"><span class="look-img{{ ' fx-sencera' if p.imatge.fons or p.imatge.silueta }}"{% if p.imatge.fons %} style="--fons: {{ p.imatge.fons }}"{% endif %}><img src="{{ p.imatge.url }}" alt="" loading="lazy" width="400" height="500"></span><span class="look-nom">{{ p.nom }}</span></li>
+    {% for c in p.combina %}<li><span class="look-img{{ ' fx-sencera' if c.imatge.fons or c.imatge.silueta }}"{% if c.imatge.fons %} style="--fons: {{ c.imatge.fons }}"{% endif %}><img src="{{ c.imatge.url }}" alt="{{ c.nom }}" loading="lazy" width="400" height="500"></span>
       <span class="look-nom">{{ c.nom }}</span>{% if c.color or c.preu %}<span class="look-dades">{{ c.color }}{% if c.color and c.preu %} · {% endif %}{% if c.preu %}{{ '%.0f'|format(c.preu) }} €{% endif %}</span>{% endif %}</li>{% endfor %}
   </ul>
 </section>
@@ -141,7 +162,7 @@
 {% endif %}
 
 {% if accions.demana_assistencia and ok != 'assistencia' %}
-<section class="panell">
+<section class="panell" id="atencio">
   <h2>{{ t.assistencia }}</h2>
   <p class="petit muted">{{ t.assistencia_ajuda }}</p>
   <form method="post" action="/p/{{ p.token }}/assistencia" class="fila">
@@ -161,6 +182,15 @@
     {% for clau, text in motius %}<button name="motiu" value="{{ clau }}" {{ inactiu }}>{{ text }}</button>{% endfor %}
   </form>
 </section>
+{% endif %}
+
+{% set boto_talla = accions.demana_talla and p.talles|length > 1 %}
+{% set boto_atencio = accions.demana_assistencia and ok != 'assistencia' %}
+{% if boto_talla or boto_atencio %}
+<nav class="fx-accions{{ ' fx-un' if not (boto_talla and boto_atencio) }}" aria-label="{{ t.assistencia }}">
+  {% if boto_talla %}<a class="boto" href="#demana">{{ t.altra_talla }}</a>{% endif %}
+  {% if boto_atencio %}<a class="boto primari" href="#atencio">{{ t.assistencia }}</a>{% endif %}
+</nav>
 {% endif %}
 
 <footer class="fitxa-peu">

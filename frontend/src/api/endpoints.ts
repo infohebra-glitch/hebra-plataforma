@@ -58,6 +58,9 @@ export const imatges = {
   puja: (model: string, color: string, cos: { data_url: string } | { url: string }) =>
     api.put<T.ImatgeDesada>(`/imatges/${enc(model)}`, cos, color ? { color } : undefined),
   esborra: (model: string, color: string) => api.del<{ esborrada: boolean }>(`/imatges/${enc(model)}${color ? `?color=${enc(color)}` : ''}`),
+  afegeixGaleria: (model: string, cos: { data_url: string } | { url: string }) =>
+    api.post<{ model: string; clau: string; url: string }>(`/imatges/${enc(model)}/galeria`, cos),
+  esborraGaleria: (model: string, clau: string) => api.del<{ esborrada: boolean }>(`/imatges/${enc(model)}/galeria/${enc(clau)}`),
 };
 
 export const fitxa = {

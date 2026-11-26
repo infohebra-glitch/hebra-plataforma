@@ -66,85 +66,154 @@ details.panell[open] > summary::after { content: "−"; }
 details.panell[open] > summary { margin-bottom: 10px; }
 .estat-en_cami { color: var(--accent); font-weight: 600; }
 
-/* ── Fitxa NFC (el que veu el client al mòbil) ─────────────────────────────
-   Una sola columna amb el mateix marge a tot arreu (16 px), targetes de 18 px de radi
-   i un ritme vertical de 10 px entre blocs. El color de la marca arriba per --accent. */
-main.fitxa { padding: 0 16px 36px; }
+/* ── Fitxa NFC (el que veu el client al mòbil) · v0.6 ────────────────────────
+   Com una app de botiga: galeria a tota l'amplada que es llisca, una fitxa blanca que hi puja
+   a sobre amb nom, preu, color i talles, i dos botons sempre a mà a baix. El color de la marca
+   arriba per --accent. Moviment suau d'entrada i en desplaçar-se; res si el mòbil demana menys moviment. */
+main.fitxa { padding: 0 16px 104px; }
+.fitxa { --fx-radi: 26px; }
+body:has(main.fitxa) { background: #F4F2EF; }
 .fitxa .nota-previa { font-size: 12px; color: var(--muted); background: var(--accent-soft); border-radius: 999px;
-  padding: 6px 12px; margin: 12px 0 0; text-align: center; }
-.fitxa-cap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 0 12px; }
-.fitxa-cap .marca { font-size: 12px; letter-spacing: .18em; }
-.fitxa .idiomes { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
-.fitxa .idiomes a { font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 999px; color: var(--muted); letter-spacing: .04em; }
-.fitxa .idiomes a.actiu { background: var(--accent); color: var(--sobre-accent, #fff); }
-.fitxa-heroi { position: relative; overflow: hidden; background: var(--accent); color: var(--sobre-accent, #fff); border-radius: 22px; padding: 22px 20px 20px; margin: 4px 0 10px; }
-.fitxa-heroi::after { content: ""; position: absolute; right: -40px; top: -30px; width: 170px; height: 170px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,.18), rgba(255,255,255,0) 70%); pointer-events: none; }
-.fitxa-heroi h1 { font-size: 30px; line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 12px; color: inherit; }
-.fitxa-heroi .benvinguda { font-size: 13px; opacity: .8; margin: 0 0 8px; }
-.fitxa-dades { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; }
-.fitxa-dades li { font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); }
-.fitxa-dades li.preu { background: var(--sobre-accent, #fff); color: var(--accent); }
-.fitxa-heroi .descripcio { margin: 14px 0 0; font-size: 15px; line-height: 1.5; color: inherit; opacity: .9; }
-.fitxa .panell { border-radius: 18px; padding: 16px 18px; margin: 0 0 10px; border-color: var(--line); }
-.fitxa .panell h2 { font-size: 17px; margin: 0 0 10px; }
+  padding: 6px 12px; margin: 12px 0; text-align: center; }
+
+/* Galeria */
+.fx-galeria { position: relative; margin: 0 -16px; }
+.fx-pista { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  overscroll-behavior-x: contain; aspect-ratio: 4 / 5; max-height: 82svh; outline: none; }
+.fx-pista::-webkit-scrollbar { display: none; }
+.fx-foto { flex: 0 0 100%; margin: 0; scroll-snap-align: center; scroll-snap-stop: always; overflow: hidden;
+  background: var(--fons, #E9E6E2); position: relative; }
+.fx-foto img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+.fx-foto.fx-sencera img { object-fit: contain; padding: 4% 4% 11%; }
+.fx-foto::after { content: ""; position: absolute; inset: auto 0 0; height: 30%; pointer-events: none;
+  background: linear-gradient(to top, rgba(11, 21, 34, .10), transparent); }
+.fx-foto.fx-sencera::after { display: none; }
+.fx-cap { position: absolute; inset: 0 0 auto; padding: 14px 16px; display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; z-index: 2; }
+.fx-cap .marca, .fx-cap > img { background: rgba(255, 255, 255, .72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-radius: 999px; padding: 7px 13px; font-size: 11.5px; letter-spacing: .2em; color: #14457D; }
+.fx-cap > img { height: 36px; padding: 7px 12px; }
+.fitxa .fx-cap .idiomes { background: rgba(255, 255, 255, .72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 0; border-radius: 999px; padding: 3px; display: flex; gap: 2px; }
+.fitxa .fx-cap .idiomes a { font-size: 11.5px; font-weight: 600; padding: 4px 9px; border-radius: 999px; color: #3A4352;
+  letter-spacing: .04em; text-decoration: none; }
+.fitxa .fx-cap .idiomes a.actiu { background: var(--accent); color: var(--sobre-accent, #fff); }
+.fx-punts { position: absolute; left: 0; right: 0; bottom: 46px; display: flex; justify-content: center; gap: 6px; z-index: 2; }
+.fx-punts a { width: 8px; height: 8px; border-radius: 999px; background: rgba(11, 21, 34, .3); box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); transition: width .35s ease, background .35s ease; }
+.fx-punts a.actiu { width: 22px; background: var(--accent); }
+.fx-comptador { position: absolute; right: 14px; bottom: 40px; z-index: 2; font-size: 12px; font-weight: 600;
+  font-variant-numeric: tabular-nums; color: #3A4352; background: rgba(255, 255, 255, .72); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); border-radius: 999px; padding: 4px 10px; }
+
+/* Fitxa blanca que puja sobre la foto */
+.fx-full { position: relative; z-index: 3; margin: -30px -6px 12px; background: var(--surface); border-radius: var(--fx-radi);
+  padding: 22px 20px 20px; box-shadow: 0 -6px 30px rgba(11, 21, 34, .08), 0 1px 0 var(--line); }
+.fx-marca { margin: 0 0 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+.fx-titol { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.fx-titol h1 { font-size: 29px; line-height: 1.06; letter-spacing: -0.035em; margin: 0; }
+.fx-preu { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--accent); white-space: nowrap; }
+.fx-full .benvinguda { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.fx-color { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 14.5px; color: var(--muted); }
+.fx-mostra { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), 0 0 0 3px var(--surface), 0 0 0 4px var(--line); }
+.fx-talles { list-style: none; padding: 0; margin: 16px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.fx-talles li { min-width: 46px; height: 42px; padding: 0 12px; display: grid; place-items: center; border-radius: 12px;
+  border: 1px solid var(--line); font-weight: 600; font-size: 14.5px; position: relative; overflow: hidden; }
+.fx-talles li.actual { background: var(--fg); border-color: var(--fg); color: var(--surface); }
+.fx-talles li.esgotada { color: var(--muted); background: repeating-linear-gradient(135deg, transparent 0 6px, var(--line) 6px 7px); }
+.fx-fets { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.fx-fets li { font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.fx-full .descripcio { margin: 16px 0 0; font-size: 15px; line-height: 1.6; color: var(--fg); opacity: .86; }
+
+/* Seccions */
+.fitxa .panell { border-radius: 22px; padding: 18px 20px; margin: 0 0 10px; border: 0; box-shadow: 0 1px 0 var(--line); }
+.fitxa .panell h2 { font-size: 17px; margin: 0 0 10px; letter-spacing: -0.015em; }
 .fitxa .panell h3 { font-size: 15px; margin: 16px 0 4px; }
 .fitxa .panell p { margin: 0 0 8px; }
 .fitxa .panell p:last-child, .fitxa .panell ul:last-child { margin-bottom: 0; }
 .fitxa .panell ul { padding-left: 18px; margin: 0; }
 .fitxa details.panell > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .fitxa details.panell > summary h2 { margin: 0; }
-.fitxa details.panell > summary::after { float: none; content: "+"; flex: none; width: 28px; height: 28px; border-radius: 50%;
-  display: grid; place-items: center; font-size: 18px; line-height: 1; background: var(--accent-soft); color: var(--accent); }
-.fitxa details.panell[open] > summary::after { content: "−"; }
+.fitxa details.panell > summary::after { float: none; content: "+"; flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 18px; line-height: 1; background: var(--accent-soft); color: var(--accent);
+  transition: transform .3s ease; }
+.fitxa details.panell[open] > summary::after { content: "+"; transform: rotate(45deg); }
 .fitxa .talla { min-width: 48px; padding: 8px 12px; }
 .fitxa .talla.actual { background: var(--accent); border-color: var(--accent); color: var(--sobre-accent, #fff); }
 .fitxa ul.composicio { list-style: none; padding: 0; display: grid; gap: 10px; }
-.fitxa .comp-nom { display: block; font-size: 14.5px; margin-bottom: 5px; }
+.fitxa .comp-nom { display: block; font-size: 14.5px; margin-bottom: 6px; }
+.fitxa .comp-nom b { font-size: 22px; letter-spacing: -0.02em; margin-right: 4px; }
 .fitxa .comp-barra { display: block; height: 6px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
-.fitxa .comp-barra span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.fitxa .comp-barra span { display: block; height: 100%; border-radius: inherit; background: var(--accent);
+  transform-origin: left; animation: fx-barra 1.2s cubic-bezier(.2, .7, .2, 1) .4s both; }
 .fitxa ol.ruta { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; }
-.fitxa ol.ruta li { font-size: 13.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.fitxa ol.ruta li { font-size: 13.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
 .fitxa ol.ruta li + li::before { content: "→"; color: var(--muted); font-weight: 400; margin: 0 6px 0 -2px; }
 .fitxa ol.ruta li + li { display: inline-flex; align-items: center; }
 .fitxa ol.etapes { border-left-color: var(--accent); }
 .fitxa ol.etapes li::before { background: var(--accent); }
 .fitxa .xips { display: flex; flex-wrap: wrap; gap: 8px; }
-.fitxa .xips button { font-size: 14px; padding: 8px 14px; }
+.fitxa .xips button { font-size: 14px; padding: 9px 15px; }
 .fitxa .xips button:hover:not(:disabled) { background: var(--accent-soft); }
 .fitxa form.fila { gap: 8px; }
-.fitxa form.fila input[type=text] { flex: 1 1 100%; border-radius: 999px; padding: 9px 14px; }
-.fitxa form.fila button.primari { flex: 1 1 100%; }
-.fitxa .comp-barra + * { margin-top: 0; }
+.fitxa form.fila input[type=text] { flex: 1 1 100%; border-radius: 999px; padding: 11px 16px; }
+.fitxa form.fila button.primari { flex: 1 1 100%; padding: 12px 18px; }
 .fitxa ul.composicio + p { margin-top: 12px; }
 .fitxa button.primari { color: var(--sobre-accent, var(--bg)); }
-.fitxa select { border-radius: 999px; padding: 9px 12px; }
+.fitxa select { border-radius: 999px; padding: 10px 14px; }
 .fitxa button:disabled { opacity: .75; cursor: default; }
-.fitxa .avis { border-radius: 14px; }
+.fitxa .avis { border-radius: 16px; padding: 12px 14px; }
 .fitxa-peu { padding: 10px 4px 0; font-size: 12.5px; line-height: 1.5; }
 .fitxa-peu p { margin: 0 0 6px; }
+
+/* Combina amb: un look amb fotos */
+.fitxa .look { list-style: none; padding: 0; margin: 6px -20px 0; padding: 0 20px 4px; display: grid; grid-auto-flow: column;
+  grid-auto-columns: minmax(130px, 44%); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 20px;
+  scrollbar-width: none; }
+.fitxa .look::-webkit-scrollbar { display: none; }
+.fitxa .look li { scroll-snap-align: start; display: grid; gap: 4px; align-content: start; }
+.fitxa .look-img { display: block; aspect-ratio: 4 / 5; border-radius: 16px; overflow: hidden; background: var(--fons, #EFECE8); }
+.fitxa .look-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fitxa .look-img.fx-sencera img { object-fit: contain; padding: 8%; }
+.fitxa .look-actual .look-img { box-shadow: inset 0 0 0 2px var(--accent); }
+.fitxa .look-nom { font-size: 13.5px; font-weight: 600; line-height: 1.25; margin-top: 4px; }
+.fitxa .look-dades { font-size: 12.5px; color: var(--muted); }
+.fitxa .look-actual .look-nom::before { content: "✓ "; color: var(--accent); }
+
+/* Botons fixos a baix */
+.fx-accions { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  width: min(488px, calc(100% - 24px)); z-index: 10; display: grid; grid-template-columns: 1fr 1.25fr; gap: 6px; padding: 6px;
+  border-radius: 999px; background: rgba(255, 255, 255, .78); backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4); box-shadow: 0 10px 30px rgba(11, 21, 34, .16), 0 0 0 1px rgba(11, 21, 34, .06); }
+.fx-accions.fx-un { grid-template-columns: 1fr; }
+.fx-accions .boto { text-align: center; padding: 12px 10px; font-size: 14.5px; font-weight: 600; border: 0; background: transparent; color: var(--fg); }
+.fx-accions .boto.primari { background: var(--accent); color: var(--sobre-accent, #fff); }
+main.previa .fx-accions { position: sticky; transform: none; left: auto; width: auto; margin: 10px 0 0; }
+
+/* Moviment */
+@keyframes fx-entra { from { opacity: 0; scale: 1.06; } }
+@keyframes fx-puja { from { opacity: 0; translate: 0 26px; } }
+@keyframes fx-barra { from { transform: scaleX(0); } }
+@keyframes fx-paral { to { translate: 0 12%; } }
+.fx-foto:first-child img { animation: fx-entra 1.2s cubic-bezier(.2, .7, .2, 1) both; }
+.fx-full { animation: fx-puja .8s cubic-bezier(.2, .7, .2, 1) .15s both; }
+.fx-accions { animation: fx-puja .7s cubic-bezier(.2, .7, .2, 1) .6s both; }
+.fx-cap, .fx-punts, .fx-comptador { animation: fx-entra .8s ease .3s both; }
+@supports (animation-timeline: view()) {
+  .fitxa .panell { animation: fx-puja linear both; animation-timeline: view(); animation-range: entry 0% entry 45%; }
+  .fx-foto img { animation: fx-entra 1.2s cubic-bezier(.2, .7, .2, 1) both, fx-paral linear both;
+    animation-timeline: auto, scroll(root); animation-range: normal, 0 90vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fitxa *, .fitxa *::before, .fitxa *::after { animation: none !important; transition: none !important; }
+}
+
 @media (prefers-color-scheme: dark) {
   :root { --sobre-accent: var(--bg); }
-  .fitxa-heroi { color: var(--fg); }
-  .fitxa-heroi::after { opacity: .35; }
-  .fitxa-heroi { background: var(--surface); border: 1px solid var(--line); }
-  .fitxa-dades li.preu { background: var(--accent); color: var(--bg); }
-  .fitxa .idiomes a.actiu { color: var(--bg); }
+  body:has(main.fitxa) { background: var(--bg); }
+  .fx-accions { background: rgba(13, 28, 48, .8); }
+  .fx-accions .boto.primari { color: var(--bg); }
+  .fitxa .fx-cap .idiomes a.actiu { color: var(--bg); }
 }
 /* A la previsualització del tauler, sense barra de desplaçament dins el marc del mòbil. */
 html:has(main.previa) { scrollbar-width: none; }
 html:has(main.previa)::-webkit-scrollbar { display: none; }
-
-/* v0.5: la peça es veu. Foto gran a dalt de la fitxa i «Combina amb» com un look amb fotos. */
-.fitxa-foto { margin: 4px 0 -34px; border-radius: 22px; overflow: hidden; background: #F1EFEC; aspect-ratio: 4 / 5; }
-.fitxa-foto img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.fitxa-foto.silueta img { object-fit: contain; }
-.fitxa-foto + .fitxa-heroi { margin: 0 10px 10px; box-shadow: 0 10px 30px rgba(11, 21, 34, .18); }
-.fitxa .look { list-style: none; padding: 0; margin: 6px -4px 0; display: grid; grid-auto-flow: column;
-  grid-auto-columns: minmax(118px, 40%); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
-.fitxa .look li { scroll-snap-align: start; display: grid; gap: 4px; align-content: start; }
-.fitxa .look img { width: 100%; aspect-ratio: 4 / 5; height: auto; object-fit: cover; border-radius: 14px; background: #F1EFEC; }
-.fitxa .look-actual img { outline: 2px solid var(--accent); outline-offset: -2px; }
-.fitxa .look-nom { font-size: 13.5px; font-weight: 600; line-height: 1.25; }
-.fitxa .look-dades { font-size: 12.5px; color: var(--muted); }
-.fitxa .look-actual .look-nom::before { content: "✓ "; color: var(--accent); }

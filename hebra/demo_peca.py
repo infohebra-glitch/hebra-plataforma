@@ -30,7 +30,7 @@ def _tr(v, idioma: str = "ca") -> str:
 
 
 def canvia(con: sqlite3.Connection, model: str, nou_model: str, peca: dict, fet_a: str | None = None,
-           foto: bytes | None = None, botiga_id: str = "PROVA-01") -> dict:
+           foto: bytes | list[bytes] | None = None, botiga_id: str = "PROVA-01") -> dict:
     """Aplica `peca` (format de peça de hebra-origen) al model `model` i el reanomena `nou_model`."""
     nou_model = (nou_model or model).strip()
     files = con.execute("SELECT gtin, talla, origen_json FROM catalog_sku WHERE model = ?", (model,)).fetchall()
@@ -56,8 +56,8 @@ def canvia(con: sqlite3.Connection, model: str, nou_model: str, peca: dict, fet_
                 (nou_model, color, categoria, peca.get("preu_eur"), json.dumps(origen, ensure_ascii=False), model))
 
     # El model antic deixa d'existir: la seva foto i el seu contingut propi ja no valen.
-    for f in con.execute("SELECT model, color FROM imatge_peca WHERE model = ?", (model,)).fetchall():
-        imatges.esborra(con, f["model"], f["color"])
+    if nou_model != model:
+        imatges.esborra_model(con, model)
     con.execute("DELETE FROM contingut_model WHERE model = ?", (model,))
     if nou_model != model:
         con.execute("DELETE FROM contingut_model WHERE model = ?", (nou_model,))
@@ -79,8 +79,12 @@ def canvia(con: sqlite3.Connection, model: str, nou_model: str, peca: dict, fet_
             for camp in camps:
                 con.execute(f"UPDATE {taula} SET {camp} = replace({camp}, ?, ?) WHERE botiga_id = ?",
                             (antic, nou, botiga_id))
-    if foto:
-        imatges.desa(con, nou_model, "", foto, font="pujada")
+    fotos = [foto] if isinstance(foto, bytes) else list(foto or [])
+    if fotos:  # la primera és la principal; les altres, a la galeria
+        imatges.esborra_model(con, nou_model)
+        imatges.desa(con, nou_model, "", fotos[0], font="pujada")
+        for f in fotos[1:]:
+            imatges.afegeix_galeria(con, nou_model, f)
     con.commit()
     return {"model": nou_model, "nom": _tr(peca["nom"]), "color": color, "variants": len(files),
-            "foto": bool(foto)}
+            "foto": bool(fotos), "fotos": len(fotos)}

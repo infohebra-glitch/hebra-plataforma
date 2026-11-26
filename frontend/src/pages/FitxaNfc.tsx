@@ -121,6 +121,21 @@ function GestorImatges({ enCanvi }: { enCanvi: (model: string) => void }) {
     setOcupat(model);
     try { await imatges.puja(model, color, { url }); fet(model, 'Imatge descarregada i desada.'); } catch (e) { malament(model, e); } finally { setOcupat(''); }
   };
+  const afegeix = async (model: string, fitxers: FileList | null) => {
+    const llista = Array.from(fitxers ?? []);
+    if (!llista.length) return;
+    const dolent = llista.find((f) => !/^image\/(jpeg|png|webp)$/.test(f.type) || f.size > 6 * 1024 * 1024);
+    if (dolent) return malament(model, `«${dolent.name}»: només JPEG, PNG o WebP, fins a 6 MB.`);
+    setOcupat(model);
+    try {
+      for (const f of llista) await imatges.afegeixGaleria(model, { data_url: await llegeixFitxer(f) });
+      fet(model, llista.length === 1 ? 'Foto afegida a la galeria.' : `${llista.length} fotos afegides a la galeria.`);
+    } catch (e) { malament(model, e); } finally { setOcupat(''); }
+  };
+  const treuGaleria = async (model: string, clau: string) => {
+    setOcupat(model);
+    try { await imatges.esborraGaleria(model, clau); fet(model, 'Foto treta de la galeria.'); } catch (e) { malament(model, e); } finally { setOcupat(''); }
+  };
   const esborra = async (model: string, color: string) => {
     setOcupat(model);
     try { await imatges.esborra(model, color); fet(model, 'Foto treta: la fitxa ensenya la silueta de la categoria.'); } catch (e) { malament(model, e); } finally { setOcupat(''); }
@@ -129,7 +144,7 @@ function GestorImatges({ enCanvi }: { enCanvi: (model: string) => void }) {
   return (
     <section className="panell">
       <h2>Imatges de les peces</h2>
-      <p className="muted">La foto que veu el client quan toca l’etiqueta i la que surt al tauler. Si connectes Shopify o puges el catàleg amb la columna <code>imatge_url</code>, es posen soles. La plataforma la desa i la serveix ella mateixa (el mòbil del client no es connecta a cap altre lloc) i li treu les metadades, com la ubicació. JPEG, PNG o WebP, fins a 6 MB.</p>
+      <p className="muted">La foto que veu el client quan toca l’etiqueta i la que surt al tauler. Si connectes Shopify o puges el catàleg amb la columna <code>imatge_url</code>, es posen soles. La plataforma la desa i la serveix ella mateixa (el mòbil del client no es connecta a cap altre lloc) i li treu les metadades, com la ubicació. JPEG, PNG o WebP, fins a 6 MB. Amb «Afegeix més fotos» (detall, posada…) el client les veu en una galeria que es llisca.</p>
       <Consulta q={q} esquelet={<Esquelet tipus="taula" files={5} />}>
         {(r) => (
           <ul className="llista-imatges">
@@ -150,7 +165,25 @@ function GestorImatges({ enCanvi }: { enCanvi: (model: string) => void }) {
                         onChange={(e) => { void puja(i.model, '', e.target.files?.[0]); e.target.value = ''; }} />
                     </label>
                     {!i.silueta && <button type="button" className="boto-fantasma boto-petit boto-perill" disabled={ocupat === i.model} onClick={() => void esborra(i.model, '')}>Treu-la</button>}
+                    {!mock && (
+                      <label className="boto boto-petit">
+                        Afegeix més fotos
+                        <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={ocupat === i.model}
+                          onChange={(e) => { void afegeix(i.model, e.target.files); e.target.value = ''; }} />
+                      </label>
+                    )}
                   </div>
+                  {(i.galeria?.length ?? 0) > 0 && (
+                    <div className="galeria-tauler" aria-label={`Fotos de més de ${i.nom}`}>
+                      {i.galeria!.map((g, k) => (
+                        <figure key={g.clau}>
+                          <img src={g.url} alt={`${i.nom}, foto ${k + 2}`} />
+                          <button type="button" className="boto-fantasma boto-petit boto-perill" aria-label={`Treu la foto ${k + 2}`}
+                            disabled={ocupat === i.model} onClick={() => void treuGaleria(i.model, g.clau)}>×</button>
+                        </figure>
+                      ))}
+                    </div>
+                  )}
                   {!mock && (
                     <div className="fila" style={{ gap: 6, marginTop: 6 }}>
                       <label className="sr-only" htmlFor={`url-${i.model}`}>URL de la imatge de {i.nom}</label>

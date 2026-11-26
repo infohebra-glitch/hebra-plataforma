@@ -46,7 +46,22 @@ ESTATS_FINALS = {"lliurada", "no_disponible"}
 
 # Script de la fitxa: el text ha de ser exactament aquest perquè el hash de la CSP quadri.
 SCRIPT_SECCIONS = (
-    "(function(){var f=document.getElementById('seccions');if(!f||!navigator.sendBeacon)return;"
+    "(function(){"
+    # v0.6: galeria. Els punts i el comptador segueixen la foto visible; un toc a un punt hi llisca.
+    "var g=document.getElementById('galeria'),pt=document.querySelectorAll('.fx-punts a'),n=document.getElementById('fx-n');"
+    "if(g&&pt.length){var act=function(){var i=Math.round(g.scrollLeft/g.clientWidth);"
+    "pt.forEach(function(a,k){a.classList.toggle('actiu',k===i);});if(n)n.textContent=i+1;};"
+    "g.addEventListener('scroll',function(){requestAnimationFrame(act);},{passive:true});"
+    "pt.forEach(function(a,k){a.addEventListener('click',function(e){e.preventDefault();"
+    "g.scrollTo({left:k*g.clientWidth,behavior:'smooth'});});});"
+    "if(!matchMedia('(prefers-reduced-motion: reduce)').matches)setTimeout(function(){"
+    "if(g.scrollLeft<2){g.scrollBy({left:70,behavior:'smooth'});setTimeout(function(){"
+    "g.scrollTo({left:0,behavior:'smooth'});},420);}},1300);}"
+    # Botons fixos de baix: obren la secció plegable on porten.
+    "document.querySelectorAll('.fx-accions a').forEach(function(a){a.addEventListener('click',function(e){"
+    "var t=document.querySelector(a.getAttribute('href'));if(!t)return;e.preventDefault();"
+    "var d=t.closest('details');if(d)d.open=true;t.scrollIntoView({behavior:'smooth',block:'center'});});});"
+    "var f=document.getElementById('seccions');if(!f||!navigator.sendBeacon)return;"
     "var vist={};document.querySelectorAll('details[data-seccio]').forEach(function(d){"
     "var salta=d.open;d.addEventListener('toggle',function(){if(salta){salta=false;return;}"
     "var s=d.getAttribute('data-seccio');if(!d.open||vist[s])return;vist[s]=1;"
@@ -197,10 +212,22 @@ def dades_fitxa(con: sqlite3.Connection, fila: sqlite3.Row, botiga_id: str | Non
         "mostra_origen": cfg["seccions"]["visibles"].get("origen", True) and control.mostra_origen(con, botiga_id, avui),
         "imatge": resolutor.de(fila["model"], fila["color"], fila["categoria"],
                                camp("nom", tr(origen.get("nom"), idioma)) or fila["model"]),
+        # v0.6: galeria (principal + fotos de més), marca, mostra de color i país de confecció.
+        "fotos": imatges.fotos(con, fila["model"], fila["color"], fila["categoria"],
+                               camp("nom", tr(origen.get("nom"), idioma)) or fila["model"]),
+        "marca": origen.get("marca") or "",
+        "color_hex": _hex((origen.get("color_detall") or {}).get("hex")),
+        "fet_a": next((e.get("pais") for e in reversed(origen.get("etapes", []))
+                       if e.get("etapa") == "confeccio" and e.get("pais")), None),
         "combina": combina,
         "titol_combina": TITOL_COMBINA.get(idioma, TITOL_COMBINA["ca"]),
         "nota_combina": NOTA_COMBINA_PROVADOR.get(idioma, NOTA_COMBINA_PROVADOR["ca"]) if font_combina == "provador" else "",
     }
+
+
+def _hex(v) -> str | None:
+    """Només colors #RRGGBB (van dins un atribut style)."""
+    return v if isinstance(v, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", v) else None
 
 
 def _nom_model(con: sqlite3.Connection, model: str, idioma: str) -> tuple[str | None, sqlite3.Row | None]:

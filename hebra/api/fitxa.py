@@ -27,6 +27,7 @@ router = APIRouter(prefix="/fitxa", tags=["fitxa NFC"])
 
 _plantilles = Jinja2Templates(directory=Path(fitxa_mod.__file__).with_name("templates"))
 _plantilles.env.globals["pais"] = textos.pais
+_plantilles.env.globals["bandera"] = textos.bandera
 
 
 def _err(e: fitxa_config.ErrorConfig):

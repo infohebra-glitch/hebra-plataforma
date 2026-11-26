@@ -211,7 +211,8 @@ def main() -> None:
     dp.add_argument("--fitxer", default=str(Path(__file__).resolve().parent.parent / "dades" / "demo-polo.json"),
                     help="dades de la peça (format de peça de hebra-origen)")
     dp.add_argument("--fet-a", help="país de confecció de l'etiqueta, codi de 2 lletres (p. ex. PE, SV, TH, MA)")
-    dp.add_argument("--foto", help="foto de la peça (JPG o PNG); també es pot pujar des del tauler")
+    dp.add_argument("--foto", action="append", default=[],
+                    help="foto de la peça (JPG o PNG; es pot repetir: la primera és la principal); també es poden pujar des del tauler")
     args = ap.parse_args()
 
     cfg = carrega()
@@ -241,11 +242,11 @@ def main() -> None:
         try:
             r = demo_peca.canvia(con, args.model, args.nou_model,
                                  json.loads(Path(args.fitxer).read_text(encoding="utf-8")), args.fet_a,
-                                 Path(args.foto).read_bytes() if args.foto else None)
+                                 [Path(f).read_bytes() for f in args.foto])
         except demo_peca.ErrorPeca as e:
             sys.exit(str(e))
         print(f"Fet: {args.model} ara és {r['model']} ({r['nom']}, {r['color']}), {r['variants']} talles. "
-              + ("Foto desada." if r["foto"] else "Puja'n la foto a «Imatges de les peces» del tauler."))
+              + (f"{r['fotos']} fotos desades." if r["foto"] else "Puja'n les fotos a «Imatges de les peces» del tauler."))
     elif args.ordre == "demo-directe":
         try:
             demo_directe.executa(con, args.botiga, args.cabina, args.model, args.minuts,

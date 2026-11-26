@@ -556,6 +556,8 @@ export interface ModelFitxa { model: string; nom: string; categoria: string; idi
 export interface ImatgePeca {
   model: string; nom: string; color: string; categoria: string | null; imatge: string; silueta: boolean;
   font: 'pujada' | 'url' | 'cataleg' | 'shopify' | 'prova' | null; actualitzada: DataHora | null;
+  /** v0.6: fotos de més del model (galeria de la fitxa NFC), després de la principal. */
+  galeria?: { clau: string; url: string }[];
 }
 export interface ImatgeDesada { model: string; color: string; url: string; bytes: number; font: string }
 
