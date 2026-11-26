@@ -14,6 +14,8 @@
   python -m hebra.admin copia                        # còpia de seguretat comprovada (i enviada fora si HEBRA_COPIES_DESTI)
   python -m hebra.admin copies                       # llista les còpies locals
   python -m hebra.admin restaura FITXER.db.gz        # restaura una còpia (atureu abans hebra-web)
+  python -m hebra.admin demo-enllacos --botiga PROVA-01 --url https://plataforma.hebraia.com   # enllaços NFC per a la demo
+  python -m hebra.admin demo-directe --botiga PROVA-01 --cabina 1 --minuts 3   # cabina ocupada en directe, sense lector
 
 Formats CSV (capçalera obligatòria, separador coma o punt i coma):
   cataleg.csv:   gtin,model,color,talla,categoria,preu
@@ -31,7 +33,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import alertes, auth, cataleg, control, copies, db, estoc, proves, retencio, shopify, vendes
+from . import alertes, auth, cataleg, control, copies, db, demo_directe, estoc, proves, retencio, shopify, vendes
 from .integracions import ErrorIntegracio
 from .integracions import motor as integracions_motor
 from . import epc as epc_mod
@@ -194,6 +196,15 @@ def main() -> None:
     r = sub.add_parser("restaura", help="restaura una còpia (amb el servei web aturat)")
     r.add_argument("fitxer")
     r.add_argument("--si", action="store_true", help="no demanis confirmació")
+    de = sub.add_parser("demo-enllacos", help="enllaç NFC d'una peça de cada model, per gravar-lo en un adhesiu")
+    de.add_argument("--botiga", default="PROVA-01")
+    de.add_argument("--url", required=True, help="URL pública de la plataforma")
+    dd = sub.add_parser("demo-directe", help="simula una sessió de cabina en directe (sense lector)")
+    dd.add_argument("--botiga", default="PROVA-01")
+    dd.add_argument("--cabina", default="1", help="número o id de la cabina")
+    dd.add_argument("--model", action="append", default=[], help="codi de model, p. ex. CL-24-NAT (es pot repetir); per defecte, els dos primers")
+    dd.add_argument("--minuts", type=float, default=3)
+    dd.add_argument("--api", default="http://127.0.0.1:8000", help="on escolta la plataforma")
     args = ap.parse_args()
 
     cfg = carrega()
@@ -216,6 +227,15 @@ def main() -> None:
         control.desa_assignacio(con, args.botiga, "origen", a)
         print(f"{len(a)} dies assignats: {sum(g == 'amb' for g in a.values())} amb origen, "
               f"{sum(g == 'sense' for g in a.values())} sense")
+    elif args.ordre == "demo-enllacos":
+        for e in demo_directe.enllacos(con, args.botiga, args.url):
+            print(f"{e['model']} ({e['color']}, {e['talla']}): {e['url']}")
+    elif args.ordre == "demo-directe":
+        try:
+            demo_directe.executa(con, args.botiga, args.cabina, args.model, args.minuts,
+                                 demo_directe.envia_http(args.api, cfg.clau_passarella))
+        except demo_directe.ErrorDemo as e:
+            sys.exit(str(e))
     elif args.ordre == "processa":
         n_proves = proves.processa_botiga(con, args.botiga, cfg.regla, tot=True)  # a mà: tot el període
         n_atrib = vendes.atribueix(con, args.botiga)
