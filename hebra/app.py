@@ -152,6 +152,11 @@ async def _bucle_cabines() -> None:
 
 @asynccontextmanager
 async def _cicle_de_vida(_app):
+    try:  # v0.5: fotos de les peces de prova en dades simulades d'abans (no toca les de la marca)
+        from . import simulador
+        simulador.fotos_prova(db.connecta(cfg.ruta_bd))
+    except Exception:  # noqa: BLE001 — mai no ha d'impedir que la plataforma arrenqui
+        log.exception("No s'han pogut desar les fotos de prova")
     tasques = [asyncio.create_task(_bucle_retencio())] if cfg.retencio_dies > 0 else []
     if cfg.processa_cada_min > 0:
         tasques.append(asyncio.create_task(_bucle_processament()))

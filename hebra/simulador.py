@@ -86,16 +86,21 @@ def prepara_botiga(con: sqlite3.Connection) -> None:
                     (f"{LECTOR}:{i + 1}", c, i + 1))
     con.commit()
     cataleg.importa_origen(con, ORIGEN_PROVA, genera_talles=True)
-    _fotos_prova(con)
+    fotos_prova(con)
 
 
-def _fotos_prova(con: sqlite3.Connection) -> None:
-    """Desa la foto de cada model de prova si encara no en té (la marca la pot canviar des del tauler)."""
+def fotos_prova(con: sqlite3.Connection) -> int:
+    """Desa la foto de cada model de prova que és al catàleg i encara no en té (la marca la pot canviar
+    des del tauler). Es crida també en arrencar la plataforma, per a les dades de prova d'abans de la v0.5."""
     from . import imatges
-    ja = {r["model"] for r in con.execute("SELECT model FROM imatge_peca WHERE color = ''")}
+    ja = {r["model"] for r in con.execute("SELECT DISTINCT model FROM imatge_peca")}
+    cataleg_ = {r["model"] for r in con.execute("SELECT DISTINCT model FROM catalog_sku")}
+    n = 0
     for f in sorted(FOTOS_PROVA.glob("*.jpg")):
-        if f.stem not in ja:
+        if f.stem in cataleg_ and f.stem not in ja:
             imatges.desa(con, f.stem, "", f.read_bytes(), font="prova")
+            n += 1
+    return n
 
 
 def _peces_fisiques(con: sqlite3.Connection, per_sku: int = 3) -> list[tuple[str, sqlite3.Row]]:
@@ -324,6 +329,7 @@ def _dades_tauler(con: sqlite3.Connection, inici: date, setmanes: int, darrer_di
         con.execute("""INSERT OR IGNORE INTO catalog_sku (gtin, model, color, talla, categoria, preu_eur, origen_json)
                        VALUES (?, ?, ?, ?, ?, ?, ?)""", (gtin, model, color, talla, categoria, preu,
                                                       json.dumps({"nom": {"ca": "Faldilla de llana"}})))
+    fotos_prova(con)
     # Una venda antiga de la faldilla: fa més de 21 dies que no es mou.
     antiga = datetime.combine(inici - timedelta(days=35), datetime.min.time(), ZONA).replace(hour=12)
     if not con.execute("SELECT 1 FROM venda_linia WHERE gtin = ? AND data = ?",

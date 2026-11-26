@@ -147,3 +147,20 @@ def test_panorama():
     peca = p["peces"][0]
     assert peca["imatge"].startswith("/imatges/") and len(peca["serie"]) == len(p["dies"]) == 14
     assert sum(peca["serie"]) == peca["proves"]
+
+
+def test_fotos_prova_per_a_dades_antigues(entorn):  # noqa: F811
+    """Dades de prova d'abans de la v0.5 (sense fotos): en arrencar es desen les fotos reals de les peces."""
+    _app, con = entorn
+    from hebra import imatges, simulador
+    con.execute("DELETE FROM imatge_peca")
+    con.commit()
+    assert simulador.fotos_prova(con) >= 4
+    assert simulador.fotos_prova(con) == 0  # no les torna a desar
+    res = imatges.Resolutor(con)
+    for m in ("CL-24-NAT", "JM-24-GRF", "VV-26-VRD", "TX-26-IND"):
+        assert not res.de(m, None, None)["silueta"]
+    # la marca hi ha posat la seva: no es toca
+    con.execute("DELETE FROM imatge_peca WHERE model = 'CL-24-NAT'")
+    imatges.desa(con, "CL-24-NAT", "Natural", _jpeg(), font="pujada")
+    assert simulador.fotos_prova(con) == 0
