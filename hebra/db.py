@@ -52,6 +52,7 @@ def inicialitza(con: sqlite3.Connection) -> None:
     con.executescript(ESQUEMA.read_text(encoding="utf-8"))
     _migra_v03_assistencia(con)
     _migra_v04(con)
+    _afegeix_columna(con, "imatge_peca", "fons", "TEXT")  # v0.6: color del fons de la foto
     con.commit()
 
 

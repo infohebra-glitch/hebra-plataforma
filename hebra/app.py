@@ -154,7 +154,9 @@ async def _bucle_cabines() -> None:
 async def _cicle_de_vida(_app):
     try:  # v0.5: fotos de les peces de prova en dades simulades d'abans (no toca les de la marca)
         from . import simulador
-        simulador.fotos_prova(db.connecta(cfg.ruta_bd))
+        c = db.connecta(cfg.ruta_bd)
+        simulador.fotos_prova(c)
+        imatges.omple_fons(c)  # v0.6: color de fons de les fotos d'abans
     except Exception:  # noqa: BLE001 — mai no ha d'impedir que la plataforma arrenqui
         log.exception("No s'han pogut desar les fotos de prova")
     tasques = [asyncio.create_task(_bucle_retencio())] if cfg.retencio_dies > 0 else []
@@ -262,6 +264,7 @@ app.state.limit_botiga = auth.LimitIntents(maxim=10, finestra_s=15 * 60)     # u
 app.include_router(api.router)
 plantilles = Jinja2Templates(directory=ARREL / "templates")
 plantilles.env.globals["pais"] = textos.pais
+plantilles.env.globals["bandera"] = textos.bandera
 seguretat = HTTPBasic()
 
 

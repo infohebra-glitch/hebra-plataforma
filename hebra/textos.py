@@ -19,7 +19,7 @@ TEXTOS = {
         "Aquesta pàgina no fa servir galetes ni guarda cap dada teva.",
         "etapes": {"cultiu": "Cultiu", "filatura": "Filatura", "teixit": "Teixit", "tintura": "Tintura",
                    "confeccio": "Confecció", "acabat": "Acabat", "fibra": "Fibra", "fusta": "Fusta", "tricotat": "Tricotat"},
-        "veure_origen": "Mostra el recorregut",
+        "veure_origen": "Mostra el recorregut", "fet_a": "Fet a", "altra_talla": "Una altra talla", "llisca": "Llisca per veure més fotos", "foto": "Foto",
     },
     "es": {
         "composicio": "Composición", "cura": "Cuidados", "origen": "De dónde viene", "talles": "Tallas",
@@ -35,7 +35,7 @@ TEXTOS = {
         "Esta página no usa cookies ni guarda ningún dato tuyo.",
         "etapes": {"cultiu": "Cultivo", "filatura": "Hilatura", "teixit": "Tejido", "tintura": "Tintura",
                    "confeccio": "Confección", "acabat": "Acabado", "fibra": "Fibra", "fusta": "Madera", "tricotat": "Tricotado"},
-        "veure_origen": "Ver el recorrido",
+        "veure_origen": "Ver el recorrido", "fet_a": "Hecho en", "altra_talla": "Otra talla", "llisca": "Desliza para ver más fotos", "foto": "Foto",
     },
     "fr": {
         "composicio": "Composition", "cura": "Entretien", "origen": "D'où il vient", "talles": "Tailles",
@@ -51,7 +51,7 @@ TEXTOS = {
         "Cette page n'utilise pas de cookies et n'enregistre aucune donnée vous concernant.",
         "etapes": {"cultiu": "Culture", "filatura": "Filature", "teixit": "Tissage", "tintura": "Teinture",
                    "confeccio": "Confection", "acabat": "Finition", "fibra": "Fibre", "fusta": "Bois", "tricotat": "Tricotage"},
-        "veure_origen": "Voir le parcours",
+        "veure_origen": "Voir le parcours", "fet_a": "Fabriqué en", "altra_talla": "Autre taille", "llisca": "Faites glisser pour voir plus de photos", "foto": "Photo",
     },
     "en": {
         "composicio": "Composition", "cura": "Care", "origen": "Where it comes from", "talles": "Sizes",
@@ -67,7 +67,7 @@ TEXTOS = {
         "This page uses no cookies and stores no data about you.",
         "etapes": {"cultiu": "Growing", "filatura": "Spinning", "teixit": "Weaving", "tintura": "Dyeing",
                    "confeccio": "Making", "acabat": "Finishing", "fibra": "Fibre", "fusta": "Wood", "tricotat": "Knitting"},
-        "veure_origen": "Show the journey",
+        "veure_origen": "Show the journey", "fet_a": "Made in", "altra_talla": "Another size", "llisca": "Swipe to see more photos", "foto": "Photo",
     },
 }
 
@@ -91,3 +91,10 @@ def pais(codi: str | None, idioma: str) -> str:
     if not codi:
         return ""
     return PAISOS.get(codi, {}).get(idioma, codi)
+
+
+def bandera(codi: str | None) -> str:
+    """Emoji de la bandera d'un país (codi ISO de 2 lletres), o '' si el codi no és vàlid."""
+    if not codi or len(codi) != 2 or not codi.isascii() or not codi.isalpha():
+        return ""
+    return "".join(chr(0x1F1E6 + ord(c) - 65) for c in codi.upper())

@@ -647,6 +647,10 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .clau-quadre { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
 .llista-imatges { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
 .llista-imatges li { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: start; padding-bottom: 12px; border-bottom: 1px solid var(--line-2); }
+.galeria-tauler { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.galeria-tauler figure { margin: 0; position: relative; width: 64px; }
+.llista-imatges .galeria-tauler img { width: 64px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line-2); display: block; }
+.galeria-tauler button { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; padding: 0; border-radius: 50%; background: var(--surface, #fff); line-height: 1; }
 .llista-imatges li:last-child { border-bottom: 0; padding-bottom: 0; }
 .llista-imatges img { width: 96px; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--radi-petit); background: #F1EFEE; }
 .llista-imatges img.silueta { object-fit: contain; }
