@@ -131,13 +131,12 @@ def carrega(con: sqlite3.Connection, avui: date | None = None) -> dict:
         return estat(con)
 
 
-def _dies_especials(con: sqlite3.Connection, inici: date, avui: date) -> None:
+def _dies_especials(con: sqlite3.Connection, inici: date, avui: date, colleccions: bool = True) -> None:
     """Perquè es pugui provar la comparativa: dies de pluja (sempre els mateixos per a cada data), el Black
-    Friday i les rebaixes, i dues col·leccions (una per setmana). També marca la pluja de les 3 setmanes
-    vinents, perquè els dies que van entrant amb la posada al dia també en tinguin."""
+    Friday i les rebaixes, i dues col·leccions (una per setmana). La posada al dia marca els dies nous."""
     files = []
     d = inici
-    while d <= avui + timedelta(days=21):
+    while d <= avui:
         # Els mateixos dies que fa servir el simulador (amb pluja entra menys gent; amb rebaixes, més).
         if simulador.plou(d):
             files.append((BOTIGA, d.isoformat(), "pluja"))
@@ -147,6 +146,8 @@ def _dies_especials(con: sqlite3.Connection, inici: date, avui: date) -> None:
             files.append((BOTIGA, d.isoformat(), "festiu"))
         d += timedelta(days=1)
     con.executemany("INSERT OR IGNORE INTO condicio_dia (botiga_id, data, condicio) VALUES (?, ?, ?)", files)
+    if not colleccions:
+        return
     for nom, des, fins in (("Entrada de tardor", inici, inici + timedelta(days=6)),
                            ("Càpsula de festes", inici + timedelta(days=7), inici + timedelta(days=13))):
         con.execute("INSERT INTO colleccio (nom, des, fins, lot_prova) VALUES (?, ?, ?, 1)",
@@ -178,6 +179,7 @@ def posa_al_dia(con: sqlite3.Connection, ara: datetime | None = None) -> int:
         except Exception:
             con.rollback()
             raise
+        _dies_especials(con, des.date(), ara.date(), colleccions=False)
         resum = json.loads(f["resum_json"])
         resum["sessions"] = resum.get("sessions", 0) + r["sessions"]
         resum["vendes"] = resum.get("vendes", 0) + r["linies_venda"]

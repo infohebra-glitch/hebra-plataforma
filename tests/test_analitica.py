@@ -202,7 +202,7 @@ def test_lectures_concretes():
     mapa = {"id": "mapa_peces", "tipus": "dispersio", "unitat": "pct", "eix_x": ["Polo", "Vestit"],
             "series": [{"nom": "Proves", "valors": [99, 75]}, {"nom": "Conversió", "valors": [0.31, 0.15]}],
             "destaca": [False, True]}
-    assert "«Vestit»: 75 proves i 15 % de conversió" in llegeix(mapa) and "mitjana de 23 %" in llegeix(mapa)
+    assert "«Vestit» s'ha provat 75 vegades i només el 15 % acaba en compra (mitjana, 23 %)" in llegeix(mapa)
     motius = {"id": "motius", "tipus": "donut", "unitat": "enter", "eix_x": ["Talla", "Preu"],
               "series": [{"nom": "Respostes", "valors": [6, 2]}]}
     assert "«Talla» (75 % de 8 respostes)" in llegeix(motius) and "patronatge" in llegeix(motius)
@@ -210,3 +210,12 @@ def test_lectures_concretes():
              "series": [{"nom": "Sessions", "valors": [1, 2, 8, 9]}]}
     assert "de 12 h a 14 h" in llegeix(hores)
     assert llegeix({"id": "motius", "tipus": "donut", "unitat": "enter", "eix_x": [], "series": [{"nom": "x", "valors": []}]}) is None
+
+
+def test_lectures_amb_context(con):
+    """Amb les dades del model, la lectura diu el motiu, la talla que falla, l'estoc i què cal fer."""
+    inf = A.informe(con, F, "setmanal")
+    l = {g["id"]: g["lectura"] for g in inf["grafics"]}
+    assert "Vestit de viscosa" in l["mapa_peces"] and "talla" in l["mapa_peces"] and "setmanes de venda" in l["mapa_peces"]
+    assert "Rebaixar-lo no ho arreglarà" in l["cua_models"]
+    assert "Respecte a la setmana anterior" in l["proves_compres_dia"]

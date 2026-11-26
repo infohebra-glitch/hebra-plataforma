@@ -106,7 +106,8 @@ def _mapa_peces(taula: list[dict]) -> dict:
                [m["nom"] or m["model"] for m in ms],
                [serie("Proves", [m["proves"] for m in ms]), serie("Conversió", [m["conversio"] for m in ms])],
                "A la dreta, els models més provats; a dalt, els que més es compren després de provar-los. "
-               "Les línies són la mitjana. En vermell, «molt provat, poc venut»: cal mirar-ne la talla, el preu o el tall.",
+               "Les línies són la mitjana. En grana, els models que es proven molt i es venen poc comparats amb la "
+               "seva categoria (poden quedar fora de la zona ombrejada, que compara amb tota la botiga).",
                [bool(m.get("molt_provat_poc_venut")) for m in ms])
 
 
@@ -445,8 +446,9 @@ def enriqueix(con: sqlite3.Connection, f: Filtre, tipus: str, k: dict, inf: dict
     inf.setdefault("xifres", [])
     inf.setdefault("grafics", [])
     _PER_TIPUS[tipus](con, f, k, inf)
+    ctx = Context(con, f, inf)
     for g in inf["grafics"]:
-        g["lectura"] = llegeix(g)
+        g["lectura"] = llegeix(g, ctx)
     # La marca tria quins gràfics surten a cada tipus d'informe i en quin ordre (v0.7).
     inf["grafics_disponibles"] = [{"id": g["id"], "titol": g["titol"]} for g in inf["grafics"]]
     triats = grafics_triats(con, tipus)
@@ -500,12 +502,79 @@ def _parells(g: dict, k: int = 0) -> list[tuple[str, float]]:
     return [(e, v) for e, v in zip(g["eix_x"], vals) if v is not None]
 
 
-def llegeix(g: dict) -> str | None:
-    """Dues o tres frases sobre el gràfic `g`: què hi veiem i què en podem fer. None si no hi ha dades."""
+class Context:
+    """El que una lectura necessita a més del gràfic: la fitxa de cada model (motiu, estoc, talles) i la
+    variació respecte al període anterior. Es calcula només si una lectura ho demana."""
+
+    def __init__(self, con: sqlite3.Connection | None = None, f: Filtre | None = None, inf: dict | None = None):
+        self.con, self.f, self.inf = con, f, inf or {}
+        self._models: dict | None = None
+        self._detall: dict = {}
+
+    def model(self, nom: str) -> dict | None:
+        if self.con is None:
+            return None
+        if self._models is None:
+            self._models = {}
+            for m in models_mod.models(self.con, self.f)["models"]:
+                self._models[m["nom"]] = self._models[m["model"]] = m
+        return self._models.get(nom)
+
+    def detall(self, m: dict) -> dict | None:
+        if m["model"] not in self._detall:
+            self._detall[m["model"]] = models_mod.model_detall(self.con, self.f, m["model"])
+        return self._detall[m["model"]]
+
+    def setmanes(self) -> float:
+        return max(1, (self.f.fins - self.f.des).days + 1) / 7 if self.f else 1
+
+    def xifra(self, etiqueta: str) -> dict | None:
+        return next((x for x in self.inf.get("xifres", []) if x["etiqueta"] == etiqueta), None)
+
+
+def llegeix(g: dict, ctx: "Context | None" = None) -> str | None:
+    """Dues a cinc frases sobre el gràfic `g`: què hi veiem, per què, i què en podem fer. None si no hi ha dades."""
+    ctx = ctx or Context()
+    fn = _LECTURES.get(g["id"].split("_")[0] if g["id"].startswith("talles_") else g["id"], _lectura_general)
     try:
-        return _LECTURES.get(g["id"].split("_")[0] if g["id"].startswith("talles_") else g["id"], _lectura_general)(g)
-    except (IndexError, KeyError, ValueError, ZeroDivisionError):
+        return fn(g, ctx) if fn in _AMB_CONTEXT else fn(g)
+    except (IndexError, KeyError, ValueError, ZeroDivisionError, TypeError):
         return None
+
+
+def _talla_fluixa(ctx: Context, m: dict) -> dict | None:
+    """La talla que menys converteix d'un model (amb prou proves per dir-ho)."""
+    d = ctx.detall(m)
+    ts = [t for t in (d or {}).get("talles", []) if (t.get("proves") or 0) >= 8 and t.get("conversio") is not None]
+    if len(ts) < 2:
+        return None
+    pitjor = min(ts, key=lambda t: t["conversio"])
+    return pitjor if pitjor["conversio"] < (m.get("conversio") or 0) * 0.8 else None
+
+
+def _esgotades(ctx: Context, m: dict) -> list[dict]:
+    d = ctx.detall(m)
+    return [t for t in (d or {}).get("talles", []) if t.get("estoc") == 0 and (t.get("demanda_perduda") or 0) > 0]
+
+
+def _cobertura(ctx: Context, m: dict) -> str:
+    """«Queden N unitats, unes X setmanes al ritme d'ara.»"""
+    estoc = m.get("estoc")
+    if estoc is None:
+        return ""
+    per_setmana = (m.get("compres") or 0) + (m.get("venut_sense_provar") or 0)
+    per_setmana /= ctx.setmanes()
+    if per_setmana <= 0:
+        return f" Queden {_f(estoc, 'enter')} unitats i aquest període no se n'ha venut cap."
+    setm = estoc / per_setmana
+    if setm < 1:
+        return f" Només en queden {_f(estoc, 'enter')} unitats, menys d'una setmana de venda al ritme d'ara: cal reposar ja."
+    return (f" Queden {_f(estoc, 'enter')} unitats: unes {_f(round(setm), 'enter')} setmanes de venda al ritme d'ara"
+            + (", massa per esperar sense fer res." if setm > 10 else "." if setm > 3 else ": cal reposar aviat."))
+
+
+_NOM_MOTIU = {"talla": "la talla", "tall": "el tall o la forma", "preu": "el preu", "color": "el color",
+              "qualitat": "la qualitat o el teixit"}
 
 
 def _lectura_general(g: dict) -> str | None:
@@ -516,7 +585,7 @@ def _lectura_general(g: dict) -> str | None:
     return f"El valor més alt és «{alt[0]}» ({_f(alt[1], g['unitat'])}) i el més baix, «{baix[0]}» ({_f(baix[1], g['unitat'])})."
 
 
-def _l_proves_compres(g: dict) -> str | None:
+def _l_proves_compres(g: dict, ctx: Context) -> str | None:
     proves, compres = _parells(g, 0), dict(_parells(g, 1))
     dia = "la setmana" if g["id"].endswith("setmana") else "el dia"
     if not proves or not sum(v for _, v in proves):
@@ -530,10 +599,20 @@ def _l_proves_compres(g: dict) -> str | None:
         pitjor = min(conv, key=lambda x: x[1])
         text += (f" {dia.split()[0].capitalize()} de conversió més baixa, {pitjor[0]} ({_f(pitjor[1], 'pct')}): "
                  f"si hi havia molta gent, mira si n'hi havia prou a la sala per portar talles.")
+    xp, xc = ctx.xifra("Proves"), ctx.xifra("Conversió de provador")
+    if xp and xc and xp.get("variacio") is not None and xc.get("variacio") is not None:
+        vp, vc = xp["variacio"], xc["variacio"]
+        vs = xp.get("vs") or "setmana anterior"
+        text += (f" Respecte {'a la' if vs.startswith('setmana') else 'al'} {vs}: {'+' if vp >= 0 else '−'}{_f(abs(vp), 'pct')} proves i "
+                 f"{'+' if vc >= 0 else '−'}{f'{abs(vc) * 100:.1f}'.replace('.', ',')} punts de conversió.")
+        if vc <= -0.02:
+            text += " Es prova però es compra menys: comença pels models de «Molt provat, poc venut»."
+        elif vc >= 0.02:
+            text += " La conversió millora: mira quines decisions o reposicions ho expliquen per repetir-les."
     return text
 
 
-def _l_mapa(g: dict) -> str | None:
+def _l_mapa(g: dict, ctx: Context) -> str | None:
     noms, proves, conv = g["eix_x"], g["series"][0]["valors"], g["series"][1]["valors"]
     if not noms:
         return None
@@ -541,31 +620,64 @@ def _l_mapa(g: dict) -> str | None:
     dest = [(n, p, c) for n, p, c, d in zip(noms, proves, conv, g.get("destaca") or [False] * len(noms)) if d]
     if not dest:
         return (f"Cap model és alhora molt provat i poc venut: la col·lecció es comporta bé al provador "
-                f"(conversió mitjana {_f(mitja, 'pct')}).")
-    llista = "; ".join(f"«{n}»: {_f(p, 'enter')} proves i {_f(c, 'pct')} de conversió" for n, p, c in dest)
-    if len(dest) == 1:
-        accio = "La gent l'agafa, però no se l'emporta: mira'n el motiu més citat i la talla que falla abans de rebaixar-la."
+                f"(conversió mitjana {_f(mitja, 'pct')}). Mira «Els que menys converteixen» per si n'hi ha cap a vigilar.")
+    frases = []
+    for n, p, c in dest[:3]:
+        t = f"«{n}» s'ha provat {_f(p, 'enter')} vegades i només el {_f(c, 'pct')} acaba en compra (mitjana, {_f(mitja, 'pct')})."
+        m = ctx.model(n)
+        if m:
+            if m.get("conversio_categoria") is not None and m["conversio_categoria"] > c + 0.03:
+                t += f" La seva categoria converteix el {_f(m['conversio_categoria'], 'pct')}: el problema és del model, no del tipus de peça."
+            if m.get("motiu_principal"):
+                t += f" Qui no se l'emporta diu sobretot {_NOM_MOTIU.get(m['motiu_principal'], m['motiu_principal'])}"
+                fl = _talla_fluixa(ctx, m)
+                t += (f", i la talla {fl['talla']} és la que menys convenç ({_f(fl['conversio'], 'pct')})." if fl else ".")
+                t += " " + ACCIO_MOTIU.get(m["motiu_principal"], "")
+            t += _cobertura(ctx, m)
+        frases.append(t.strip())
+    return " ".join(frases)
+
+
+def _l_top(g: dict, ctx: Context) -> str | None:
+    pp = _parells(g)
+    if not pp:
+        return None
+    nom, conv = pp[0]
+    t = f"«{nom}» és el model que més converteix: el {_f(conv, 'pct')} de qui se'l prova se l'emporta."
+    m = ctx.model(nom)
+    if m:
+        esg = _esgotades(ctx, m)
+        if esg:
+            perd = sum(x["demanda_perduda"] for x in esg)
+            t += (f" Però {'la talla ' + esg[0]['talla'] + ' està esgotada' if len(esg) == 1 else 'les talles ' + ', '.join(x['talla'] for x in esg) + ' estan esgotades'}"
+                  f" i s'ha demanat {_f(perd, 'enter')} {'vegada' if perd == 1 else 'vegades'} sense poder-la portar: reposa-la abans que res.")
+        else:
+            t += " No li falta cap talla: mantén-lo ben visible i a prop dels provadors."
+        t += _cobertura(ctx, m)
+    if len(pp) > 1:
+        t += f" Darrere ve «{pp[1][0]}» ({_f(pp[1][1], 'pct')})."
+    return t
+
+
+def _l_cua(g: dict, ctx: Context) -> str | None:
+    pp = _parells(g)
+    if not pp:
+        return None
+    nom, conv = pp[0]
+    t = f"«{nom}» és el que menys converteix: {_f(conv, 'pct')}."
+    m = ctx.model(nom)
+    if m:
+        if m.get("conversio_categoria") is not None:
+            t += f" La categoria ({m['categoria']}) fa el {_f(m['conversio_categoria'], 'pct')}."
+        if m.get("motiu_principal"):
+            mot = m["motiu_principal"]
+            t += f" El motiu més citat és {_NOM_MOTIU.get(mot, mot)}. " + ACCIO_MOTIU.get(mot, "")
+            if mot in ("talla", "tall"):
+                t += " Rebaixar-lo no ho arreglarà."
+        t += _cobertura(ctx, m)
     else:
-        accio = "La gent les agafa, però no se les emporta: mira'n el motiu més citat i la talla que falla abans de rebaixar-les."
-    return f"A mirar: {llista}, davant d'una mitjana de {_f(mitja, 'pct')}. {accio}"
-
-
-def _l_top(g: dict) -> str | None:
-    pp = _parells(g)
-    if not pp:
-        return None
-    m = pp[0]
-    return (f"«{m[0]}» és el model que més converteix ({_f(m[1], 'pct')}). "
-            f"Assegura't que no en falti cap talla: cada petició sense estoc és una venda gairebé feta.")
-
-
-def _l_cua(g: dict) -> str | None:
-    pp = _parells(g)
-    if not pp:
-        return None
-    m = pp[0]
-    return (f"«{m[0]}» és el que menys converteix ({_f(m[1], 'pct')}). "
-            f"Abans de rebaixar-lo, mira per què no se l'emporten: si és la talla, el problema és de producte, no de preu.")
+        t += " Abans de rebaixar-lo, mira per què no se l'emporten: si és la talla, el problema és de producte, no de preu."
+    return t
 
 
 def _l_categories(g: dict) -> str | None:
@@ -724,3 +836,5 @@ _LECTURES = {
     "conversio_setmanal": _l_setmanal, "decisions_abans_despres": _l_decisions,
     "estoc_parat_categoria": _l_estoc, "demanda_perduda_model": _l_perduda, "talles": _l_talles,
 }
+
+_AMB_CONTEXT = {_l_proves_compres, _l_mapa, _l_top, _l_cua}

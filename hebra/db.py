@@ -53,6 +53,7 @@ def inicialitza(con: sqlite3.Connection) -> None:
     _migra_v03_assistencia(con)
     _migra_v04(con)
     _afegeix_columna(con, "imatge_peca", "fons", "TEXT")  # v0.6: color del fons de la foto
+    _afegeix_columna(con, "colleccio", "lot_prova", "INTEGER NOT NULL DEFAULT 0")  # v0.7
     con.commit()
 
 

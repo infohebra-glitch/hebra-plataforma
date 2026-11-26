@@ -18,7 +18,13 @@ const NOM_CONDICIO: Record<string, string> = {
   pluja: 'pluja', calor: 'calor', fred: 'fred', festiu: 'festiu', rebaixes: 'rebaixes', esdeveniment: 'esdeveniment',
 };
 
-function lectura(c: Comparativa, franja: string, condicio: string): string {
+function ambQue(compara: string, etiqueta: string): string {
+  if (compara === 'anterior') return 'al període anterior';
+  if (compara === 'any') return "a l'any passat";
+  return `a la col·lecció «${etiqueta}»`;
+}
+
+function lectura(c: Comparativa, franja: string, condicio: string, compara: string): string {
   const t = c.total;
   if (!t.proves) return 'No hi ha proves amb aquests filtres.';
   const on = [franja && FRANGES[franja].toLowerCase(), condicio && (condicio.startsWith('!') ? `dies sense ${condicio.slice(1)}` : `dies amb ${condicio}`)]
@@ -29,7 +35,7 @@ function lectura(c: Comparativa, franja: string, condicio: string): string {
   if (k && k.total.proves) {
     const dp = t.proves / Math.max(1, t.dies) / (k.total.proves / Math.max(1, k.total.dies)) - 1;
     const dc = (t.conversio ?? 0) - (k.total.conversio ?? 0);
-    txt += ` Respecte a ${k.etiqueta.toLowerCase()} (${diaCurt(k.des)}–${diaCurt(k.fins)}): ${dp >= 0 ? '+' : '−'}${pct(Math.abs(dp))} proves per dia i ${punts(dc)} de conversió.`;
+    txt += ` Respecte ${ambQue(compara, k.etiqueta)} (${diaCurt(k.des)}–${diaCurt(k.fins)}): ${dp >= 0 ? '+' : '−'}${pct(Math.abs(dp))} proves per dia i ${punts(dc)} de conversió.`;
     if (Math.abs(dc) >= 0.03) {
       txt += dc < 0
         ? ' Es prova però es compra menys: mira quins models han baixat a «Peces» i els motius de no compra.'
@@ -37,7 +43,7 @@ function lectura(c: Comparativa, franja: string, condicio: string): string {
     } else if (Math.abs(dp) >= 0.15) {
       txt += dp > 0 ? ' Hi ha més gent provant-se roba amb la mateixa conversió: revisa els torns a les hores punta.' : ' Menys proves amb la mateixa conversió: és trànsit, no producte.';
     } else txt += ' Sense canvis importants.';
-  } else if (k) txt += ` A ${k.etiqueta.toLowerCase()} no hi ha dades per comparar.`;
+  } else if (k) txt += ` No hi ha dades per comparar ${ambQue(compara, k.etiqueta).replace(/^a(l)? /, (x) => (x === 'al ' ? 'del ' : 'de '))}.`;
   return txt;
 }
 
@@ -59,7 +65,9 @@ export function ProvesCompresDia({ r }: { r: TResum }) {
     { clau: 'proves', nom: 'Proves', classe: 's1', valors: dies.map((d) => d.proves) },
     { clau: 'compres', nom: 'Compres després de provar', classe: 's2', valors: dies.map((d) => d.compres) },
   ];
-  if (c?.comparacio) {
+  // Amb un filtre de condicions, els dies de pluja d'un període i de l'altre no cauen el mateix dia de la
+  // setmana: es comparen els totals (a sobre), no dia a dia.
+  if (c?.comparacio && !condicio) {
     const alinea = (k: 'proves' | 'compres') => dies.map((_, i) => c.comparacio!.dies[i]?.[k] ?? null);
     series.push({ clau: 'proves-cmp', nom: `Proves · ${etiq}`, classe: 's1', valors: alinea('proves'), discontinua: true });
     series.push({ clau: 'compres-cmp', nom: `Compres · ${etiq}`, classe: 's2', valors: alinea('compres'), discontinua: true });
@@ -120,7 +128,7 @@ export function ProvesCompresDia({ r }: { r: TResum }) {
           nomBanda={c ? undefined : 'Dia amb origen visible'}
         />
       ) : <p className="muted">Encara no hi ha dies amb dades en aquest període.</p>}
-      {c && <p className="comparativa-lectura">{lectura(c, franja, condicio)}</p>}
+      {c && <p className="comparativa-lectura">{lectura(c, franja, condicio, cmp)}</p>}
     </div>
   );
 }
