@@ -36,7 +36,8 @@ for _ruta_, _nom in [("/resum", "resum"), ("/models", "models"), ("/talles", "ta
                      ("/demanda-perduda", "demanda_perduda"), ("/motius", "motius"), ("/servei", "servei"),
                      ("/estoc", "estoc"), ("/fitxa-nfc", "fitxa_nfc"), ("/experiments", "experiments"),
                      ("/alertes", "alertes"), ("/valor", "valor"), ("/perdues", "perdues"),
-                     ("/estat-sistema", "estat_sistema"), ("/sessions", "sessions")]:
+                     ("/estat-sistema", "estat_sistema"), ("/sessions", "sessions"),
+                     ("/panorama", "panorama")]:
     _ruta(_ruta_, _nom)
 
 

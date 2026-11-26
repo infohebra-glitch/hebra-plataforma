@@ -137,6 +137,9 @@ export interface ModelResum {
   estoc: number;
   motiu_principal: Motiu | null;
   demanda_perduda: number;
+  /** v0.5: color i foto de la peça (o silueta de la categoria si la marca encara no n'ha posat). */
+  color?: string | null;
+  imatge?: string;
 }
 
 export interface RespostaModels { models: ModelResum[] }
@@ -159,7 +162,7 @@ export interface MotiuCompte { motiu: Motiu; n: number; pct: Fraccio }
 
 export interface PuntSetmanal { setmana: Data; proves: number; compres: number; conversio: Fraccio }
 
-export interface ProvatAmb { model: string; nom: string; sessions: number }
+export interface ProvatAmb { model: string; nom: string; sessions: number; imatge?: string }
 
 export interface EtapaOrigen { etapa: string; pais: string; regio: string }
 export interface Composicio { material: string; pct: number; pais: string }
@@ -171,6 +174,8 @@ export interface ModelDetall {
   categoria: string;
   color: string;
   preu: number;
+  /** v0.5: foto de la peça. */
+  imatge?: string;
   kpi: {
     proves: number;
     compres: number;
@@ -545,7 +550,34 @@ export interface ConfigFitxaParcial {
   textos_motius?: ConfigFitxa['textos_motius'];
 }
 export interface RespostaConfigFitxa { general: ConfigFitxa; botiga: ConfigFitxaParcial | null; efectiva: ConfigFitxa }
-export interface ModelFitxa { model: string; nom: string; categoria: string; idiomes_amb_contingut: string[]; te_origen: boolean }
+export interface ModelFitxa { model: string; nom: string; categoria: string; idiomes_amb_contingut: string[]; te_origen: boolean; imatge?: string }
+
+// ── Imatges de les peces (v0.5) ──────────────────────────────────────────
+export interface ImatgePeca {
+  model: string; nom: string; color: string; categoria: string | null; imatge: string; silueta: boolean;
+  font: 'pujada' | 'url' | 'cataleg' | 'shopify' | 'prova' | null; actualitzada: DataHora | null;
+}
+export interface ImatgeDesada { model: string; color: string; url: string; bytes: number; font: string }
+
+// ── GET /panorama (v0.5) ─────────────────────────────────────────────────
+export interface EtapaEmbut { clau: 'tocs' | 'proves' | 'peticions' | 'compres'; nom: string; n: number }
+export interface CategoriaPanorama { categoria: string; proves: number; compres: number; conversio: Fraccio }
+export interface PecaPanorama {
+  model: string; nom: string; categoria: string | null; color: string | null; preu: number | null; imatge: string;
+  proves: number; compres: number; conversio: Fraccio; unitats_venudes: number; ingressos: number;
+  estoc: number | null; cobertura_setmanes: number | null; serie: number[];
+}
+export interface Panorama {
+  periode: { des: Data; fins: Data };
+  dies: Data[];
+  embut: EtapaEmbut[];
+  mapa_calor: { hores: number[]; dies_setmana: string[]; proves: number[][] };
+  per_categoria: CategoriaPanorama[];
+  temps_cabina: { trams: { des: number; fins: number | null; sessions: number }[]; mediana_minuts: number | null };
+  peces_per_sessio: { peces: number | string; sessions: number }[];
+  peces: PecaPanorama[];
+  motius: { motiu: Motiu; nom: string; n: number; pct: Fraccio }[];
+}
 export interface ContingutModel {
   nom?: string; descripcio?: string; ajust?: string; cura?: string[]; guia_talles?: string;
   faq?: { q: string; a: string }[]; combina?: string[];

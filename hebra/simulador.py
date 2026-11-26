@@ -52,6 +52,8 @@ SERIE_BASE = 900000          # número de sèrie de les etiquetes simulades
 # simulada i els GTIN del fitxer de prova; no crea paràmetres generals ni informes de tota la marca.
 AILLAT = False
 ORIGEN_PROVA = Path(__file__).resolve().parent.parent / "dades" / "origen-prova.json"
+# v0.5: foto de producte de cada model de prova (dades/fotos-prova/<model>.jpg, imatges generades per a la demo)
+FOTOS_PROVA = ORIGEN_PROVA.parent / "fotos-prova"
 
 # Probabilitat de compra després d'una prova, per categoria (inventat).
 CONVERSIO_BASE = {"camisa": 0.34, "jersei": 0.30, "vestit": 0.10, "texans": 0.27}
@@ -84,6 +86,16 @@ def prepara_botiga(con: sqlite3.Connection) -> None:
                     (f"{LECTOR}:{i + 1}", c, i + 1))
     con.commit()
     cataleg.importa_origen(con, ORIGEN_PROVA, genera_talles=True)
+    _fotos_prova(con)
+
+
+def _fotos_prova(con: sqlite3.Connection) -> None:
+    """Desa la foto de cada model de prova si encara no en té (la marca la pot canviar des del tauler)."""
+    from . import imatges
+    ja = {r["model"] for r in con.execute("SELECT model FROM imatge_peca WHERE color = ''")}
+    for f in sorted(FOTOS_PROVA.glob("*.jpg")):
+        if f.stem not in ja:
+            imatges.desa(con, f.stem, "", f.read_bytes(), font="prova")
 
 
 def _peces_fisiques(con: sqlite3.Connection, per_sku: int = 3) -> list[tuple[str, sqlite3.Row]]:

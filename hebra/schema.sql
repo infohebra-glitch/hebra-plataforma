@@ -394,3 +394,20 @@ CREATE TABLE IF NOT EXISTS sync_registre (
     error       TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_sync_registre ON sync_registre(integracio_id, inici);
+
+-- ================================================================ v0.5: imatges de les peces
+-- Foto de cada model (i, si cal, de cada color) que veu el client a la fitxa NFC i la marca al tauler
+-- (hebra/imatges.py). color = '' vol dir «per a tots els colors del model». La plataforma la serveix
+-- des del seu domini a /imatges/peca/<clau>; sense imatge es mostra una silueta (hebra/siluetes.py).
+CREATE TABLE IF NOT EXISTS imatge_peca (
+    clau        TEXT NOT NULL UNIQUE,       -- identificador públic (hash de model + color)
+    model       TEXT NOT NULL,
+    color       TEXT NOT NULL DEFAULT '',
+    mime        TEXT NOT NULL,
+    dades       BLOB NOT NULL,
+    font        TEXT NOT NULL DEFAULT 'pujada',   -- 'pujada' | 'url' | 'shopify' | 'cataleg'
+    url_origen  TEXT,
+    versio      TEXT NOT NULL,
+    actualitzada TEXT NOT NULL,
+    PRIMARY KEY (model, color)
+);

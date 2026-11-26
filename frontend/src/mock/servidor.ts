@@ -11,6 +11,7 @@ import {
 import { isoData, dataLocal } from '../lib/format';
 import { llegeixCorreus } from '../lib/programacio';
 import * as V3 from './v3';
+import { foto, fotosPropies, teFoto } from './fotos';
 
 type Cos = unknown;
 export interface Resposta { estat: number; cos: Cos; cru?: string; tipus?: string }
@@ -60,7 +61,7 @@ function models(f: FiltreMock): T.ModelResum[] {
     const quartil = Math.min(4, 1 + Math.floor((rang / files.length) * 4));
     const motius = Object.entries(x.m.motius).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
     return {
-      model: x.m.model, nom: x.m.nom, categoria: x.m.categoria, preu: x.m.preu,
+      model: x.m.model, nom: x.m.nom, categoria: x.m.categoria, preu: x.m.preu, color: x.m.color, imatge: foto(x.m.model),
       proves: x.proves, compres: x.compres, conversio: x.conversio === null ? null : arr(x.conversio),
       conversio_categoria: x.conversio_categoria === null ? null : arr(x.conversio_categoria),
       quartil_categoria: quartil,
@@ -155,10 +156,10 @@ function modelDetall(f: FiltreMock, codi: string): T.ModelDetall | null {
   });
   const sessionsFitxa = Math.max(1, Math.round((proves / 1.6) * 1.4));
   return {
-    model: m.model, nom: m.nom, categoria: m.categoria, color: m.color, preu: m.preu,
+    model: m.model, nom: m.nom, categoria: m.categoria, color: m.color, preu: m.preu, imatge: foto(m.model),
     kpi: { proves, compres, conversio: conv(compres, proves) === null ? null : arr(conv(compres, proves)!), venut_sense_provar: Math.round(proves * 0.02), respostes_motiu: nMotius, taxa_resposta_motiu: arr(nMotius / sessionsFitxa, 2) },
     talles, motius, serie_setmanal,
-    provat_amb: m.provatAmb.map((x, i) => ({ model: x, nom: defModel(x)!.nom, sessions: Math.max(1, Math.round(proves * (0.16 - i * 0.04))) })),
+    provat_amb: m.provatAmb.map((x, i) => ({ model: x, nom: defModel(x)!.nom, imatge: foto(x), sessions: Math.max(1, Math.round(proves * (0.16 - i * 0.04))) })),
     origen: ORIGENS[codi] ?? null,
     efecte_origen: ORIGENS[codi] ? experimentOrigen(f, codi) : null,
     dubte_talla: V3.dubteTallaModel(f, codi),
@@ -371,6 +372,95 @@ function informe(f: FiltreMock, tipus: T.TipusInforme): T.Informe | null {
 }
 
 // ── Encaminador ──────────────────────────────────────────────────────────
+// ── v0.5: /panorama (embut, mapa de calor, categories, peces amb foto) ─────
+const HORES = Array.from({ length: 13 }, (_, i) => 9 + i);
+const PES_HORA = [0.3, 0.55, 0.8, 1, 1.05, 0.9, 0.7, 0.75, 0.95, 1.15, 1.25, 1.05, 0.5];
+const TRAMS: [number, number | null][] = [[0, 3], [3, 6], [6, 10], [10, 15], [15, 25], [25, null]];
+
+function panorama(f: FiltreMock): T.Panorama {
+  const c = cub(f);
+  const proves = sumaProves(c), compres = sumaCompres(c);
+  const ds = dies(f.des, f.fins);
+  const r = atzar(`panorama${f.des}${f.fins}${f.botigues.join()}`);
+  // Mapa de calor: les proves de cada dia repartides per hores amb la forma típica d'una botiga
+  const calor = Array.from({ length: 7 }, () => HORES.map(() => 0));
+  const sumaPes = PES_HORA.reduce((a, b) => a + b, 0);
+  for (const d of ds) {
+    const pd = sumaProves(c.filter((x) => x.data === d));
+    const ds7 = (dataLocal(d).getDay() + 6) % 7;
+    const tarda = ds7 === 5 ? 1.25 : 1; // el dissabte la tarda s'omple més
+    HORES.forEach((h, i) => { calor[ds7][i] += Math.round((pd * PES_HORA[i] * (h >= 17 ? tarda : 1)) / sumaPes + (r() - 0.5)); });
+  }
+  const cats = new Map<string, [number, number]>();
+  for (const x of c) {
+    const k = defModel(x.model)!.categoria;
+    const v = cats.get(k) ?? [0, 0];
+    v[0] += x.proves; v[1] += x.compres; cats.set(k, v);
+  }
+  const sessions = Math.round(proves / 1.7);
+  const dist = [0.16, 0.27, 0.27, 0.16, 0.1, 0.04];
+  const pps = [0.38, 0.31, 0.17, 0.09, 0.05];
+  const sem = Math.max(1 / 7, ds.length / 7);
+  const peces: T.PecaPanorama[] = MODELS.map((m) => {
+    const cm = c.filter((x) => x.model === m.model);
+    const p = sumaProves(cm), co = sumaCompres(cm);
+    const venudes = co + Math.round(co * 0.12);
+    const estoc = m.estocTalla.reduce((a, b) => a + b, 0) * f.botigues.length;
+    return {
+      model: m.model, nom: m.nom, categoria: m.categoria, color: m.color, preu: m.preu, imatge: foto(m.model),
+      proves: p, compres: co, conversio: conv(co, p) === null ? null : arr(conv(co, p)!),
+      unitats_venudes: venudes, ingressos: venudes * m.preu, estoc,
+      cobertura_setmanes: venudes ? Number((estoc / (venudes / sem)).toFixed(1)) : null,
+      serie: ds.map((d) => sumaProves(cm.filter((x) => x.data === d))),
+    };
+  }).sort((a, b) => b.proves - a.proves);
+  const mot = motius(f);
+  const tocs = Math.round(proves * 1.45);
+  return {
+    periode: { des: f.des, fins: f.fins }, dies: ds,
+    embut: [
+      { clau: 'tocs', nom: 'Tocs a la fitxa NFC', n: tocs },
+      { clau: 'proves', nom: 'Peces provades', n: proves },
+      { clau: 'peticions', nom: 'Peticions de talla', n: Math.round(proves * 0.11) },
+      { clau: 'compres', nom: 'Compres després de provar', n: compres },
+    ],
+    mapa_calor: { hores: HORES, dies_setmana: ['dl', 'dt', 'dc', 'dj', 'dv', 'ds', 'dg'], proves: calor },
+    per_categoria: [...cats.entries()].map(([categoria, [p, co]]) => ({ categoria, proves: p, compres: co, conversio: conv(co, p) === null ? null : arr(conv(co, p)!) }))
+      .sort((a, b) => b.proves - a.proves),
+    temps_cabina: { trams: TRAMS.map(([des, fins], i) => ({ des, fins, sessions: Math.round(sessions * dist[i]) })), mediana_minuts: 7.4 },
+    peces_per_sessio: pps.map((x, i) => ({ peces: i < 4 ? i + 1 : '5+', sessions: Math.round(sessions * x) })),
+    peces,
+    motius: mot.per_motiu.map((x) => ({ ...x, nom: mot.etiquetes?.[x.motiu] ?? x.motiu })),
+  };
+}
+
+function llistaImatges(): T.ImatgePeca[] {
+  return MODELS.map((m) => ({
+    model: m.model, nom: m.nom, color: m.color, categoria: m.categoria, imatge: foto(m.model), silueta: !teFoto(m.model),
+    font: !teFoto(m.model) ? null : fotosPropies.has(m.model) ? 'pujada' : 'prova',
+    actualitzada: fotosPropies.has(m.model) ? new Date().toISOString() : '2026-11-20T10:00:00+01:00',
+  }));
+}
+
+function imatgesV5(metode: string, ruta: string, cos: unknown, marca: boolean): Resposta | null {
+  if (!ruta.startsWith('/imatges')) return null;
+  if (!marca) return error(403, 'Només la marca pot canviar les imatges de les peces.');
+  if (metode === 'GET' && ruta === '/imatges') return ok({ imatges: llistaImatges() });
+  const m = ruta.match(/^\/imatges\/([^/]+)$/);
+  const codi = m ? decodeURIComponent(m[1]) : '';
+  if (!m || !defModel(codi)) return error(404, `Model desconegut: ${codi}`);
+  if (metode === 'DELETE') { const n = teFoto(codi); fotosPropies.set(codi, ''); return ok({ esborrada: n }); }
+  if (metode === 'PUT') {
+    const c = cos as { data_url?: string; url?: string };
+    if (c?.url) return error(400, 'En la demostració no es descarreguen imatges d’internet: puja-la des de l’ordinador.');
+    if (!c?.data_url || !/^data:image\/(jpeg|png|webp);base64,/.test(c.data_url)) return error(400, 'Només s’accepten imatges JPEG, PNG o WebP');
+    if (c.data_url.length * 0.75 > 6 * 1024 * 1024) return error(400, 'La imatge fa més de 6 MB');
+    fotosPropies.set(codi, c.data_url);
+    return ok({ model: codi, color: '', url: c.data_url, bytes: Math.round(c.data_url.length * 0.75), font: 'pujada' });
+  }
+  return null;
+}
+
 export function respon(metode: string, url: URL, cos: unknown): Resposta {
   const ruta = url.pathname.replace(/^\/api\/v2/, '');
   const q = url.searchParams;
@@ -399,6 +489,8 @@ export function respon(metode: string, url: URL, cos: unknown): Resposta {
   const fq = new URLSearchParams(q);
   if (u.rol === 'botiga') fq.set('botiga', u.botiga_id ?? 'BCN-01');
   const f = filtre(fq);
+  const v5 = imatgesV5(metode, ruta, cos, MARCA_ROLS.includes(u.rol));
+  if (v5) return v5;
   const v3 = responV3(metode, ruta, q, f, u, cos);
   if (v3) return v3;
   const model = ruta.match(/^\/models\/(.+)$/);
@@ -410,6 +502,7 @@ export function respon(metode: string, url: URL, cos: unknown): Resposta {
   if (metode === 'GET') {
     switch (ruta) {
       case '/resum': return ok(resum(f));
+      case '/panorama': return ok(panorama(f));
       case '/models': return ok({ models: models(f) });
       case '/talles': return ok(tallesResp(f));
       case '/demanda-perduda': return ok(demandaPerduda(f));

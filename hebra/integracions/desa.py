@@ -47,6 +47,16 @@ def cataleg(con: sqlite3.Connection, variants: list[dict], crea: bool = True, ca
                          WHERE k2.model = catalog_sku.model AND k2.origen_json IS NOT NULL LIMIT 1)
                        WHERE origen_json IS NULL""")
     con.commit()
+    # v0.5: la foto de cada model i color (Shopify) es descarrega una vegada: la fitxa NFC ensenya la peça.
+    fotos = []
+    for v in variants:
+        if v.get("imatge_url") and v.get("gtin"):
+            k = con.execute("SELECT model, color FROM catalog_sku WHERE gtin = ?", (v["gtin"],)).fetchone()
+            if k:
+                fotos.append((k["model"], k["color"], v["imatge_url"]))
+    if fotos:
+        from .. import imatges
+        imatges.importa_urls(con, fotos, font="shopify")
     return n
 
 

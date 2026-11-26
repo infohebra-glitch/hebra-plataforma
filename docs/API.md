@@ -198,6 +198,31 @@ Blocs per tipus (secció 5.2 de la Proposta): **diari** (resum d'ahir); **setman
 {"actiu": true, "per_zona_hora": [{"cabina","hora","n"}], "total": 3}
 ```
 
+### v0.5 · Panorama del Resum: `GET /panorama` → `analitica.panorama`
+Gràfics a la manera de les eines de provador del sector (Sensormatic Fitting Room 360, Crave, Nedap): de la peça tocada a la peça venuda.
+```json
+{"periode": {...}, "dies": ["2026-11-16", ...],
+ "embut": [{"clau": "tocs|proves|peticions|compres", "nom", "n"}],
+ "mapa_calor": {"hores": [9..21], "dies_setmana": ["dl",...], "proves": [[13 valors] x 7]},
+ "per_categoria": [{"categoria", "proves", "compres", "conversio"}],
+ "temps_cabina": {"trams": [{"des": 0, "fins": 3, "sessions"}, ...], "mediana_minuts": 7.4},
+ "peces_per_sessio": [{"peces": 1, "sessions"}, ..., {"peces": "5+", "sessions"}],
+ "peces": [{"model", "nom", "categoria", "color", "preu", "imatge", "proves", "compres", "conversio",
+            "unitats_venudes", "ingressos", "estoc", "cobertura_setmanes", "serie": [proves per dia]}],
+ "motius": [{"motiu", "nom", "n", "pct"}]}
+```
+`/models` i `/models/{model}` també porten `color` i `imatge` (i `imatge` a cada `provat_amb`).
+
+## v0.5 · Imatges de les peces (`/api/v2/imatges`, marca o admin)
+
+| Ruta | Resposta |
+|---|---|
+| `GET /imatges` | `{"imatges": [{"model", "nom", "color", "categoria", "imatge", "silueta", "font", "actualitzada"}]}` (cada model i color del catàleg) |
+| `PUT /imatges/{model}?color=` | cos `{"data_url": "data:image/jpeg;base64,..."}` o `{"url": "https://..."}` → `{"model", "color", "url", "bytes", "font"}`; 400 si no és JPEG/PNG/WebP o passa de 6 MB; 404 si el model no és al catàleg |
+| `DELETE /imatges/{model}?color=` | `{"esborrada": bool}`: la fitxa torna a la silueta |
+
+`color` buit = la foto serveix per a tots els colors del model. Les imatges es redimensionen (1.200 px), es passen a JPEG o PNG i se'ls treuen les metadades (EXIF, GPS). Es serveixen públiques i des del propi domini (`GET /imatges/peca/{clau}?v=`, memòria cau d'un any); si no n'hi ha, `GET /imatges/silueta/{familia}.svg?c=<hex>` pinta la silueta de la categoria amb el color de la peça. També entren soles amb la columna `imatge_url` del catàleg CSV i en sincronitzar Shopify (imatge de la variant o del producte). La fitxa NFC ensenya la foto a dalt i, a «Combina amb», les peces triades per la marca o, si no n'hi ha, les que més es proven juntes a la cabina (com a mínim 3 sessions als darrers 90 dies).
+
 ## Operació
 
 | Ruta | Rol | Cos / resposta |

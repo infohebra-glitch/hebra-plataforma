@@ -179,7 +179,7 @@ Si el TPV pot publicar o enviar cada hora un fitxer a una adreça HTTPS (o el se
 
 * vendes: `data_hora,gtin,quantitat,import,tiquet` (+ `botiga` si la connexió és de tota la marca; quantitat negativa = devolució);
 * estoc: `gtin,unitats` (+ `botiga`);
-* catàleg: `gtin,model,color,talla,categoria,preu`.
+* catàleg: `gtin,model,color,talla,categoria,preu` (+ `imatge_url` opcional: la foto de la peça, que la plataforma descarrega una vegada i serveix ella mateixa).
 
 Separador coma o punt i coma, UTF-8 o Windows-1252. El fitxer de vendes pot portar sempre els darrers dies: les línies que ja hi són no es tornen a importar.
 

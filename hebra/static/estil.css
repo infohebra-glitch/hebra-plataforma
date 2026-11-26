@@ -134,3 +134,17 @@ main.fitxa { padding: 0 16px 36px; }
 /* A la previsualització del tauler, sense barra de desplaçament dins el marc del mòbil. */
 html:has(main.previa) { scrollbar-width: none; }
 html:has(main.previa)::-webkit-scrollbar { display: none; }
+
+/* v0.5: la peça es veu. Foto gran a dalt de la fitxa i «Combina amb» com un look amb fotos. */
+.fitxa-foto { margin: 4px 0 -34px; border-radius: 22px; overflow: hidden; background: #F1EFEC; aspect-ratio: 4 / 5; }
+.fitxa-foto img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.fitxa-foto.silueta img { object-fit: contain; }
+.fitxa-foto + .fitxa-heroi { margin: 0 10px 10px; box-shadow: 0 10px 30px rgba(11, 21, 34, .18); }
+.fitxa .look { list-style: none; padding: 0; margin: 6px -4px 0; display: grid; grid-auto-flow: column;
+  grid-auto-columns: minmax(118px, 40%); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+.fitxa .look li { scroll-snap-align: start; display: grid; gap: 4px; align-content: start; }
+.fitxa .look img { width: 100%; aspect-ratio: 4 / 5; height: auto; object-fit: cover; border-radius: 14px; background: #F1EFEC; }
+.fitxa .look-actual img { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fitxa .look-nom { font-size: 13.5px; font-weight: 600; line-height: 1.25; }
+.fitxa .look-dades { font-size: 12.5px; color: var(--muted); }
+.fitxa .look-actual .look-nom::before { content: "✓ "; color: var(--accent); }

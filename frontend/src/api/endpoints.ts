@@ -19,6 +19,7 @@ export const lotProva = {
 
 export const analitica = {
   resum: (x: T.Filtre, s?: AbortSignal) => api.get<T.Resum>('/resum', f(x), s),
+  panorama: (x: T.Filtre, s?: AbortSignal) => api.get<T.Panorama>('/panorama', f(x), s),
   models: (x: T.Filtre, s?: AbortSignal) => api.get<T.RespostaModels>('/models', f(x), s),
   model: (x: T.Filtre, model: string, s?: AbortSignal) => api.get<T.ModelDetall>(`/models/${enc(model)}`, f(x), s),
   talles: (x: T.Filtre, s?: AbortSignal) => api.get<T.Talles>('/talles', f(x), s),
@@ -51,6 +52,14 @@ export const tasques = {
 };
 
 /** Fitxa NFC configurable (A.3). */
+/** v0.5: la foto de cada model (i color) que veu el client a la fitxa NFC. */
+export const imatges = {
+  llista: (s?: AbortSignal) => api.get<{ imatges: T.ImatgePeca[] }>('/imatges', undefined, s),
+  puja: (model: string, color: string, cos: { data_url: string } | { url: string }) =>
+    api.put<T.ImatgeDesada>(`/imatges/${enc(model)}`, cos, color ? { color } : undefined),
+  esborra: (model: string, color: string) => api.del<{ esborrada: boolean }>(`/imatges/${enc(model)}${color ? `?color=${enc(color)}` : ''}`),
+};
+
 export const fitxa = {
   config: (botiga?: string, s?: AbortSignal) => api.get<T.RespostaConfigFitxa>('/fitxa/config', { botiga }, s),
   desaConfig: (c: T.ConfigFitxa | T.ConfigFitxaParcial, botiga?: string) => api.put<T.RespostaConfigFitxa>('/fitxa/config', c, { botiga }),

@@ -26,7 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import __version__, api, auth, db, fitxa, fitxa_config, informes, passarella, proves, retencio, temps, textos, vendes
-from . import informes_programats, provadors
+from . import imatges, informes_programats, provadors, siluetes
 from .integracions import motor as integracions_motor
 from .config import carrega
 
@@ -362,6 +362,25 @@ def _botiga_form(b: str) -> str:
     if botiga is None:
         raise HTTPException(400, "Aquesta acció necessita saber la botiga: torna a tocar la peça amb el mòbil")
     return botiga
+
+
+@app.get("/imatges/peca/{clau}")
+def imatge_peca(clau: str):
+    """Foto d'una peça (pública: la fa servir la fitxa NFC). Es pot guardar a la memòria cau: la URL porta ?v=."""
+    fila = imatges.per_clau(con, clau) if re.fullmatch(r"[0-9a-f]{20}", clau) else None
+    if fila is None:
+        raise HTTPException(404, "Imatge no trobada")
+    return Response(fila["dades"], media_type=fila["mime"],
+                    headers={"Cache-Control": "public, max-age=31536000, immutable", "ETag": f'"{fila["versio"]}"'})
+
+
+@app.get("/imatges/silueta/{familia}.svg")
+def imatge_silueta(familia: str, c: str = "B7B3B2"):
+    """Silueta d'una peça del color `c` (hex), per als models que encara no tenen foto."""
+    if familia not in siluetes.FAMILIES or not re.fullmatch(r"[0-9A-Fa-f]{6}", c):
+        raise HTTPException(404, "Silueta no trobada")
+    return Response(siluetes.svg(familia, "#" + c), media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/p/{token}", response_class=HTMLResponse, dependencies=[Depends(limit_fitxa_get)])

@@ -74,8 +74,11 @@ def cataleg_csv(con: sqlite3.Connection, ruta: str) -> str:
 
 
 def importa_cataleg(con: sqlite3.Connection, text: str) -> tuple[int, list[str]]:
-    """Importa variants del catàleg (gtin,model,color,talla,categoria,preu). Retorna (importades, errors)."""
-    n, errors = 0, []
+    """Importa variants del catàleg (gtin,model,color,talla,categoria,preu[,imatge_url]). Retorna (importades, errors).
+
+    `imatge_url` (opcional, v0.5): foto de la peça; es descarrega una vegada i la serveix la plataforma."""
+    from . import imatges
+    n, errors, fotos = 0, [], []
     for i, f in enumerate(_llegeix_text_csv(text), start=2):
         try:
             gtin = f["gtin"].zfill(14)
@@ -87,6 +90,8 @@ def importa_cataleg(con: sqlite3.Connection, text: str) -> tuple[int, list[str]]
                    categoria=excluded.categoria, preu_eur=excluded.preu_eur""",
                 (gtin, f["model"], f["color"], f["talla"], f.get("categoria") or "altres",
                  float(f["preu"].replace(",", ".")) if f.get("preu") else None))
+            if (f.get("imatge_url") or "").strip():
+                fotos.append((f["model"], f["color"], f["imatge_url"].strip()))
             n += 1
         except (KeyError, ValueError) as e:
             errors.append(f"Línia {i}: {e}")

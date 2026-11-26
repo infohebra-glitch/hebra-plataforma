@@ -40,6 +40,10 @@
   {% endif %}
 </header>
 
+<figure class="fitxa-foto{{ ' silueta' if p.imatge.silueta }}">
+  <img src="{{ p.imatge.url }}" alt="{{ p.nom }}{% if p.color %} · {{ p.color }}{% endif %}" width="800" height="1000" fetchpriority="high">
+</figure>
+
 <div class="fitxa-heroi">
   {% if benvinguda %}<p class="benvinguda">{{ benvinguda }}</p>{% endif %}
   <h1>{{ p.nom }}</h1>
@@ -102,9 +106,14 @@
   <ul>{% for c in p.cura %}<li>{{ c }}</li>{% endfor %}</ul>
 </details>
 {% elif seccio == 'combina' and p.combina %}
-<section class="panell">
+<section class="panell combina">
   <h2>{{ p.titol_combina }}</h2>
-  <ul>{% for nom in p.combina %}<li>{{ nom }}</li>{% endfor %}</ul>
+  {% if p.nota_combina %}<p class="petit muted">{{ p.nota_combina }}</p>{% endif %}
+  <ul class="look">
+    <li class="look-actual"><img src="{{ p.imatge.url }}" alt="" loading="lazy" width="400" height="500"><span class="look-nom">{{ p.nom }}</span></li>
+    {% for c in p.combina %}<li><img src="{{ c.imatge.url }}" alt="{{ c.nom }}" loading="lazy" width="400" height="500">
+      <span class="look-nom">{{ c.nom }}</span>{% if c.color or c.preu %}<span class="look-dades">{{ c.color }}{% if c.color and c.preu %} · {% endif %}{% if c.preu %}{{ '%.0f'|format(c.preu) }} €{% endif %}</span>{% endif %}</li>{% endfor %}
+  </ul>
 </section>
 {% elif seccio in propies and propies[seccio].text %}
 {% set sp = propies[seccio] %}

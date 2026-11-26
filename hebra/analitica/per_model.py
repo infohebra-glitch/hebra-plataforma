@@ -94,10 +94,16 @@ def taula_models(con: sqlite3.Connection, f: Filtre, proves: list | None = None)
 
 def models(con: sqlite3.Connection, f: Filtre) -> dict:
     """`GET /models`: tots els models amb proves o vendes, dels més provats als menys."""
+    from hebra import imatges
     files = taula_models(con, f)
+    info = base.info_models(con)
+    res = imatges.Resolutor(con)
     for r in files:
         r.pop("conversio_baixa")
         r.pop("conversio_referencia")
+        i = info.get(r["model"], {})
+        r["color"] = i.get("color")
+        r["imatge"] = res.de(r["model"], i.get("color"), r["categoria"])["url"]
     return {"models": files}
 
 
@@ -166,9 +172,11 @@ def model_detall(con: sqlite3.Connection, f: Filtre, model: str) -> dict | None:
             amb[p["model"]].add(p["sessio_id"])
     tots_info = base.info_models(con)
 
+    from hebra import imatges
+    res = imatges.Resolutor(con)
     return {
         "model": model, "nom": info["nom"], "categoria": info["categoria"], "color": info["color"],
-        "preu": info["preu"],
+        "preu": info["preu"], "imatge": res.de(model, info["color"], info["categoria"])["url"],
         "kpi": {"proves": n, "compres": c, "conversio": base.frac(c, n),
                 "venut_sense_provar": max(venudes - c, 0),
                 "respostes_motiu": total_motius, "taxa_resposta_motiu": base.frac(total_motius, sessions_fitxa)},
@@ -176,7 +184,9 @@ def model_detall(con: sqlite3.Connection, f: Filtre, model: str) -> dict | None:
         "motius": [{"motiu": k, "n": v, "pct": base.frac(v, total_motius)} for k, v in motius.most_common()],
         "serie_setmanal": [{"setmana": s, "proves": a, "compres": b, "conversio": base.frac(b, a)}
                            for s, (a, b) in sorted(serie.items())],
-        "provat_amb": [{"model": m, "nom": base.nom_model(tots_info, m), "sessions": len(s)}
+        "provat_amb": [{"model": m, "nom": base.nom_model(tots_info, m), "sessions": len(s),
+                        "imatge": res.de(m, tots_info.get(m, {}).get("color"),
+                                         tots_info.get(m, {}).get("categoria"))["url"]}
                        for m, s in sorted(amb.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:5]],
         "origen": origen_resum(info["origen"]),
         "efecte_origen": experiments.efecte_origen(con, f, model),

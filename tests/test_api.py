@@ -377,7 +377,9 @@ def test_fitxa_estoc_real_i_combina(entorn):
     peca = fitxa.peca_per_token(con, fila["nfc_token"])
     d = fitxa.dades_fitxa(con, peca, "BCN-01", "ca")
     assert all(t["estoc"] == 0 for t in d["talles"])
-    assert d["combina"][1] == "MODEL-INEXISTENT" and d["combina"][0] != altres[0][0]  # nom, no codi
+    noms = [c["nom"] for c in d["combina"]]
+    assert noms[1] == "MODEL-INEXISTENT" and noms[0] != altres[0][0]  # nom, no codi
+    assert all(c["imatge"]["url"].startswith("/imatges/") for c in d["combina"])  # cada peça amb la seva imatge
     # Sense botiga (o sense files d'estoc), l'estoc del fitxer d'origen.
     d2 = fitxa.dades_fitxa(con, peca, None, "ca")
     assert [t["estoc"] for t in d2["talles"]] == [origen["estoc"].get(t["talla"]) for t in d2["talles"]]

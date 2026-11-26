@@ -41,6 +41,7 @@ from .per_talla import demanda_perduda, talles  # noqa: E402
 from .palanques import valor  # noqa: E402
 from .sistema import estat_sistema  # noqa: E402
 from .sessions import sessions  # noqa: E402  (v0.3, C)
+from .visual import panorama  # noqa: E402  (v0.5)
 
 __all__ = [
     "Filtre", "parametre",

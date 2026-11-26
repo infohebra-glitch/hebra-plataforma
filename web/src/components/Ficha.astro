@@ -1,5 +1,6 @@
 ---
-// La ficha que se abre al tocar la prenda con el móvil. Ejemplo ilustrativo.
+// La ficha que se abre al tocar la prenda con el móvil. Ejemplo ilustrativo con la foto de la prenda
+// (en la plataforma, la foto de cada prenda de la marca sale sola del catálogo o de Shopify).
 import { ui, path, type Lang } from '../i18n';
 interface Props { compact?: boolean; interactive?: boolean; lang?: Lang }
 const { compact = false, interactive = true, lang = 'es' } = Astro.props;
@@ -8,58 +9,58 @@ const sizes = [
 ];
 const T = {
   es: {
-    brand: 'Tu marca', alt: 'Camiseta básica de algodón, blanca', auth: 'Prenda auténtica',
-    name: 'Camiseta básica de algodón', ref: 'Ref. 2041 · Talla M',
-    tags: ['Algodón orgánico 100 %', 'Confección en Portugal', '4 de 4 etapas conocidas'],
+    brand: 'Tu marca', alt: 'Camisa de lino color natural, foto de producto', auth: 'Prenda auténtica',
+    name: 'Camisa de lino', ref: 'Ref. CL-24 · Natural · Talla M',
+    tags: ['Lino 100 %', 'Confección en Portugal', '4 de 4 etapas conocidas'],
     other: '¿Te traigo otra talla?', cab: 'Cabina 2', yours: 'la tuya', notify: 'avisar', sizesLabel: 'Elegir talla', outLabel: 'sin stock en tienda',
     from: 'De dónde viene', care: 'Cuidado', careItems: ['30 °C', 'Sin secadora', 'Plancha media', 'Sin lejía'],
     whyH: '¿No te la llevas? Dinos por qué', whyLabel: 'Motivo', why: ['Talla', 'Corte', 'Precio', 'Color', 'Calidad'],
     sizeMsg: 'Hecho. Te llevamos la {s} a la cabina 2.', outMsg: 'La {s} no está en tienda. Te avisamos cuando llegue.', whyMsg: 'Gracias. No guardamos quién eres, solo el motivo.',
     chain: [
-      { k: 'Fibra', v: 'Algodón orgánico', where: 'Esmirna, Turquía' },
-      { k: 'Hilado y tejido', v: 'Punto jersey 180 g', where: 'Barcelos, Portugal' },
-      { k: 'Tinte y acabado', v: 'Teñido en prenda', where: 'Barcelos, Portugal' },
-      { k: 'Confección', v: 'Cosida y rematada', where: 'Guimarães, Portugal' },
+      { k: 'Fibra', v: 'Lino europeo', where: 'Normandía, Francia' },
+      { k: 'Hilado', v: 'Hilo de lino', where: 'Biella, Italia' },
+      { k: 'Tejido', v: 'Tela de 150 g/m²', where: 'Bages, España' },
+      { k: 'Confección', v: 'Cosida y rematada', where: 'Barcelos, Portugal' },
     ],
     by: 'con Hebra',
     pairH: 'Combina con', pairQ: 'Lo que más se prueba junto a esta prenda', pairAdd: 'A la cabina', pairDone: 'En camino',
-    pairs: [['americana', 'Americana de lana', '149 €'], ['vaquero', 'Vaquero recto', '59 €'], ['blusa', 'Blusa de lino', '45 €']],
+    pairs: [['texans', 'Vaquero recto', '59 €'], ['pantalo', 'Pantalón de lino', '65 €'], ['jersei', 'Jersey de merino', '89 €']],
   },
   ca: {
-    brand: 'La teva marca', alt: 'Samarreta bàsica de cotó, blanca', auth: 'Peça autèntica',
-    name: 'Samarreta bàsica de cotó', ref: 'Ref. 2041 · Talla M',
-    tags: ['Cotó orgànic 100 %', 'Confecció a Portugal', '4 de 4 etapes conegudes'],
+    brand: 'La teva marca', alt: 'Camisa de lli color natural, foto de producte', auth: 'Peça autèntica',
+    name: 'Camisa de lli', ref: 'Ref. CL-24 · Natural · Talla M',
+    tags: ['Lli 100 %', 'Confecció a Portugal', '4 de 4 etapes conegudes'],
     other: 'T’atanso una altra talla?', cab: 'Cabina 2', yours: 'la teva', notify: 'avisar', sizesLabel: 'Triar talla', outLabel: 'sense estoc a la botiga',
     from: 'D’on ve', care: 'Cura', careItems: ['30 °C', 'Sense assecadora', 'Planxa mitjana', 'Sense lleixiu'],
     whyH: 'No te l’endus? Digues-nos per què', whyLabel: 'Motiu', why: ['Talla', 'Tall', 'Preu', 'Color', 'Qualitat'],
     sizeMsg: 'Fet. Et portem la {s} a la cabina 2.', outMsg: 'La {s} no és a la botiga. T’avisem quan arribi.', whyMsg: 'Gràcies. No guardem qui ets, només el motiu.',
     chain: [
-      { k: 'Fibra', v: 'Cotó orgànic', where: 'Esmirna, Turquia' },
-      { k: 'Filat i teixit', v: 'Punt jersei 180 g', where: 'Barcelos, Portugal' },
-      { k: 'Tint i acabat', v: 'Tenyit en peça', where: 'Barcelos, Portugal' },
-      { k: 'Confecció', v: 'Cosida i rematada', where: 'Guimarães, Portugal' },
+      { k: 'Fibra', v: 'Lli europeu', where: 'Normandia, França' },
+      { k: 'Filat', v: 'Fil de lli', where: 'Biella, Itàlia' },
+      { k: 'Teixit', v: 'Tela de 150 g/m²', where: 'Bages, Catalunya' },
+      { k: 'Confecció', v: 'Cosida i rematada', where: 'Barcelos, Portugal' },
     ],
     by: 'amb Hebra',
     pairH: 'Combina amb', pairQ: 'El que més s’emprova juntament amb aquesta peça', pairAdd: 'A la cabina', pairDone: 'De camí',
-    pairs: [['americana', 'Americana de llana', '149 €'], ['vaquero', 'Texà recte', '59 €'], ['blusa', 'Brusa de lli', '45 €']],
+    pairs: [['texans', 'Texans rectes', '59 €'], ['pantalo', 'Pantaló de lli', '65 €'], ['jersei', 'Jersei de merino', '89 €']],
   },
   en: {
-    brand: 'Your brand', alt: 'Basic white cotton T-shirt', auth: 'Authentic garment',
-    name: 'Basic cotton T-shirt', ref: 'Ref. 2041 · Size M',
-    tags: ['100 % organic cotton', 'Made in Portugal', '4 of 4 stages known'],
+    brand: 'Your brand', alt: 'Natural linen shirt, product photo', auth: 'Authentic garment',
+    name: 'Linen shirt', ref: 'Ref. CL-24 · Natural · Size M',
+    tags: ['100 % linen', 'Made in Portugal', '4 of 4 stages known'],
     other: 'Shall I bring another size?', cab: 'Room 2', yours: 'yours', notify: 'notify me', sizesLabel: 'Choose a size', outLabel: 'out of stock in store',
     from: 'Where it comes from', care: 'Care', careItems: ['30 °C', 'Do not tumble dry', 'Medium iron', 'No bleach'],
     whyH: 'Not taking it? Tell us why', whyLabel: 'Reason', why: ['Size', 'Fit', 'Price', 'Colour', 'Quality'],
     sizeMsg: 'Done. We’re bringing the {s} to room 2.', outMsg: 'The {s} isn’t in store. We’ll let you know when it arrives.', whyMsg: 'Thank you. We don’t store who you are, only the reason.',
     chain: [
-      { k: 'Fibre', v: 'Organic cotton', where: 'Izmir, Türkiye' },
-      { k: 'Spinning and knitting', v: '180 g jersey knit', where: 'Barcelos, Portugal' },
-      { k: 'Dyeing and finishing', v: 'Garment dyed', where: 'Barcelos, Portugal' },
-      { k: 'Making', v: 'Sewn and finished', where: 'Guimarães, Portugal' },
+      { k: 'Fibre', v: 'European flax', where: 'Normandy, France' },
+      { k: 'Spinning', v: 'Linen yarn', where: 'Biella, Italy' },
+      { k: 'Weaving', v: '150 g/m² cloth', where: 'Bages, Spain' },
+      { k: 'Making', v: 'Sewn and finished', where: 'Barcelos, Portugal' },
     ],
     by: 'with Hebra',
     pairH: 'Goes with', pairQ: 'What’s tried on most with this garment', pairAdd: 'To my room', pairDone: 'On its way',
-    pairs: [['americana', 'Wool blazer', '€149'], ['vaquero', 'Straight jeans', '€59'], ['blusa', 'Linen blouse', '€45']],
+    pairs: [['texans', 'Straight jeans', '€59'], ['pantalo', 'Linen trousers', '€65'], ['jersei', 'Merino jumper', '€89']],
   },
 }[lang];
 const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR · EN', en: 'CA · ES · FR · <b>EN</b>' }[lang];
@@ -67,13 +68,13 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
 <article class:list={['ficha', { compact }]} data-ficha={interactive ? '' : undefined}>
   <div class="fi-img">
     <span class="fi-brand">{T.brand}</span>
-    <img src="/img/camiseta-render.png" alt={T.alt} width="520" height="520" loading="lazy" />
+    <img src="/img/peces/camisa.jpg" alt={T.alt} width="478" height="640" loading="lazy" />
     <span class="fi-nfc"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 8.5a6 6 0 0 1 0 7M10.5 6a10 10 0 0 1 0 12M14 3.5a14 14 0 0 1 0 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> {T.auth}</span>
   </div>
 
   <header class="fi-head">
     <h2 class="fi-name">{T.name}</h2>
-    <p class="fi-meta"><span>29 €</span><span>{T.ref}</span></p>
+    <p class="fi-meta"><span>{lang === 'en' ? '€69' : '69 €'}</span><span>{T.ref}</span></p>
     <ul class="fi-tags">
       {T.tags.map((x) => <li>{x}</li>)}
     </ul>
@@ -107,11 +108,7 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
     <ul class="fi-pairs">
       {T.pairs.map(([k, n, pr]) => (
         <li>
-          <span class="fi-pimg">
-            {k === 'vaquero'
-              ? <svg viewBox="0 0 60 80" aria-hidden="true"><path d="M14 4h32l4 72H35l-5-46-5 46H10z" fill="#3A5A84" /><path d="M14 4h32v6H14z" fill="#2E4A6E" /><path d="M30 10v18" stroke="#C9A35A" stroke-width="1" stroke-dasharray="2 2" /></svg>
-              : <img src={`/img/3d/${k}-alpha.webp`} alt={n} loading="lazy" />}
-          </span>
+          <span class="fi-pimg"><img src={`/img/peces/${k}.jpg`} alt={n} width="478" height="640" loading="lazy" /></span>
           <b>{n}</b><span class="fi-pp">{pr}</span>
           {!compact && <button type="button" data-pair data-done={T.pairDone}>+ {T.pairAdd}</button>}
         </li>
@@ -147,9 +144,9 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
 
 <style>
   .ficha { background: #fff; color: var(--tinta); font-size: .9rem; line-height: 1.4; width: 100%; }
-  .fi-img { position: relative; background: linear-gradient(180deg, #EEF1F5, #E4E8EE); aspect-ratio: 1 / .82; display: grid; place-items: center; overflow: hidden; }
-  .fi-img img { width: 82%; height: auto; filter: drop-shadow(0 18px 18px rgba(18,38,63,.18)); }
-  .fi-brand { position: absolute; top: .8rem; left: .9rem; font: 500 .95rem/1 var(--serif); color: var(--on-light); letter-spacing: .01em; }
+  .fi-img { position: relative; background: #ECE9E6; aspect-ratio: 4 / 4.4; overflow: hidden; }
+  .fi-img img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; }
+  .fi-brand { position: absolute; z-index: 1; top: .8rem; left: .9rem; font: 500 .95rem/1 var(--serif); color: var(--on-light); letter-spacing: .01em; }
   .fi-nfc { position: absolute; bottom: .7rem; left: .8rem; display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 600; color: var(--on-light); background: rgba(255,255,255,.85); backdrop-filter: blur(6px); padding: .3rem .55rem; border-radius: 999px; }
   .fi-head { padding: 1rem 1.1rem .9rem; }
   .fi-name { font: 400 1.45rem/1.1 var(--serif); font-variation-settings: 'opsz' 48; color: var(--on-light); margin: 0; letter-spacing: -0.01em; }
@@ -191,9 +188,8 @@ const langs = { es: 'CA · <b>ES</b> · FR · EN', ca: '<b>CA</b> · ES · FR ·
   .fi-pair-head span { font-size: .64rem; color: var(--tinta-2); text-align: right; }
   .fi-pairs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem; }
   .fi-pairs li { display: flex; flex-direction: column; gap: .15rem; font-size: .68rem; }
-  .fi-pimg { display: grid; place-items: center; aspect-ratio: 1; border-radius: 10px; background: #F3F4F6; padding: .35rem; }
-  .fi-pimg img, .fi-pimg svg { max-height: 100%; max-width: 100%; width: auto; height: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,.12)); }
-  .fi-pimg svg { height: 80%; }
+  .fi-pimg { display: block; aspect-ratio: 4 / 5; border-radius: 10px; background: #ECE9E6; overflow: hidden; }
+  .fi-pimg img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .fi-pairs b { font-weight: 600; line-height: 1.2; margin-top: .25rem; }
   .fi-pp { color: var(--tinta-2); }
   .fi-pairs button { margin-top: .25rem; font: 600 .62rem/1 var(--sans); padding: .45rem .3rem; border-radius: 999px; border: 1.5px solid var(--on-light); background: #fff; color: var(--on-light); cursor: pointer; transition: background .3s, color .3s; }
