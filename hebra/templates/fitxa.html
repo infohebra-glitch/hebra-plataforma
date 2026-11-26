@@ -54,6 +54,8 @@
   {% endif %}
 </div>
 
+{# v0.7: a l'ordinador, la galeria va a l'esquerra i tot això a la dreta (vegeu .fx-info a estil.css). #}
+<div class="fx-info">
 <section class="fx-full">
   {% if p.marca %}<p class="fx-marca">{{ p.marca }}</p>{% endif %}
   <div class="fx-titol">
@@ -197,6 +199,7 @@
   {% if peu %}<p>{{ peu }}</p>{% endif %}
   <p class="muted">{{ t.privacitat }}</p>
 </footer>
+</div>
 {% if not previsualitza %}
 <form id="seccions" method="post" action="/p/{{ p.token }}/seccio" hidden>{{ ocults() }}</form>
 <script>{{ script|safe }}</script>
