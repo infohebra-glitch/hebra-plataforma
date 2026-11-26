@@ -6,7 +6,8 @@ motor abans de tenir el lector. TOTES les dades són inventades.
 Què simula:
   * 1 botiga (BCN-01), 3 cabines en fila (C1-C2-C3, veïnes entre si), 1 antena per cabina;
   * catàleg: les 4 peces del fitxer d'origen de prova, amb totes les talles;
-  * sessions de cabina amb porta i presència, de dilluns a dissabte, 10 h - 20 h;
+  * sessions de cabina amb porta i presència, de dilluns a dissabte, 10 h - 21 h, amb el ritme d'una
+    botiga de veritat (v0.7): puntes a migdia i a la tarda, dilluns fluix, dissabte ple;
   * lectures agregades cada 10 s, amb "passos" curts i lectures creuades a la cabina veïna;
   * vendes en CSV amb una conversió diferent per model (el vestit "es prova i no es ven");
   * grup de control de l'origen per dies, amb un efecte petit i inventat;
@@ -137,35 +138,125 @@ def _lectures(epc: str, antena: str, inici: datetime, fi: datetime, rssi: float,
     return out
 
 
+# v0.7: ritme d'un dia de botiga de veritat (inventat però versemblant). Una cabina s'omple més o menys
+# segons l'hora (puntes a migdia i a la tarda, calma a l'hora de dinar) i el dia (dilluns fluix, dissabte
+# ple); la tercera cabina només s'omple quan hi ha cua. Obert de dilluns a dissabte, de 10 h a 21 h.
+OBERTURA, TANCAMENT = 10, 21
+AFLUENCIA_HORA = {10: 0.35, 11: 0.6, 12: 0.9, 13: 1.0, 14: 0.55, 15: 0.45, 16: 0.65, 17: 0.95,
+                  18: 1.25, 19: 1.35, 20: 0.8}
+AFLUENCIA_DIA = (0.7, 0.75, 0.8, 0.9, 1.15, 1.6)   # dilluns ... dissabte
+PES_CABINA = (1.0, 0.85, 0.6)
+
+
+def horari_cabina(dia: date, ci: int, llavor: int = 7) -> list[tuple[datetime, datetime]]:
+    """Les sessions (entra, surt) d'una cabina un dia. Sempre les mateixes per a un mateix dia i cabina,
+    de manera que es poden generar a trossos (el lot de prova es va posant al dia cada pocs minuts)."""
+    if dia.weekday() == 6:
+        return []
+    rng = random.Random(f"{llavor}-{dia.isoformat()}-{ci}")
+    pes = PES_CABINA[ci] if ci < len(PES_CABINA) else 0.5
+    obertura = datetime(dia.year, dia.month, dia.day, OBERTURA, 0, tzinfo=ZONA)
+    # El primer client no entra just en obrir: com més fluix és el matí, més tarda.
+    t = obertura + timedelta(minutes=min(rng.uniform(2, 30) / max(AFLUENCIA_DIA[dia.weekday()] * pes * 0.6, 0.15), 120))
+    ultima = datetime(dia.year, dia.month, dia.day, TANCAMENT - 1, 40, tzinfo=ZONA)
+    out = []
+    while t <= ultima:
+        intensitat = AFLUENCIA_HORA.get(t.hour, 0.3) * AFLUENCIA_DIA[dia.weekday()] * pes
+        fi = t + timedelta(seconds=rng.randint(150, 600))
+        out.append((t, fi))
+        espera = rng.uniform(4, 40) / max(intensitat, 0.15)
+        t = fi + timedelta(minutes=min(max(espera, 0.5), 100))
+    return out
+
+
 def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int = 7,
-           fins: date | None = None) -> dict:
-    """Simula `setmanes` setmanes des d'`inici`. Amb `fins`, no genera cap dia posterior (res al futur)."""
-    rng = random.Random(llavor)
+           fins: date | None = None, ara: datetime | None = None) -> dict:
+    """Simula `setmanes` setmanes des d'`inici`. Amb `fins`, no genera cap dia posterior (res al futur).
+    Amb `ara`, també el dia d'avui fins a aquesta hora (les sessions que ja s'han acabat)."""
     rng2 = random.Random(llavor * 1000 + 1)  # només per a les dades del tauler
-    rng3 = random.Random(llavor * 1000 + 3)  # només per a les novetats de la v0.3
     prepara_botiga(con)
     peces = _peces_fisiques(con)
-    per_gtin: dict[str, list[tuple[str, sqlite3.Row]]] = {}
-    for epc, k in peces:
-        per_gtin.setdefault(k["gtin"], []).append((epc, k))
     dies = [inici + timedelta(days=d) for d in range(setmanes * 7)]
-    dies = [d for d in dies if d.weekday() != 6 and (fins is None or d <= fins)]  # diumenge tancat
+    limit = ara.date() if ara else fins
+    dies = [d for d in dies if d.weekday() != 6 and (limit is None or d <= limit)]  # diumenge tancat
+    if ara and dies and dies[-1] == ara.date() and ara.hour < OBERTURA + 1:
+        dies.pop()  # avui encara no ha passat res
     darrer_dia = max(dies)
     control.desa_assignacio(con, BOTIGA, "origen", control.sorteja(BOTIGA, "origen", inici, setmanes))
 
+    resum = _simula_franja(con, peces, dies, None, ara, darrer_dia, llavor)
+
+    dia_talla = darrer_dia
+    if ara and datetime.combine(darrer_dia, datetime.min.time(), ZONA).replace(hour=18, minute=20) > ara:
+        dia_talla = dies[-2] if len(dies) > 1 else darrer_dia
+    _talla_esgotada(con, dia_talla)
+    _dades_tauler(con, inici, setmanes, darrer_dia, rng2, ara)
+
+    regla = carrega().regla
+    resum["proves_detectades"] = proves.processa_botiga(con, BOTIGA, regla)
+    resum["vendes_atribuides"] = vendes.atribueix(con, BOTIGA)
+    resum["peces_abandonades"] = _abandonades(con, darrer_dia, rng2, ara)
+    resum["tasques"] = _tasques(con, inici, darrer_dia)
+    resum["informes_lliurats"] = _informes(con, inici, setmanes, _fins_informes(fins, ara))
+    return resum
+
+
+def _fins_informes(fins: date | None, ara: datetime | None) -> date | None:
+    """Fins a quin dia es generen els informes lliurats (el diari d'avui surt a les 8:01 amb les dades d'ahir)."""
+    if ara is None:
+        return fins
+    return ara.date() - timedelta(days=1 if ara.hour >= 8 else 2)
+
+
+def avanca(con: sqlite3.Connection, peces: list[tuple[str, sqlite3.Row]], des: datetime, ara: datetime,
+           inici: date, llavor: int = 7) -> dict:
+    """Afegeix les sessions de cabina que s'han acabat entre `des` i `ara` (cap al futur), amb les seves
+    vendes, fitxes i peticions, i torna a calcular proves, vendes atribuïdes i informes. És el que fa que
+    el lot de prova sembli una botiga oberta: cada pocs minuts hi ha clients nous. No crea peces noves."""
+    dies, d = [], des.date()
+    while d <= ara.date():
+        if d.weekday() != 6:
+            dies.append(d)
+        d += timedelta(days=1)
+    resum = _simula_franja(con, peces, dies, des, ara, None, llavor) if dies and peces else \
+        {"sessions": 0, "peces_provades": 0, "lectures": 0, "linies_venda": 0, "csv_vendes": ""}
+    if resum["sessions"]:
+        resum["proves_detectades"] = proves.processa_botiga(con, BOTIGA, carrega().regla)
+        resum["vendes_atribuides"] = vendes.atribueix(con, BOTIGA)
+    setmanes = (ara.date() - inici).days // 7 + 1
+    resum["informes_lliurats"] = _informes(con, inici, setmanes, _fins_informes(None, ara))
+    return resum
+
+
+def _simula_franja(con: sqlite3.Connection, peces: list[tuple[str, sqlite3.Row]], dies: list[date],
+                   des: datetime | None, ara: datetime | None, darrer_dia: date | None, llavor: int) -> dict:
+    """Les sessions dels `dies` que s'acaben dins (des, ara], i les vendes sense prova d'aquests dies."""
+    per_gtin: dict[str, list[tuple[str, sqlite3.Row]]] = {}
+    for epc, k in peces:
+        per_gtin.setdefault(k["gtin"], []).append((epc, k))
     lot = {"lectures": [], "sensors": []}
-    files_venda = []
+    files_venda: list[list] = []
     resum = {"sessions": 0, "peces_provades": 0}
+
+    def dins(ts: datetime) -> bool:
+        return (des is None or ts > des) and (ara is None or ts <= ara)
+
+    def ven(hora: datetime, k: sqlite3.Row, rng: random.Random) -> None:
+        if ara is not None and hora > ara:
+            hora = ara  # el tiquet es fa ara mateix
+        files_venda.append([hora.isoformat(), BOTIGA, k["gtin"], 1, k["preu_eur"], f"T{rng.randint(10**5, 10**6)}"])
 
     for dia in dies:
         grup = control.grup_del_dia(con, BOTIGA, "origen", dia.isoformat())
         for ci, cabina in enumerate(CABINES):
             antena = f"{LECTOR}:{ci + 1}"
             veines = [f"{LECTOR}:{j + 1}" for j in (ci - 1, ci + 1) if 0 <= j < len(CABINES)]
-            t = datetime(dia.year, dia.month, dia.day, 10, rng.randint(0, 30), tzinfo=ZONA)
-            while t.hour < 20:
-                durada = timedelta(seconds=rng.randint(150, 600))
-                fi = t + durada
+            for t, fi in horari_cabina(dia, ci, llavor):
+                if not dins(fi + timedelta(seconds=3)):
+                    continue
+                rng = random.Random(f"{llavor}-{cabina}-{t.isoformat()}-a")
+                rng2 = random.Random(f"{llavor}-{cabina}-{t.isoformat()}-b")
+                rng3 = random.Random(f"{llavor}-{cabina}-{t.isoformat()}-c")
                 lot["sensors"] += [
                     {"cabina": cabina, "ts": t.isoformat(), "tipus": "porta_tancada"},
                     {"cabina": cabina, "ts": (t + timedelta(seconds=2)).isoformat(), "tipus": "presencia_si"},
@@ -174,7 +265,7 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
                 ]
                 resum["sessions"] += 1
                 sessio_nfc = fitxa.nova_sessio()
-                triades = rng.sample(peces, rng.randint(1, 3))
+                triades = rng.sample(peces, min(len(peces), rng.randint(1, 3)))
                 for epc, k in triades:
                     pas = rng.random() < 0.15  # entra i surt de seguida: no és prova
                     entra = t + timedelta(seconds=rng.randint(5, 20))
@@ -215,41 +306,34 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
                     p = CONVERSIO_BASE.get(k["categoria"], 0.25) + (EFECTE_ORIGEN if grup == "amb" and toca else 0)
                     p *= FACTOR_TALLA.get((k["model"], k["talla"]), 1)
                     if rng.random() < p:
-                        hora = fi + timedelta(minutes=rng.randint(2, 15))
-                        files_venda.append([hora.isoformat(), BOTIGA, k["gtin"], 1, k["preu_eur"], f"T{rng.randint(10**5, 10**6)}"])
+                        ven(fi + timedelta(minutes=rng.randint(2, 15)), k, rng)
                     elif toca and rng.random() < 0.35:
                         motiu = rng.choice(PROB_MOTIU.get(k["categoria"], PROB_MOTIU["default"]))
                         fitxa.registra(con, sessio_nfc, BOTIGA, k["gtin"], "motiu_no_compra", "ca", motiu,
                                        ts=(fi - timedelta(seconds=5)).isoformat())
                 _novetats_sessio(con, lot, files_venda, triades, peces, per_gtin, cabina, antena, t, fi,
-                                 sessio_nfc, dia == darrer_dia, rng3)
-                t = fi + timedelta(minutes=rng.randint(5, 45))
-        # Algunes vendes sense prova (compra directa)
-        for _ in range(rng.randint(0, 3)):
+                                 sessio_nfc, dia == darrer_dia, rng3, ven)
+        # Algunes vendes sense prova (compra directa), més els dies forts
+        rng = random.Random(f"{llavor}-{dia.isoformat()}-directes")
+        for _ in range(rng.randint(0, round(3 * AFLUENCIA_DIA[dia.weekday()]))):
             _, k = rng.choice(peces)
-            hora = datetime(dia.year, dia.month, dia.day, rng.randint(10, 19), rng.randint(0, 59), tzinfo=ZONA)
-            files_venda.append([hora.isoformat(), BOTIGA, k["gtin"], 1, k["preu_eur"], f"T{rng.randint(10**5, 10**6)}"])
+            hora = datetime(dia.year, dia.month, dia.day, rng.randint(OBERTURA, TANCAMENT - 1), rng.randint(0, 59),
+                            tzinfo=ZONA)
+            if dins(hora):
+                ven(hora, k, rng)
 
     res = passarella.desa_lot(con, lot)
     sortida = io.StringIO()
     w = csv.writer(sortida)
     w.writerow(["data_hora", "botiga", "gtin", "quantitat", "import", "tiquet"])
     w.writerows(files_venda)
-    vendes.importa_csv(con, sortida.getvalue())
-
-    _talla_esgotada(con, darrer_dia)
-    _dades_tauler(con, inici, setmanes, darrer_dia, rng2)
-
-    regla = carrega().regla
-    resum["proves_detectades"] = proves.processa_botiga(con, BOTIGA, regla)
-    resum["vendes_atribuides"] = vendes.atribueix(con, BOTIGA)
-    resum["peces_abandonades"] = _abandonades(con, darrer_dia, rng2)
-    resum["tasques"] = _tasques(con, inici, darrer_dia)
-    resum["informes_lliurats"] = _informes(con, inici, setmanes, fins)
+    if files_venda:
+        vendes.importa_csv(con, sortida.getvalue())
     resum["lectures"] = res.lectures
     resum["linies_venda"] = len(files_venda)
     resum["csv_vendes"] = sortida.getvalue()
     return resum
+
 
 
 # ---------------------------------------------------------------- Novetats v0.3
@@ -257,7 +341,7 @@ def simula(con: sqlite3.Connection, inici: date, setmanes: int = 1, llavor: int 
 
 def _novetats_sessio(con: sqlite3.Connection, lot: dict, files_venda: list, triades: list, peces: list,
                      per_gtin: dict, cabina: str, antena: str, t: datetime, fi: datetime, sessio_nfc: str,
-                     darrer_dia: bool, rng: random.Random) -> None:
+                     darrer_dia: bool, rng: random.Random, ven) -> None:
     """Afegeix a una sessió peces de més (dubte de talla, sessions grans) i, de vegades, una petició d'assistència."""
     dins = {epc for epc, _ in triades}
     extres: list[tuple[str, sqlite3.Row, float]] = []  # (epc, sku, probabilitat de compra)
@@ -280,8 +364,7 @@ def _novetats_sessio(con: sqlite3.Connection, lot: dict, files_venda: list, tria
         entra = t + timedelta(seconds=rng.randint(5, 20))
         lot["lectures"] += _lectures(epc, antena, entra, fi - timedelta(seconds=rng.randint(5, 20)), -50, rng)
         if rng.random() < p:
-            hora = fi + timedelta(minutes=rng.randint(2, 15))
-            files_venda.append([hora.isoformat(), BOTIGA, k2["gtin"], 1, k2["preu_eur"], f"T{rng.randint(10**5, 10**6)}"])
+            ven(fi + timedelta(minutes=rng.randint(2, 15)), k2, rng)
     if rng.random() < PROB_ASSISTENCIA:
         _, k = rng.choice(triades)
         ts = t + timedelta(seconds=rng.randint(60, 120))
@@ -321,7 +404,8 @@ def _talla_esgotada(con: sqlite3.Connection, dia: date) -> None:
             fitxa.resol_peticio(con, pid, "no_disponible", (ts + timedelta(seconds=70)).isoformat())
 
 
-def _dades_tauler(con: sqlite3.Connection, inici: date, setmanes: int, darrer_dia: date, rng: random.Random) -> None:
+def _dades_tauler(con: sqlite3.Connection, inici: date, setmanes: int, darrer_dia: date, rng: random.Random,
+                  ara: datetime | None = None) -> None:
     """Estoc, faldilla sense proves, experiment, pilot, recomptes, decisions i paràmetres (idempotent)."""
     fi = inici + timedelta(days=setmanes * 7 - 1)
     model, color, categoria, preu = MODEL_EXTRA
@@ -337,7 +421,8 @@ def _dades_tauler(con: sqlite3.Connection, inici: date, setmanes: int, darrer_di
         con.execute("""INSERT INTO venda_linia (botiga_id, ts, data, gtin, quantitat, import_eur)
                        VALUES (?, ?, ?, ?, 1, ?)""", (BOTIGA, antiga.isoformat(), antiga.date().isoformat(), EXTRES[0][0], preu))
 
-    actualitzat = datetime.combine(darrer_dia, datetime.min.time(), ZONA).replace(hour=21).isoformat()
+    actualitzat_ = datetime.combine(darrer_dia, datetime.min.time(), ZONA).replace(hour=21)
+    actualitzat = (min(actualitzat_, ara) if ara else actualitzat_).isoformat()
     unitats: dict[str, int] = {g: u for g, _, u in EXTRES}
     for k in con.execute("SELECT gtin, model, talla, origen_json FROM catalog_sku WHERE origen_json IS NOT NULL"):
         if k["gtin"] in unitats or (AILLAT and k["model"] not in MODELS_PROVA):
@@ -396,13 +481,15 @@ def _dades_tauler(con: sqlite3.Connection, inici: date, setmanes: int, darrer_di
     con.commit()
 
 
-def _abandonades(con: sqlite3.Connection, darrer_dia: date, rng: random.Random) -> int:
+def _abandonades(con: sqlite3.Connection, darrer_dia: date, rng: random.Random, ara: datetime | None = None) -> int:
     """Unes quantes peces abandonades els darrers dies (insight 13); una ja resolta."""
     candidates = con.execute(
         f"""SELECT p.epc, s.cabina_id, s.fi FROM prova p JOIN sessio s ON s.id = p.sessio_id
            WHERE p.confianca != 'ambigua' AND s.inici >= ? AND s.cabina_id IN ({",".join("?" * len(CABINES))})
            ORDER BY p.id""",
         ((darrer_dia - timedelta(days=2)).isoformat(), *CABINES)).fetchall()
+    if ara is not None:  # cap peça «abandonada» que encara no s'hauria pogut detectar
+        candidates = [c for c in candidates if datetime.fromisoformat(c["fi"]) + timedelta(minutes=30) <= ara]
     tria = rng.sample(candidates, min(4, len(candidates)))
     for i, c in enumerate(tria):
         detectada = datetime.fromisoformat(c["fi"]) + timedelta(minutes=30)

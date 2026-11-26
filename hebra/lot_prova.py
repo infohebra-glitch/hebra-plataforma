@@ -12,12 +12,18 @@ dades reals, sense barrejar-les mai amb les reals:
     `cabina_id` seus) i aquests GTIN i etiquetes. Res més.
 
 Les dades reals de la marca no es toquen ni en carregar ni en esborrar el lot.
+
+v0.7: el lot es comporta com una botiga oberta. En carregar-lo arriba fins a l'hora d'ara (també el
+matí d'avui), i després `posa_al_dia` hi afegeix, cada pocs minuts, els clients que haurien passat pels
+provadors des de l'última vegada, amb el ritme d'un dia de botiga (hebra/simulador.py, `horari_cabina`).
+Així els gràfics, el «Resum d'avui» i els informes diaris sempre tenen dades recents.
 """
 
 import json
 import sqlite3
 import threading
-from datetime import date, timedelta
+from contextlib import contextmanager
+from datetime import date, datetime, time, timedelta
 
 from . import alertes, simulador, temps
 
@@ -27,6 +33,7 @@ CABINES = [f"{BOTIGA}-C{i}" for i in (1, 2, 3)]
 LECTOR = "PROVA-R700"
 SERIE_BASE = 700000
 SETMANES = 2
+MAX_DIES_AL_DIA = 14   # si la plataforma ha estat aturada més dies, només s'omplen els últims 14
 
 _bloqueig = threading.Lock()
 
@@ -43,7 +50,26 @@ def _crea_taula(con: sqlite3.Connection) -> None:
         fins       TEXT NOT NULL,
         gtins_json TEXT NOT NULL,     -- GTIN que ha creat el lot (s'esborren amb ell)
         epcs_json  TEXT NOT NULL,     -- etiquetes que ha creat el lot
-        resum_json TEXT NOT NULL)""")
+        resum_json TEXT NOT NULL,
+        fins_ts    TEXT)              -- v0.7: fins a quina hora hi ha clients simulats""")
+    if not any(c["name"] == "fins_ts" for c in con.execute("PRAGMA table_info(lot_prova)")):
+        con.execute("ALTER TABLE lot_prova ADD COLUMN fins_ts TEXT")
+
+
+@contextmanager
+def _mode_prova():
+    """El simulador escriu a la botiga de prova, aïllat, i sense avisos en directe mentre genera."""
+    desat = {k: getattr(simulador, k) for k in ("BOTIGA", "CABINES", "LECTOR", "NOM_BOTIGA", "SERIE_BASE", "AILLAT")}
+    publica = alertes.bus.publica
+    try:
+        simulador.BOTIGA, simulador.CABINES, simulador.LECTOR = BOTIGA, CABINES, LECTOR
+        simulador.NOM_BOTIGA, simulador.SERIE_BASE, simulador.AILLAT = NOM, SERIE_BASE, True
+        alertes.bus.publica = lambda *a, **k: None
+        yield
+    finally:
+        for k, v in desat.items():
+            setattr(simulador, k, v)
+        alertes.bus.publica = publica
 
 
 def estat(con: sqlite3.Connection) -> dict:
@@ -64,26 +90,24 @@ def _taules_amb(con: sqlite3.Connection, columna: str) -> list[str]:
 
 
 def carrega(con: sqlite3.Connection, avui: date | None = None) -> dict:
-    """Crea la botiga de prova amb `SETMANES` setmanes de pilot simulat que acaben ahir."""
+    """Crea la botiga de prova amb `SETMANES` setmanes de pilot simulat. Sense `avui`, arriba fins a
+    l'hora d'ara; amb `avui` (proves), acaba ahir."""
     with _bloqueig:
         _crea_taula(con)
         if con.execute("SELECT 1 FROM lot_prova WHERE botiga_id = ?", (BOTIGA,)).fetchone():
             raise ErrorLot("Ja hi ha un lot de prova carregat. Esborra'l abans de tornar-lo a carregar.")
         if con.execute("SELECT 1 FROM botiga WHERE id = ?", (BOTIGA,)).fetchone():
             raise ErrorLot(f"Ja existeix una botiga «{BOTIGA}» que no és del lot de prova: no la toquem.")
-        avui = avui or date.fromisoformat(temps.ara()[:10])
+        ara = None if avui else datetime.fromisoformat(temps.ara())
+        avui = avui or ara.date()
         ahir = avui - timedelta(days=1)
         inici = ahir - timedelta(days=ahir.weekday(), weeks=SETMANES - 1)
         gtins_abans = {r[0] for r in con.execute("SELECT gtin FROM catalog_sku")}
         epcs_abans = {r[0] for r in con.execute("SELECT epc FROM etiqueta")}
 
-        desat = {k: getattr(simulador, k) for k in ("BOTIGA", "CABINES", "LECTOR", "NOM_BOTIGA", "SERIE_BASE", "AILLAT")}
-        publica = alertes.bus.publica
         try:
-            simulador.BOTIGA, simulador.CABINES, simulador.LECTOR = BOTIGA, CABINES, LECTOR
-            simulador.NOM_BOTIGA, simulador.SERIE_BASE, simulador.AILLAT = NOM, SERIE_BASE, True
-            alertes.bus.publica = lambda *a, **k: None  # cap avís en directe mentre es genera
-            resum = simulador.simula(con, inici, SETMANES, fins=ahir)
+            with _mode_prova():
+                resum = simulador.simula(con, inici, SETMANES, fins=ahir, ara=ara)
         except Exception:
             # El simulador desa per parts: si falla a mitges, esborrem el que hagi creat.
             con.rollback()
@@ -91,22 +115,56 @@ def carrega(con: sqlite3.Connection, avui: date | None = None) -> dict:
                             {r[0] for r in con.execute("SELECT epc FROM etiqueta")} - epcs_abans)
             con.commit()
             raise
-        finally:
-            for k, v in desat.items():
-                setattr(simulador, k, v)
-            alertes.bus.publica = publica
 
         gtins = sorted({r[0] for r in con.execute("SELECT gtin FROM catalog_sku")} - gtins_abans)
         epcs = sorted({r[0] for r in con.execute("SELECT epc FROM etiqueta")} - epcs_abans)
         resum.pop("csv_vendes", None)
         resum = {"sessions": resum["sessions"], "proves": resum["proves_detectades"],
                  "vendes": resum["linies_venda"], "peces": len(simulador.MODELS_PROVA)}
-        con.execute("""INSERT INTO lot_prova (botiga_id, creat, des, fins, gtins_json, epcs_json, resum_json)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                    (BOTIGA, temps.ara(), inici.isoformat(), ahir.isoformat(), json.dumps(gtins), json.dumps(epcs),
-                     json.dumps(resum)))
+        fins_ts = ara or datetime.combine(ahir, time(23, 59, 59), simulador.ZONA)
+        con.execute("""INSERT INTO lot_prova (botiga_id, creat, des, fins, gtins_json, epcs_json, resum_json, fins_ts)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (BOTIGA, temps.ara(), inici.isoformat(), fins_ts.date().isoformat(), json.dumps(gtins),
+                     json.dumps(epcs), json.dumps(resum), fins_ts.isoformat(timespec="seconds")))
         con.commit()
         return estat(con)
+
+
+def posa_al_dia(con: sqlite3.Connection, ara: datetime | None = None) -> int:
+    """Afegeix al lot de prova els clients que haurien passat pels provadors des de l'última vegada
+    (fins a `ara`). Retorna quantes sessions noves hi ha. No fa res si no hi ha lot carregat."""
+    ara = ara or datetime.fromisoformat(temps.ara())
+    with _bloqueig:
+        _crea_taula(con)
+        f = con.execute("SELECT * FROM lot_prova WHERE botiga_id = ?", (BOTIGA,)).fetchone()
+        if not f:
+            return 0
+        des = datetime.fromisoformat(f["fins_ts"]) if f["fins_ts"] else \
+            datetime.combine(date.fromisoformat(f["fins"]), time(23, 59, 59), simulador.ZONA)
+        des = max(des, ara - timedelta(days=MAX_DIES_AL_DIA))
+        if ara - des < timedelta(minutes=1):
+            return 0
+        epcs = json.loads(f["epcs_json"])
+        q = ",".join("?" * len(epcs))
+        peces = [(r["epc"], r) for r in con.execute(
+            f"""SELECT e.epc, s.* FROM etiqueta e JOIN catalog_sku s ON s.gtin = e.gtin
+                WHERE e.epc IN ({q}) ORDER BY s.gtin, e.epc""", epcs)] if epcs else []
+        try:
+            with _mode_prova():
+                r = simulador.avanca(con, peces, des, ara, date.fromisoformat(f["des"]))
+        except Exception:
+            con.rollback()
+            raise
+        resum = json.loads(f["resum_json"])
+        resum["sessions"] = resum.get("sessions", 0) + r["sessions"]
+        resum["vendes"] = resum.get("vendes", 0) + r["linies_venda"]
+        resum["proves"] = con.execute(
+            """SELECT COUNT(*) FROM prova p JOIN sessio s ON s.id = p.sessio_id
+               WHERE s.cabina_id IN (SELECT id FROM cabina WHERE botiga_id = ?)""", (BOTIGA,)).fetchone()[0]
+        con.execute("UPDATE lot_prova SET fins = ?, fins_ts = ?, resum_json = ? WHERE botiga_id = ?",
+                    (ara.date().isoformat(), ara.isoformat(timespec="seconds"), json.dumps(resum), BOTIGA))
+        con.commit()
+        return r["sessions"]
 
 
 def _esborra_botiga(con: sqlite3.Connection, gtins: set[str], epcs: set[str]) -> dict:
