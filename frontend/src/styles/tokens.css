@@ -1,15 +1,15 @@
 /*
  * Fitxes de disseny de Hebra (paleta de marca de l'11-11-2026, la mateixa que hebraia.com):
  *   Blanc cotó #F9F9F9 · Blau Hebra #14457D · Grana #8C304B · Gris perla #B7B3B2 · Gris pedra #9E9997
- * Tipografies de la web: Hanken Grotesk (tot el text i les xifres) i Fraunces cursiva (només accents).
+ * Tipografia (26-11-2026): Archivo, una sola família amb eix d'amplada. Títols i xifres en amplada
+ *   estreta (com les etiquetes de les peces), text en amplada normal. Sense cursives d'accent.
  *
  * Regles de color (direcció «editorial clara», triada per l'Iscle el 20-11-2026):
  *   - el blau és la marca i l'acció; la grana és l'accent (~5 %): alertes, el que cal mirar;
  *   - mai text blau sobre grana ni al revés (contrast 1,21:1); el gris pedra no és per a text;
  *   - --serie-1 (blau) i --serie-2 (grana clara) es distingeixen també per lluminositat.
  */
-@import '@fontsource-variable/hanken-grotesk';
-@import '@fontsource-variable/fraunces/wght-italic.css';
+@import '@fontsource-variable/archivo/standard.css';
 
 :root {
   color-scheme: light;
@@ -17,7 +17,7 @@
   /* Noms antics que encara fan servir alguns components */
   --traca: var(--blau); --lli: var(--blanc); --coure: var(--grana); --grafit: #0B1522;
 
-  --bg: #F3F3F2; --surface: #FFFFFF; --surface-2: #F9F9F9;
+  --bg: #F9F9F9; --surface: #FFFFFF; --surface-2: #F9F9F9;
   --fg: #0B1522; --fg-2: #2E3A4A; --muted: #5A6270; --line: #E2E1DF; --line-2: #EEEDEB;
   --accent: #14457D; --accent-fg: #FFFFFF; --accent-soft: #E8EEF6; --accent-hover: #0E345F;
   --marca-fons: #14457D; --marca-fons-2: #0F3A6B; --marca-text: #FFFFFF; --marca-text-2: rgba(255,255,255,.72);
@@ -30,12 +30,13 @@
   --c4-text: #FFFFFF; --c5-text: #FFFFFF;
   --grid: #EEEDEB; --eix: #CFCDCA; --banda-origen: rgba(20, 69, 125, 0.06);
 
-  --serif: "Fraunces Variable", Georgia, serif;
-  --sans: "Hanken Grotesk Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif: "Archivo Variable", system-ui, sans-serif;  /* ja no hi ha cursiva serif: mateixa família */
+  --sans: "Archivo Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --estreta: 82%;  /* amplada dels títols i les xifres grans */
   --mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  --radi: 16px; --radi-petit: 10px;
-  --ombra: 0 1px 2px rgba(11, 21, 34, 0.04), 0 1px 1px rgba(11, 21, 34, 0.03);
+  --radi: 6px; --radi-petit: 4px;
+  --ombra: none;
   --ombra-alta: 0 12px 32px -12px rgba(11, 21, 34, 0.18), 0 2px 6px rgba(11, 21, 34, 0.05);
   --gutter: 16px;
   --ease: cubic-bezier(.16, 1, .3, 1);

@@ -33,7 +33,7 @@ export function Entra() {
       <section className="entrada-marca" aria-hidden="true">
         <span className="marca-hebra"><LogoHebra mida={30} />Hebra</span>
         <div>
-          <h2>El que passa al provador, <em>per fi a la vista.</em></h2>
+          <h2>El que passa al provador, per fi a la vista.</h2>
           <p>Cada prova, cada talla que falta i cada peça que no es compra, al costat de les vendes de la botiga.</p>
           <ul className="entrada-dades">
             <li><b>Provat</b><span>què entra a la cabina</span></li>

@@ -2,6 +2,8 @@ import { analitica } from '../api/endpoints';
 import type { EstatPeticio } from '../api/types';
 import { Consulta, Esquelet } from '../components/Estat';
 import { Rajola } from '../components/Rajola';
+import { Columnes } from '../components/grafics/Columnes';
+import { Donut } from '../components/grafics/Donut';
 import { MapaCalor } from '../components/grafics/MapaCalor';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
 import { useFiltre } from '../context/Filtre';
@@ -32,29 +34,18 @@ export function Servei() {
               </div>
               <div className="reixa-2">
                 <Seccio titol="Com han acabat les peticions" subtitol={`${enter(total)} peticions en total.`}>
-                  <div className="panell" style={{ padding: 0 }}>
-                    <table>
-                      <caption className="sr-only">Peticions per estat</caption>
-                      <thead><tr><th scope="col">Estat</th><th scope="col" className="n">Peticions</th><th scope="col" className="n">%</th></tr></thead>
-                      <tbody>
-                        {(Object.keys(ESTATS_PETICIO) as EstatPeticio[]).map((e) => (
-                          <tr key={e}><td>{ESTATS_PETICIO[e]}</td><td className="n">{enter(s.per_estat[e] ?? 0)}</td><td className="n">{pct(total ? (s.per_estat[e] ?? 0) / total : null)}</td></tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="panell">
+                    <Donut titol="Peticions per estat" etiquetes={(Object.keys(ESTATS_PETICIO) as EstatPeticio[]).map((e) => ESTATS_PETICIO[e])}
+                      valors={(Object.keys(ESTATS_PETICIO) as EstatPeticio[]).map((e) => s.per_estat[e] ?? 0)} />
                   </div>
                 </Seccio>
                 <Seccio titol="Peces per sessió" subtitol={`Quantes peces s’emporten a la cabina i quantes sessions acaben amb compra (${enter(sessionsTotal)} sessions).`}>
-                  <div className="panell" style={{ padding: 0 }}>
-                    <table>
-                      <caption className="sr-only">Peces per sessió</caption>
-                      <thead><tr><th scope="col">Peces</th><th scope="col" className="n">Sessions</th><th scope="col" className="n">Amb compra</th></tr></thead>
-                      <tbody>
-                        {s.peces_per_sessio.map((p, i) => (
-                          <tr key={p.peces}><td>{i === s.peces_per_sessio.length - 1 && p.peces >= 5 ? `${p.peces} o més` : p.peces}</td><td className="n">{enter(p.sessions)}</td><td className="n">{pct(p.pct_amb_compra)}</td></tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="panell">
+                    <Columnes titol="Sessions segons les peces que s'emporten a la cabina" nomEixX="Peces a la cabina" alcada={240}
+                      x={s.peces_per_sessio.map((p, i) => (i === s.peces_per_sessio.length - 1 && p.peces >= 5 ? `${p.peces} o més` : `${p.peces}`))}
+                      subetiquetes={s.peces_per_sessio.map((p) => `${pct(p.pct_amb_compra)} compren`)}
+                      series={[{ nom: 'Sessions', valors: s.peces_per_sessio.map((p) => p.sessions) }]}
+                      destaca={(i) => s.peces_per_sessio[i].pct_amb_compra === Math.max(...s.peces_per_sessio.map((p) => p.pct_amb_compra ?? 0))} />
                   </div>
                 </Seccio>
               </div>
