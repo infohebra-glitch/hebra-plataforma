@@ -16,6 +16,7 @@ Demanda perduda en euros (estimació): Σ PVP de les variants demanades que no h
 conversió del període (la probabilitat que s'haguessin comprat si hi haguessin estat).
 """
 
+import json
 import sqlite3
 from collections import Counter, defaultdict
 from datetime import date, timedelta
@@ -446,7 +447,34 @@ def enriqueix(con: sqlite3.Connection, f: Filtre, tipus: str, k: dict, inf: dict
     _PER_TIPUS[tipus](con, f, k, inf)
     for g in inf["grafics"]:
         g["lectura"] = llegeix(g)
+    # La marca tria quins gràfics surten a cada tipus d'informe i en quin ordre (v0.7).
+    inf["grafics_disponibles"] = [{"id": g["id"], "titol": g["titol"]} for g in inf["grafics"]]
+    triats = grafics_triats(con, tipus)
+    inf["grafics_triats"] = triats
+    if triats is not None:
+        per_id = {g["id"]: g for g in inf["grafics"]}
+        inf["grafics"] = [per_id[i] for i in triats if i in per_id]
     return inf
+
+
+def grafics_triats(con: sqlite3.Connection, tipus: str) -> list[str] | None:
+    """Ids dels gràfics que la marca vol en aquest tipus d'informe, en ordre; None = tots (per defecte)."""
+    try:
+        r = con.execute("SELECT grafics_json FROM config_informe WHERE tipus = ?", (tipus,)).fetchone()
+    except sqlite3.OperationalError:   # base de dades antiga encara sense la taula
+        return None
+    return json.loads(r[0]) if r else None
+
+
+def desa_grafics_triats(con: sqlite3.Connection, tipus: str, ids: list[str] | None) -> None:
+    """Desa la tria (None o llista buida de restabliment = tornar a tots)."""
+    if ids is None:
+        con.execute("DELETE FROM config_informe WHERE tipus = ?", (tipus,))
+    else:
+        con.execute("""INSERT INTO config_informe (tipus, grafics_json, actualitzat) VALUES (?, ?, datetime('now'))
+                       ON CONFLICT(tipus) DO UPDATE SET grafics_json = excluded.grafics_json,
+                       actualitzat = excluded.actualitzat""", (tipus, json.dumps(ids)))
+    con.commit()
 
 
 # ---------------------------------------------------------------- Lectura de cada gràfic (v0.7)

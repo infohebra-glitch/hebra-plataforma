@@ -683,6 +683,7 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .dispersio .peca-punt.alerta .cercle { fill: var(--warn); }
 .dispersio .peca-punt .nom-punt { fill: var(--fg); font-size: 12.5px; font-weight: 500; }
 .dispersio .peca-punt.alerta .nom-punt { fill: var(--warn); font-weight: 650; }
+.dispersio .guia-nom { stroke: var(--muted); stroke-width: 0.75; opacity: 0.7; }
 .dispersio .peca-punt.actiu .cercle { r: 8; }
 .dispersio a:focus-visible .cercle { stroke: var(--fg); stroke-width: 3; }
 .dispersio .globus-svg rect { fill: var(--fg); opacity: .94; }
@@ -703,3 +704,37 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 
 /* v0.7 — Informes: cada gràfic porta la seva lectura (què hi veiem i què en podem fer) */
 .grafic-lectura { margin: 4px 0 12px; font-size: 14px; line-height: 1.5; color: var(--fg-2, var(--fg)); max-width: 68ch; }
+
+/* v0.7: la marca tria els gràfics de cada informe */
+.tria-grafics { max-width: 920px; margin: 0 auto 12px; }
+.tria-grafics-panell { margin-top: 8px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+.tria-grafics-panell ol { list-style: none; margin: 8px 0 12px; padding: 0; }
+.tria-grafics-panell li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.tria-grafics-panell li.apagat label { color: var(--muted); }
+.tria-grafics-panell label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.tria-grafics-panell .ordre { display: flex; gap: 4px; }
+.tria-grafics-panell .ordre button { min-width: 32px; padding: 2px 6px; }
+.tria-grafics-panell .accions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* v0.7: proves i compres per dia, comparades */
+.grafic .linia.discontinua { stroke-dasharray: 5 4; stroke-width: 1.5; opacity: .8; }
+.grafic .punt.buit { fill: var(--surface); stroke-width: 1.5; }
+.grafic .punt.buit.f1 { stroke: var(--serie-1); }
+.grafic .punt.buit.f2 { stroke: var(--serie-2); }
+.clau-linia.discontinua { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px) !important; color: var(--muted); }
+.clau-linia.discontinua.bg-s1 { color: var(--serie-1); }
+.clau-linia.discontinua.bg-s2 { color: var(--serie-2); }
+.comparativa-controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end; margin-bottom: 14px; }
+.comparativa-controls label { display: grid; gap: 4px; font-size: 12.5px; color: var(--fg-2); }
+.comparativa-controls select { min-width: 170px; }
+.comparativa-resum { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 4px; margin-bottom: 14px; overflow: hidden; }
+.comparativa-resum > div { background: var(--surface); padding: 10px 12px; }
+.comparativa-resum b { display: block; font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.comparativa-resum span { font-size: 12px; color: var(--muted); }
+.comparativa-resum .bo { color: var(--ok, #2e7d4f); }
+.comparativa-resum .dolent { color: var(--warn); }
+.comparativa-lectura { margin: 12px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--fg-2); max-width: 72ch; }
+.fila-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin: 10px 0; }
+.fila-form label { display: grid; gap: 4px; font-size: 12.5px; color: var(--fg-2); }
+.llista-simple { list-style: none; margin: 8px 0 0; padding: 0; }
+.llista-simple li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }

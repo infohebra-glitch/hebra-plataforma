@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatUnitat, sostre } from '../../lib/escala';
 import { useAmplada } from '../../lib/useApi';
+import { colocaNoms } from './etiquetes';
 
 export interface PuntPeca { clau: string; nom: string; x: number; y: number | null; alerta?: boolean; enllac?: string }
 
@@ -29,21 +30,15 @@ export function Dispersio({ titol, punts, nomX, nomY, alcada = 380 }: {
   const mx = mitja(valids.map((p) => p.x)), my = mitja(valids.map((p) => p.y));
   const radi = (p: PuntPeca) => (p.alerta ? 7 : 6);
 
-  // On va el nom de cada punt: a la dreta si hi cap; si xoca amb un altre nom, una mica més avall o amunt.
-  const etiquetes: Record<string, { dreta: boolean; ly: number }> = {};
-  const ocupats: { x0: number; x1: number; y: number }[] = [];
-  for (const p of [...valids].sort((a, b) => py(a.y) - py(b.y))) {
-    const cx = px(p.x), llarg = p.nom.length * 6.6 + 12;
-    const dreta = cx + llarg < m.e + pw + 8;
-    const x0 = dreta ? cx : cx - llarg, x1 = dreta ? cx + llarg : cx;
-    let ly = py(p.y);
-    for (const d of [0, 15, -15, 30, -30]) {
-      const y = py(p.y) + d;
-      if (!ocupats.some((o) => o.x0 < x1 && x0 < o.x1 && Math.abs(o.y - y) < 14)) { ly = y; break; }
-    }
-    ocupats.push({ x0, x1, y: ly });
-    etiquetes[p.clau] = { dreta, ly };
-  }
+  // On va el nom de cada punt: mai sobre un altre punt ni sobre un altre nom (etiquetes.ts).
+  const zona: [number, number, number, number] = [m.e + pw - 150, m.s + ph - 22, m.e + pw, m.s + ph];
+  const caixes = colocaNoms(valids.map((p) => [px(p.x), py(p.y)] as [number, number]),
+    valids.map((p) => p.nom.length * 7), [m.e, m.s, m.e + pw, m.s + ph], [zona]);
+  const etiquetes: Record<string, { dreta: boolean; ly: number; lx: number }> = {};
+  valids.forEach((p, k) => {
+    const c = caixes[k];
+    etiquetes[p.clau] = { dreta: c.dreta, ly: (c.y0 + c.y1) / 2, lx: c.dreta ? c.x0 + 2 : c.x1 - 2 };
+  });
 
   return (
     <figure className="grafic dispersio" style={{ margin: 0 }} ref={ref}>
@@ -66,13 +61,15 @@ export function Dispersio({ titol, punts, nomX, nomY, alcada = 380 }: {
         <text x={m.e + pw / 2} y={h - 4} textAnchor="middle" className="eix-nom">{nomX}</text>
         <text x={12} y={m.s + ph / 2} textAnchor="middle" className="eix-nom" transform={`rotate(-90 12 ${m.s + ph / 2})`}>{nomY}</text>
         {[...valids].sort((a, b) => Number(a.alerta) - Number(b.alerta)).map((p) => {
-          const r = radi(p), cx = px(p.x), cy = py(p.y), { dreta, ly } = etiquetes[p.clau];
+          const r = radi(p), cx = px(p.x), cy = py(p.y), { dreta, ly, lx } = etiquetes[p.clau];
+          const apartat = Math.abs(ly - cy) > 4;
           const cos = (
             <g key={p.clau} className={`peca-punt${p.alerta ? ' alerta' : ''}${actiu === p.clau ? ' actiu' : ''}`}
               onPointerEnter={() => setActiu(p.clau)} onPointerLeave={() => setActiu(null)}>
+              {apartat && <line x1={cx} y1={cy} x2={dreta ? lx - 2 : lx + 2} y2={ly} className="guia-nom" />}
               <circle cx={cx} cy={cy} r={14} className="diana" />
               <circle cx={cx} cy={cy} r={r} className="cercle" />
-              <text x={dreta ? cx + 11 : cx - 11} y={ly} dy="0.32em" textAnchor={dreta ? 'start' : 'end'} className="nom-punt">{p.nom}</text>
+              <text x={lx} y={ly} dy="0.32em" textAnchor={dreta ? 'start' : 'end'} className="nom-punt">{p.nom}</text>
               <title>{`${p.nom}: ${p.x} proves, ${formatUnitat(p.y, 'pct')} acaben en compra`}</title>
             </g>
           );

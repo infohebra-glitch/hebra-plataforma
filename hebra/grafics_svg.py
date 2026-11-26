@@ -337,6 +337,47 @@ def _interval(v: list[float], gra: float, baix: float, alt: float, topall: float
     return lo, hi, marques
 
 
+def col_loca_noms(pos: list[tuple[float, float]], llargs: list[float], limits: tuple[float, float, float, float],
+                  fixos: list[tuple[float, float, float, float]] = (), radi: float = 7, alt: float = 12,
+                  sep: float = 8) -> list[tuple[float, float, float, float, bool]]:
+    """On va el nom de cada punt perquè cap nom no tapi un punt ni un altre nom.
+
+    Prova a la dreta i a l'esquerra del punt, i després una mica més amunt o avall (el nom queda lligat al
+    punt amb una línia fina). Si no hi cap enlloc, tria el lloc que menys tapa. Retorna, per a cada punt,
+    la caixa del nom (x0, y0, x1, y1) i si va a la dreta. És el mateix algorisme que el tauler
+    (frontend/src/components/grafics/etiquetes.ts)."""
+    lx0, ly0, lx1, ly1 = limits
+    obstacles = [(cx - radi, cy - radi, cx + radi, cy + radi) for cx, cy in pos] + list(fixos)
+
+    def tapa(c, o):
+        w = min(c[2], o[2]) - max(c[0], o[0])
+        h = min(c[3], o[3]) - max(c[1], o[1])
+        return w * h if w > 0 and h > 0 else 0.0
+
+    desplaca = [0, -alt - 2, alt + 2, -2 * alt - 4, 2 * alt + 4, -3 * alt - 6, 3 * alt + 6]
+    ordre = sorted(range(len(pos)), key=lambda k: (pos[k][1], pos[k][0]))
+    sortida: list = [None] * len(pos)
+    posats: list[tuple[float, float, float, float]] = []
+    for k in ordre:
+        cx, cy = pos[k]
+        llarg = llargs[k] + 4
+        millor, cost_millor = None, math.inf
+        for d in desplaca:
+            for dreta in (True, False):
+                x0 = cx + sep if dreta else cx - sep - llarg
+                c = (x0, cy + d - alt / 2, x0 + llarg, cy + d + alt / 2)
+                fora = max(0, lx0 - c[0]) + max(0, c[2] - (lx1 + 10)) + max(0, ly0 - 4 - c[1]) + max(0, c[3] - ly1 - 2)
+                cost = (sum(tapa(c, o) for o in obstacles) + sum(tapa(c, o) for o in posats) * 2
+                        + fora * 50 + abs(d) * 0.01)
+                if cost < cost_millor:
+                    millor, cost_millor = (*c, dreta), cost
+            if cost_millor < 1:
+                break
+        sortida[k] = millor
+        posats.append(millor[:4])
+    return sortida
+
+
 def dispersio(g: dict, amplada: int = 640, alcada: int = 300) -> str:
     """Cada model és un punt amb el nom al costat: a la dreta, els més provats; a dalt, els que més es compren.
     Les línies discontínues són la mitjana; el racó de baix a la dreta (molt provat, poc venut) va ombrejat."""
@@ -364,20 +405,20 @@ def dispersio(g: dict, amplada: int = 640, alcada: int = 300) -> str:
     out.append(f'<line x1="{x0}" x2="{x1}" y1="{py(my):.1f}" y2="{py(my):.1f}" stroke="{EIX}" stroke-dasharray="3 3"/>')
     out.append(_text(x1 - 4, y1 - 6, "Molt provat, poc venut", 9, "#8C304B", "end", "bold"))
     out.append(_text((x0 + x1) / 2, alcada - 6, "Proves al període", 9, TEXT_SECUNDARI, "middle"))
-    ocupats: list[tuple[float, float, float]] = []   # (x0, x1, y) dels noms ja posats, perquè no se solapin
-    for nom, x, y, alerta in sorted(punts, key=lambda p: py(p[2])):
-        cx, cy = px(x), py(y)
+    pos = [(px(x), py(y)) for _, x, y, _ in punts]
+    zona = (x1 - 4 - len("Molt provat, poc venut") * 5.2, y1 - 16, x1, y1)
+    caixes = col_loca_noms(pos, [len(_retalla(n, 24)) * 5.6 for n, *_ in punts], (x0, y0, x1, y1), [zona])
+    cercles, noms = [], []
+    for (nom, _, _, alerta), (cx, cy), (bx0, by0, bx1, by1, dreta) in zip(punts, pos, caixes):
         color = "#8C304B" if alerta else COLORS[0]
-        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5" fill="{color}" stroke="{FONS}" stroke-width="1.5"/>')
-        text = _retalla(nom, 24)
-        llarg = len(text) * 5.6 + 10
-        dreta = cx + llarg < x1 + 6
-        a0, a1 = (cx, cx + llarg) if dreta else (cx - llarg, cx)
-        ly = next((cy + d for d in (0, 12, -12, 24, -24)
-                   if not any(o0 < a1 and a0 < o1 and abs(oy - (cy + d)) < 11 for o0, o1, oy in ocupats)), cy)
-        ocupats.append((a0, a1, ly))
-        out.append(_text(cx + (8 if dreta else -8), ly + 3.5, text, 9.5, "#8C304B" if alerta else TEXT,
-                         "start" if dreta else "end", "bold" if alerta else "normal"))
+        cercles.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5" fill="{color}" stroke="{FONS}" stroke-width="1.5"/>')
+        ly = (by0 + by1) / 2
+        if abs(ly - cy) > 4:   # el nom s'ha hagut d'apartar: una línia fina el lliga al seu punt
+            lx = bx0 if dreta else bx1
+            noms.append(f'<line x1="{cx:.1f}" y1="{cy:.1f}" x2="{lx:.1f}" y2="{ly:.1f}" stroke="{EIX}" stroke-width="0.6"/>')
+        noms.append(_text(bx0 + 2 if dreta else bx1 - 2, ly + 3.4, _retalla(nom, 24), 9.5,
+                          "#8C304B" if alerta else TEXT, "start" if dreta else "end", "bold" if alerta else "normal"))
+    out += noms + cercles   # els punts, per sobre de les línies guia
     return _embolcall(amplada, alcada, "".join(out), g["titol"])
 
 

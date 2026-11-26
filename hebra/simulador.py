@@ -32,6 +32,7 @@ vegades se n'acaba comprant una) i peticions d'assistència des de la fitxa.
 
 import argparse
 import csv
+import hashlib
 import io
 import json
 import random
@@ -148,13 +149,32 @@ AFLUENCIA_DIA = (0.7, 0.75, 0.8, 0.9, 1.15, 1.6)   # dilluns ... dissabte
 PES_CABINA = (1.0, 0.85, 0.6)
 
 
+def plou(dia: date) -> bool:
+    """Dies de pluja de les dades de prova (sempre els mateixos per a cada data, ~28 % dels dies)."""
+    return int(hashlib.sha256(f"pluja-{dia.isoformat()}".encode()).hexdigest(), 16) % 100 < 28
+
+
+def black_friday(dia: date) -> bool:
+    """Del Black Friday (divendres després del quart dijous de novembre) al dilluns següent."""
+    if dia.month != 11:
+        return False
+    dijous = [x for x in range(1, 31) if date(dia.year, 11, x).weekday() == 3][3]
+    return dijous + 1 <= dia.day <= dijous + 4
+
+
+def factor_dia(dia: date) -> float:
+    """Afluència del dia per les condicions: amb pluja entra menys gent a una botiga de carrer; amb les
+    rebaixes del Black Friday, més."""
+    return (0.8 if plou(dia) else 1.0) * (1.35 if black_friday(dia) else 1.0)
+
+
 def horari_cabina(dia: date, ci: int, llavor: int = 7) -> list[tuple[datetime, datetime]]:
     """Les sessions (entra, surt) d'una cabina un dia. Sempre les mateixes per a un mateix dia i cabina,
     de manera que es poden generar a trossos (el lot de prova es va posant al dia cada pocs minuts)."""
     if dia.weekday() == 6:
         return []
     rng = random.Random(f"{llavor}-{dia.isoformat()}-{ci}")
-    pes = PES_CABINA[ci] if ci < len(PES_CABINA) else 0.5
+    pes = (PES_CABINA[ci] if ci < len(PES_CABINA) else 0.5) * factor_dia(dia)
     obertura = datetime(dia.year, dia.month, dia.day, OBERTURA, 0, tzinfo=ZONA)
     # El primer client no entra just en obrir: com més fluix és el matí, més tarda.
     t = obertura + timedelta(minutes=min(rng.uniform(2, 30) / max(AFLUENCIA_DIA[dia.weekday()] * pes * 0.6, 0.15), 120))

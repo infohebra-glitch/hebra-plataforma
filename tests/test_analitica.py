@@ -130,7 +130,8 @@ def test_experiments_alertes_valor(con):
 @pytest.mark.parametrize("tipus", ["diari", "setmanal", "mensual", "temporada", "pilot", "mango"])
 def test_informes(con, tipus):
     r = A.informe(con, F, tipus)
-    claus(r, "tipus", "titol", "periode", "blocs", "accio", "avisos", "xifres", "grafics")
+    claus(r, "tipus", "titol", "periode", "blocs", "accio", "avisos", "xifres", "grafics",
+          "grafics_disponibles", "grafics_triats")
     assert r["tipus"] == tipus and r["blocs"] and r["xifres"] and r["grafics"]
     for g in r["grafics"]:
         claus(g, "id", "titol", "tipus", "unitat", "eix_x", "series", "nota", "destaca", "lectura")

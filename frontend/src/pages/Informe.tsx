@@ -173,16 +173,74 @@ function Barra({ molla, pdf, envia, inicials, titol, carregat }: { molla: string
   );
 }
 
+/**
+ * La marca tria quins gràfics porta aquest informe i en quin ordre. Val per al tauler, el PDF i el correu
+ * programat (ho desa el servidor). Sense tria, hi surten tots.
+ */
+function TriaGrafics({ inf, desa }: { inf: TInforme; desa: (ids: string[] | null) => Promise<void> }) {
+  const tots = inf.grafics_disponibles ?? [];
+  const inicial = inf.grafics_triats ?? tots.map((g) => g.id);
+  const [obert, setObert] = useState(false);
+  const [ordre, setOrdre] = useState<string[]>([...inicial, ...tots.map((g) => g.id).filter((i) => !inicial.includes(i))]);
+  const [actius, setActius] = useState<Set<string>>(new Set(inicial));
+  const [desant, setDesant] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const titol = (id: string) => tots.find((g) => g.id === id)?.titol ?? id;
+  const mou = (i: number, d: number) => setOrdre((o) => {
+    const n = [...o]; const j = i + d; if (j < 0 || j >= n.length) return o; [n[i], n[j]] = [n[j], n[i]]; return n;
+  });
+  const fes = async (ids: string[] | null) => {
+    setError(null); setDesant(true);
+    try { await desa(ids); setObert(false); } catch (e) { setError((e as Error).message); } finally { setDesant(false); }
+  };
+  return (
+    <div className="tria-grafics no-imprimir">
+      <button type="button" className="boto" aria-expanded={obert} onClick={() => setObert(!obert)}>
+        Tria els gràfics ({actius.size} de {tots.length})
+      </button>
+      {obert && (
+        <div className="tria-grafics-panell">
+          <p className="petit muted">Marca els gràfics que vols en aquest informe i posa'ls en l'ordre que et va bé.
+            Es fa servir al tauler, al PDF i als enviaments programats.</p>
+          <ol>
+            {ordre.map((id, i) => (
+              <li key={id} className={actius.has(id) ? '' : 'apagat'}>
+                <label><input type="checkbox" checked={actius.has(id)} onChange={(e) => setActius((a) => {
+                  const n = new Set(a); if (e.target.checked) n.add(id); else n.delete(id); return n;
+                })} /> {titol(id)}</label>
+                <span className="ordre">
+                  <button type="button" aria-label={`Puja «${titol(id)}»`} disabled={i === 0} onClick={() => mou(i, -1)}>↑</button>
+                  <button type="button" aria-label={`Baixa «${titol(id)}»`} disabled={i === ordre.length - 1} onClick={() => mou(i, 1)}>↓</button>
+                </span>
+              </li>
+            ))}
+          </ol>
+          {error && <p className="error petit" role="alert">{error}</p>}
+          <div className="accions">
+            <button type="button" className="boto boto-primari" disabled={desant || actius.size === 0} onClick={() => fes(ordre.filter((i) => actius.has(i)))}>Desa la tria</button>
+            <button type="button" className="boto" disabled={desant} onClick={() => fes(null)}>Posa'ls tots</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Informe calculat al moment amb el filtre de dalt (/informes/:tipus). */
 export function Informe() {
   const { tipus = 'setmanal' } = useParams();
   const { filtre, clau } = useFiltre();
   const def = INFORMES.find((i) => i.tipus === tipus);
   const q = useApi((s) => analitica.informe(filtre, tipus as TipusInforme, s), [clau, tipus]);
+  const { pot } = useSessio();
   if (!def) return <Buit titol="Aquest informe no existeix" accio={<Link to="/informes">Torna als informes</Link>} />;
   return (
     <>
       <Barra molla={def.nom} titol={def.nom} carregat={!!q.dades} pdf={() => informes.pdf(tipus as TipusInforme, filtre)} envia={(d) => informes.envia(tipus as TipusInforme, filtre, d)} />
+      {q.dades?.grafics_disponibles && pot('admin', 'marca') && (
+        <TriaGrafics key={`${tipus}-${(q.dades.grafics_triats ?? []).join(',')}`} inf={q.dades}
+          desa={async (ids) => { await analitica.triaGrafics(filtre, tipus as TipusInforme, ids); q.recarrega(); }} />
+      )}
       <Consulta q={q} esquelet={<div className="document"><Esquelet tipus="taula" files={10} /></div>}>
         {(inf) => <Document inf={inf} />}
       </Consulta>

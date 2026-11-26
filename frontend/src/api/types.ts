@@ -384,7 +384,20 @@ export interface Informe {
   /** v0.3 (E.2) */
   grafics?: GraficInforme[];
   xifres?: XifraInforme[];
+  /** v0.7: tots els gràfics que pot portar aquest informe i els que la marca ha triat (null = tots). */
+  grafics_disponibles?: { id: string; titol: string }[];
+  grafics_triats?: string[] | null;
 }
+
+// ── Comparativa de proves i compres per dia (v0.7) ───────────────────────
+export interface DiaComparat { data: Data; condicions: string[]; compleix: boolean; proves: number | null; compres: number | null; conversio: number | null }
+export interface TotalComparat { proves: number; compres: number; conversio: number | null; dies: number }
+export interface Comparativa {
+  dies: DiaComparat[]; total: TotalComparat; franja: string | null; condicio: string | null; condicions_disponibles: string[];
+  comparacio: { etiqueta: string; des: Data; fins: Data; dies: DiaComparat[]; total: TotalComparat } | null;
+}
+export interface Colleccio { id: number; nom: string; des: Data; fins: Data }
+export interface CondicioDia { botiga_id: string; data: Data; condicio: string }
 
 // ── Informes lliurats i programació (E.4) ────────────────────────────────
 export type EstatEnviament = 'no_enviat' | 'enviat' | 'error';

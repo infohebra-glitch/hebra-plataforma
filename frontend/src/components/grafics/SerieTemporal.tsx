@@ -8,7 +8,7 @@ import { useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useAmplada } from '../../lib/useApi';
 import { sostre, ticks } from '../../lib/escala';
 
-export interface Serie { clau: string; nom: string; classe: 's1' | 's2' | 's3'; valors: (number | null)[] }
+export interface Serie { clau: string; nom: string; classe: 's1' | 's2' | 's3'; valors: (number | null)[]; discontinua?: boolean }
 
 interface Props {
   titol: string;
@@ -51,7 +51,7 @@ export function SerieTemporal({ titol, x, etiquetaX, detallX = etiquetaX, series
   };
 
   // Etiquetes directes al final, només si no es trepitgen (si no, ja hi ha la llegenda).
-  const finals = series.map((s) => {
+  const finals = series.filter((s) => !s.discontinua).map((s) => {
     let i = s.valors.length - 1;
     while (i >= 0 && s.valors[i] === null) i--;
     return i >= 0 ? { s, i, y: py(s.valors[i] as number) } : null;
@@ -74,7 +74,7 @@ export function SerieTemporal({ titol, x, etiquetaX, detallX = etiquetaX, series
   return (
     <figure className="grafic" style={{ margin: 0 }}>
       <ul className="llegenda">
-        {series.map((s) => <li key={s.clau}><span className={`clau-linia bg-${s.classe}`} aria-hidden="true" />{s.nom}</li>)}
+        {series.map((s) => <li key={s.clau}><span className={`clau-linia bg-${s.classe}${s.discontinua ? ' discontinua' : ''}`} aria-hidden="true" />{s.nom}</li>)}
         {bandes?.some(Boolean) && nomBanda && <li><span className="clau-banda" aria-hidden="true" />{nomBanda}</li>}
       </ul>
       <div ref={ref} style={{ position: 'relative' }}>
@@ -94,7 +94,11 @@ export function SerieTemporal({ titol, x, etiquetaX, detallX = etiquetaX, series
           {x.map((_, i) => (i % cadaX === 0 || i === n - 1) && (n - 1 - i >= cadaX / 2 || i === n - 1) && (
             <text key={`x${i}`} x={px(i)} y={h - 8} textAnchor="middle">{etiquetaX(i)}</text>
           ))}
-          {series.map((s) => <path key={s.clau} className={`linia ${s.classe}`} d={cami(s)} />)}
+          {series.map((s) => <path key={s.clau} className={`linia ${s.classe}${s.discontinua ? ' discontinua' : ''}`} d={cami(s)} />)}
+          {/* Si hi ha dies buits (p. ex. només dies de pluja), cada dia amb dades porta el seu punt. */}
+          {series.map((s) => s.valors.some((v) => v === null) && s.valors.map((v, i) => v !== null && (
+            <circle key={`${s.clau}-${i}`} className={`punt f${s.classe.slice(1)}${s.discontinua ? ' buit' : ''}`} cx={px(i)} cy={py(v)} r={3} />
+          )))}
           {finals.map((f) => f && (
             <g key={`f${f.s.clau}`}>
               <circle className={`punt f${f.s.classe.slice(1)}`} cx={px(f.i)} cy={f.y} r={4} />

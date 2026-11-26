@@ -121,7 +121,7 @@ export const api = {
   post: <T>(ruta: string, cos?: unknown, params?: Params) => peticio<T>('POST', ruta, { cos, params }),
   patch: <T>(ruta: string, cos: unknown) => peticio<T>('PATCH', ruta, { cos }),
   put: <T>(ruta: string, cos: unknown, params?: Params) => peticio<T>('PUT', ruta, { cos, params }),
-  del: <T>(ruta: string) => peticio<T>('DELETE', ruta),
+  del: <T>(ruta: string, params?: Params) => peticio<T>('DELETE', ruta, { params }),
   puja: <T>(ruta: string, fitxer: File) => {
     const f = new FormData();
     f.append('fitxer', fitxer);

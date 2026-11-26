@@ -116,6 +116,7 @@ def carrega(con: sqlite3.Connection, avui: date | None = None) -> dict:
             con.commit()
             raise
 
+        _dies_especials(con, inici, avui)
         gtins = sorted({r[0] for r in con.execute("SELECT gtin FROM catalog_sku")} - gtins_abans)
         epcs = sorted({r[0] for r in con.execute("SELECT epc FROM etiqueta")} - epcs_abans)
         resum.pop("csv_vendes", None)
@@ -128,6 +129,28 @@ def carrega(con: sqlite3.Connection, avui: date | None = None) -> dict:
                      json.dumps(epcs), json.dumps(resum), fins_ts.isoformat(timespec="seconds")))
         con.commit()
         return estat(con)
+
+
+def _dies_especials(con: sqlite3.Connection, inici: date, avui: date) -> None:
+    """Perquè es pugui provar la comparativa: dies de pluja (sempre els mateixos per a cada data), el Black
+    Friday i les rebaixes, i dues col·leccions (una per setmana). També marca la pluja de les 3 setmanes
+    vinents, perquè els dies que van entrant amb la posada al dia també en tinguin."""
+    files = []
+    d = inici
+    while d <= avui + timedelta(days=21):
+        # Els mateixos dies que fa servir el simulador (amb pluja entra menys gent; amb rebaixes, més).
+        if simulador.plou(d):
+            files.append((BOTIGA, d.isoformat(), "pluja"))
+        if simulador.black_friday(d):
+            files.append((BOTIGA, d.isoformat(), "rebaixes"))
+        if (d.month, d.day) in ((12, 6), (12, 8), (12, 25), (12, 26), (1, 1), (1, 6)):
+            files.append((BOTIGA, d.isoformat(), "festiu"))
+        d += timedelta(days=1)
+    con.executemany("INSERT OR IGNORE INTO condicio_dia (botiga_id, data, condicio) VALUES (?, ?, ?)", files)
+    for nom, des, fins in (("Entrada de tardor", inici, inici + timedelta(days=6)),
+                           ("Càpsula de festes", inici + timedelta(days=7), inici + timedelta(days=13))):
+        con.execute("INSERT INTO colleccio (nom, des, fins, lot_prova) VALUES (?, ?, ?, 1)",
+                    (nom, des.isoformat(), fins.isoformat()))
 
 
 def posa_al_dia(con: sqlite3.Connection, ara: datetime | None = None) -> int:
@@ -207,6 +230,7 @@ def _esborra_botiga(con: sqlite3.Connection, gtins: set[str], epcs: set[str]) ->
     for t in _taules_amb(con, "botiga_id"):
         if t not in ("botiga", "cabina"):
             esborra(f'DELETE FROM "{t}" WHERE botiga_id = ?', (BOTIGA,), t)
+    esborra("DELETE FROM colleccio WHERE lot_prova = 1", (), "colleccio")
     esborra("DELETE FROM cabina WHERE botiga_id = ?", (BOTIGA,), "cabina")
     esborra("DELETE FROM botiga WHERE id = ?", (BOTIGA,), "botiga")
     # Catàleg i etiquetes que va crear el lot (no els que ja hi eren).

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { operacio } from '../api/endpoints';
 import type { ResultatImport } from '../api/types';
+import { Colleccions, CondicionsDia } from '../components/CondicionsColleccions';
 import { Connexions } from '../components/Connexions';
 import { TargetaLotProva } from '../components/LotProva';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
@@ -64,6 +65,9 @@ export function Dades() {
       </TitolPagina>
       {marca && <Connexions />}
       {marca && <div style={{ marginTop: 24 }}><TargetaLotProva /></div>}
+      <div id="condicions"><Seccio titol="Dies especials i col·leccions" subtitol="Per comparar i filtrar les proves i compres per dia del Resum.">
+        <div className="reixa-2"><CondicionsDia /><Colleccions /></div>
+      </Seccio></div>
       <Seccio titol="Pujada manual de CSV" subtitol="Separador coma o punt i coma, codificació UTF-8, amb capçalera a la primera fila. Serveix si el TPV no es pot connectar.">
         <div className="reixa-3">
           {TIPUS.filter((t) => !t.nomesAdmin || admin).map((t) => <Importador key={t.tipus} t={t} />)}
