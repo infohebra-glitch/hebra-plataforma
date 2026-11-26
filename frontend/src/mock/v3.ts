@@ -9,6 +9,7 @@ import { properaExecucio } from '../lib/programacio';
 import { NOMS_TIPUS_TASCA } from '../lib/tasques';
 import { BOTIGUES, MODELS, ORIGENS, arr, avui, conv, cub, defModel, dies, estat, sumaCompres, sumaProves, type FiltreMock } from './dades';
 import { atzar } from './estadistica';
+import { foto } from './fotos';
 
 const ara = () => new Date();
 const fa = (min: number) => new Date(Date.now() - min * 60000).toISOString();
@@ -394,7 +395,7 @@ export const ORIGEN_FITXA = (model: string): Record<string, unknown> | null => {
   return { nom: m.nom, descripcio: `${m.nom} de la col·lecció d’hivern.`, cura: ['Rentar a 30 °C'], etapes: o?.etapes ?? [], composicio: o?.composicio ?? [] };
 };
 export function modelsFitxa(): T.ModelFitxa[] {
-  return MODELS.map((m) => ({ model: m.model, nom: m.nom, categoria: m.categoria, idiomes_amb_contingut: Object.keys(continguts[m.model] ?? {}), te_origen: !!ORIGENS[m.model] }));
+  return MODELS.map((m) => ({ model: m.model, nom: m.nom, categoria: m.categoria, idiomes_amb_contingut: Object.keys(continguts[m.model] ?? {}), te_origen: !!ORIGENS[m.model], imatge: foto(m.model) }));
 }
 
 const COLOR = /^#[0-9A-Fa-f]{6}$/;

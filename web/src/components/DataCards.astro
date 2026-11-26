@@ -1,0 +1,76 @@
+---
+// Qué datos obtiene la marca. Cada tarjeta gira: delante el dato, detrás la decisión que permite.
+import type { Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+import { cards as T } from '../data/cards';
+const t = T[lang];
+const bars = [38, 62, 30, 80, 52, 70, 44];
+const heat = [1, 1, 2, 2, 3, 2, 2, 3, 4, 5, 4, 2];
+---
+<div class="dc" data-cards>
+  <p class="small dc-hint">{t.hint}</p>
+  <ul class="dc-grid">
+    {t.cards.map((c, i) => (
+      <li>
+        <button type="button" class="dc-card" aria-pressed="false" data-card>
+          <span class="dc-face dc-front">
+            <span class="dc-viz" aria-hidden="true">
+              {c.viz === 'bars' && <svg viewBox="0 0 140 60">{bars.map((h, j) => <rect x={j * 20 + 2} y={60 - h * .7} width="12" height={h * .7} rx="2" class={j === 3 ? 'hi' : ''} />)}</svg>}
+              {c.viz === 'donut' && <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" class="trk" /><circle cx="30" cy="30" r="22" class="val" style="stroke-dasharray: 37.3 138.2" transform="rotate(-90 30 30)" /></svg>}
+              {c.viz === 'clock' && <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" class="trk" /><path d="M30 8 A22 22 0 0 1 49 41 L30 30Z" class="fill" /><path d="M30 30 L30 14 M30 30 L40 36" class="hand" /></svg>}
+              {c.viz === 'chips' && <span class="dc-chips"><i>L</i><i>L</i><i>M</i><i>L</i><i>XL</i></span>}
+              {c.viz === 'reasons' && <svg viewBox="0 0 140 60">{[46, 92, 30, 18, 12].map((w, j) => <rect x="0" y={j * 12} width={w * 1.4} height="8" rx="2" class={j === 1 ? 'hi' : ''} />)}</svg>}
+              {c.viz === 'pairs' && <svg viewBox="0 0 140 60"><circle cx="30" cy="30" r="16" class="node" /><circle cx="110" cy="18" r="12" class="node" /><circle cx="100" cy="48" r="9" class="node" /><path d="M46 28 L98 19 M44 38 L91 46" class="link" /></svg>}
+              {c.viz === 'heat' && <span class="dc-heat">{heat.map((h) => <i style={`--h:${h}`}></i>)}</span>}
+              {c.viz === 'origin' && <svg viewBox="0 0 140 60"><path d="M8 50 C 40 50, 40 12, 70 12 S 100 50, 132 30" class="link" /><circle cx="8" cy="50" r="5" class="node" /><circle cx="70" cy="12" r="5" class="node" /><circle cx="132" cy="30" r="6" class="hi" /></svg>}
+              {c.viz === 'ab' && <svg viewBox="0 0 140 60"><path d="M4 44 L36 40 L68 42 L100 38 L136 39" class="ctrl" /><path d="M4 44 L36 40 L68 34 L100 24 L136 20" class="test" /></svg>}
+            </span>
+            <span class="dc-k">{c.k}</span>
+            <span class="dc-v">{c.v}</span>
+            <span class="dc-d">{c.d}</span>
+          </span>
+          <span class="dc-face dc-back">
+            <span class="dc-turn">{t.turn}</span>
+            <span class="dc-b">{c.back}</span>
+            <span class="dc-n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+          </span>
+        </button>
+      </li>
+    ))}
+  </ul>
+</div>
+
+<style>
+  .dc-hint { color: var(--tinta-2); margin-bottom: 1.2rem; }
+  .dc-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .dc-grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1020px) { .dc-grid { grid-template-columns: repeat(3, 1fr); } }
+  .dc-card { position: relative; display: block; width: 100%; min-height: 250px; padding: 0; border: 0; background: none; cursor: pointer; perspective: 1200px; text-align: left; font: inherit; color: inherit; }
+  .dc-face { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 1.4rem 1.5rem; border-radius: 16px; backface-visibility: hidden; transition: transform .7s cubic-bezier(.2,.7,.2,1); }
+  .dc-front { background: #fff; box-shadow: 0 1px 0 var(--linea), 0 24px 40px -36px rgba(18,38,63,.6); }
+  .dc-back { background: var(--deep); color: #fff; transform: rotateY(180deg); justify-content: space-between; }
+  .dc-card[aria-pressed='true'] .dc-front { transform: rotateY(-180deg); }
+  .dc-card[aria-pressed='true'] .dc-back { transform: rotateY(0); }
+  @media (hover: hover) { .dc-card:hover .dc-front { transform: rotateY(-180deg); } .dc-card:hover .dc-back { transform: rotateY(0); } }
+  .dc-card:focus-visible { outline: 2px solid var(--deep); outline-offset: 4px; border-radius: 16px; }
+  .dc-viz { display: block; height: 62px; margin-bottom: 1rem; }
+  .dc-viz svg { height: 62px; width: auto; }
+  .dc-viz rect { fill: #D9DEE5; } .dc-viz rect.hi, .dc-viz .hi { fill: var(--deep); }
+  .dc-viz .trk { fill: none; stroke: #E6E9EE; stroke-width: 8; }
+  .dc-viz .val { fill: none; stroke: var(--deep); stroke-width: 8; stroke-linecap: round; }
+  .dc-viz .fill { fill: color-mix(in srgb, var(--deep) 18%, transparent); } .dc-viz .hand { stroke: var(--on-light); stroke-width: 3; stroke-linecap: round; }
+  .dc-viz .node { fill: #fff; stroke: var(--on-light); stroke-width: 2.5; } .dc-viz .link { fill: none; stroke: var(--deep); stroke-width: 2; stroke-dasharray: 4 4; }
+  .dc-viz .ctrl { fill: none; stroke: #B7B3B2; stroke-width: 2.5; } .dc-viz .test { fill: none; stroke: var(--deep); stroke-width: 3; }
+  .dc-chips { display: flex; gap: .3rem; align-items: center; height: 100%; }
+  .dc-chips i { font: 700 .75rem/1 var(--sans); font-style: normal; padding: .35rem .55rem; border-radius: 999px; background: var(--grana-suau); color: var(--deep); }
+  .dc-heat { display: flex; align-items: flex-end; gap: 4px; height: 100%; }
+  .dc-heat i { width: 9px; height: calc(var(--h) * 11px); border-radius: 2px; background: color-mix(in srgb, var(--deep) calc(var(--h) * 19%), transparent); }
+  .dc-k { font-weight: 600; color: var(--tinta); }
+  .dc-v { font: 340 2.4rem/1.05 var(--serif); color: var(--on-light); margin: .2rem 0 .3rem; font-variant-numeric: tabular-nums; }
+  .dc-d { font-size: .9rem; color: var(--tinta-2); line-height: 1.45; }
+  .dc-turn { font-size: .78rem; font-weight: 600; color: #F3DDE4; }
+  .dc-b { font: 400 1.35rem/1.3 var(--serif); }
+  .dc-n { font: 340 2.6rem/1 var(--serif); color: rgba(249,249,249,.35); align-self: flex-end; }
+  @media (prefers-reduced-motion: reduce) { .dc-face { transition: none; } }
+</style>

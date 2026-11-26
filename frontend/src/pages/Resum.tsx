@@ -3,6 +3,7 @@ import { analitica } from '../api/endpoints';
 import type { Accio, EstatCopia as TEstatCopia, EstatSistema as TEstatSistema, Resum as TResum } from '../api/types';
 import { Consulta, Esquelet } from '../components/Estat';
 import { MostraPetita } from '../components/Insignies';
+import { Panorama } from '../components/Panorama';
 import { TargetaLotProva, useLotProva } from '../components/LotProva';
 import { Rajola, type Delta } from '../components/Rajola';
 import { SerieTemporal } from '../components/grafics/SerieTemporal';
@@ -128,6 +129,7 @@ export function Resum() {
   const { filtre, clau } = useFiltre();
   const q = useApi((s) => analitica.resum(filtre, s), [clau]);
   const qs = useApi((s) => analitica.estatSistema(filtre, s), [clau]);
+  const qp = useApi((s) => analitica.panorama(filtre, s), [clau]);
   return (
     <>
       <TitolPagina titol="Resum">Què s’ha provat, què s’ha venut i què cal fer aquesta setmana.</TitolPagina>
@@ -164,6 +166,7 @@ export function Resum() {
                 ) : <p className="muted">Encara no hi ha dies amb dades en aquest període.</p>}
               </div>
             </Seccio>
+            {qp.dades && <Panorama p={qp.dades} />}
           </>
         )}
       </Consulta>

@@ -4,6 +4,7 @@ import type { ModelDetall } from '../api/types';
 import { Buit, Consulta, Esquelet } from '../components/Estat';
 import { TargetaExperiment } from '../components/Experiment';
 import { MostraPetita } from '../components/Insignies';
+import { FilaPeces, FotoPeca } from '../components/Peca';
 import { EXPLICACIO_DUBTE, TaulaParells, llegendaCompra } from '../components/DubteTalla';
 import { Rajola } from '../components/Rajola';
 import { Barres } from '../components/grafics/Barres';
@@ -54,12 +55,17 @@ function Detall({ d }: { d: ModelDetall }) {
   const k = d.kpi;
   return (
     <>
-      <TitolPagina titol={d.nom}>{d.model} · {d.categoria} · {d.color} · {eur(d.preu)}</TitolPagina>
-      <div className="rajoles">
+      <div className="capcalera-peca">
+        <FotoPeca src={d.imatge} nom={`${d.nom}, ${d.color}`} mida="gran" />
+        <div>
+          <TitolPagina titol={d.nom}>{d.model} · {d.categoria} · {d.color} · {eur(d.preu)}</TitolPagina>
+          <div className="rajoles">
         <Rajola etiqueta="Proves" valor={enter(k.proves)} />
         <Rajola etiqueta="Conversió" valor={pct(k.conversio)} nota={<>{deCada(k.compres, k.proves)} proves acaben en compra</>} insignia={<MostraPetita n={k.proves} />} />
         <Rajola etiqueta="Venut sense provar" valor={enter(k.venut_sense_provar)} nota="unitats venudes sense passar per la cabina" />
-        <Rajola etiqueta="Respostes de motiu" valor={enter(k.respostes_motiu)} nota={<>taxa de resposta del {pct(k.taxa_resposta_motiu)}</>} />
+            <Rajola etiqueta="Respostes de motiu" valor={enter(k.respostes_motiu)} nota={<>taxa de resposta del {pct(k.taxa_resposta_motiu)}</>} />
+          </div>
+        </div>
       </div>
 
       <Seccio titol="Talles: provat contra comprat" subtitol="Si una talla es prova molt més del que es compra, el patró d’aquesta talla pot no quadrar.">
@@ -118,17 +124,10 @@ function Detall({ d }: { d: ModelDetall }) {
       </div>
 
       <div className="reixa-2">
-        <Seccio titol="Es prova amb" subtitol="Peces que entren a la mateixa cabina, a la mateixa sessió.">
+        <Seccio titol="Es prova amb" subtitol="Peces que entren a la mateixa cabina, a la mateixa sessió. Si la marca no tria res, la fitxa NFC les proposa a «Combina amb».">
           <div className="panell">
             {d.provat_amb.length ? (
-              <ul className="barres">
-                {d.provat_amb.map((p) => (
-                  <li key={p.model} style={{ gridTemplateColumns: '1fr auto' }}>
-                    <Link to={`/peces/${encodeURIComponent(p.model)}`}>{p.nom}</Link>
-                    <span className="valor">{enter(p.sessions)} sessions</span>
-                  </li>
-                ))}
-              </ul>
+              <FilaPeces peces={d.provat_amb.map((p) => ({ model: p.model, nom: p.nom, imatge: p.imatge, nota: `${enter(p.sessions)} sessions` }))} />
             ) : <p className="muted">Encara no es prova amb cap altra peça.</p>}
           </div>
         </Seccio>

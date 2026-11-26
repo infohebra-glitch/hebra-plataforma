@@ -11,8 +11,9 @@ from . import fitxa, provadors  # v0.3 A-B
 from . import integracions  # v0.3 F
 from . import informes, tasques  # v0.3 D-E
 from . import lot_prova  # lot de prova que s'esborra d'un clic
+from . import imatges  # v0.5 imatges de les peces
 
 router = APIRouter(prefix="/api/v2")
 for _m in (sessio, analitica, operacio, importacions, parametres, usuaris, shopify, flux, fitxa, provadors,
-           integracions, tasques, informes, lot_prova):
+           integracions, tasques, informes, lot_prova, imatges):
     router.include_router(_m.router)

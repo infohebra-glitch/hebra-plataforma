@@ -24,7 +24,7 @@ import secrets
 import sqlite3
 from datetime import datetime, timedelta
 
-from . import alertes, cataleg, control, estoc, fitxa_config, temps
+from . import alertes, cataleg, control, estoc, fitxa_config, imatges, siluetes, temps
 
 IDIOMES = ("ca", "es", "fr", "en")
 # Si el contingut d'origen no té l'idioma, provem aquests en ordre.
@@ -34,6 +34,11 @@ TIPUS = {"obre_fitxa", "veu_origen", "demana_talla", "demana_assistencia", "moti
 MOTIUS_VALIDS = set(fitxa_config.MOTIUS)
 SECCIONS = {"talles", "cura", "preguntes"}
 TITOL_COMBINA = {"ca": "Combina amb", "es": "Combina con", "fr": "À associer avec", "en": "Goes well with"}
+# Subtítol quan la proposta surt del provador (no l'ha triada la marca).
+NOTA_COMBINA_PROVADOR = {"ca": "El que més es prova amb aquesta peça", "es": "Lo que más se prueba con esta prenda",
+                         "fr": "Ce qu'on essaie le plus avec cette pièce", "en": "What people try on most with this piece"}
+MAX_COMBINA = 4
+MIN_SESSIONS_COMBINA = 3   # sessions de cabina juntes perquè el provador proposi una peça
 
 # Estats de la petició de talla i transicions permeses (pendent -> en_cami -> lliurada | no_disponible).
 TRANSICIONS = {"pendent": {"en_cami", "lliurada", "no_disponible"}, "en_cami": {"lliurada", "no_disponible"}}
@@ -156,6 +161,8 @@ def dades_fitxa(con: sqlite3.Connection, fila: sqlite3.Row, botiga_id: str | Non
             return de_origen
         return next((r[clau] for r in reserva if r.get(clau)), de_origen)
     variants = cataleg.variants_del_model(con, fila["model"], fila["color"])
+    resolutor = imatges.Resolutor(con)
+    combina, font_combina = _combina(con, fila, camp("combina", origen.get("combina") or []), idioma, resolutor)
     estoc_origen = origen.get("estoc", {})
     avui = temps.ara()[:10]
 
@@ -188,25 +195,60 @@ def dades_fitxa(con: sqlite3.Connection, fila: sqlite3.Row, botiga_id: str | Non
                             for f in origen.get("faq", []) + origen.get("faq_general", [])]),
         "origen_amagat_per_control": not control.mostra_origen(con, botiga_id, avui),
         "mostra_origen": cfg["seccions"]["visibles"].get("origen", True) and control.mostra_origen(con, botiga_id, avui),
-        "combina": _combina(con, camp("combina", origen.get("combina") or []), idioma),
+        "imatge": resolutor.de(fila["model"], fila["color"], fila["categoria"],
+                               camp("nom", tr(origen.get("nom"), idioma)) or fila["model"]),
+        "combina": combina,
         "titol_combina": TITOL_COMBINA.get(idioma, TITOL_COMBINA["ca"]),
+        "nota_combina": NOTA_COMBINA_PROVADOR.get(idioma, NOTA_COMBINA_PROVADOR["ca"]) if font_combina == "provador" else "",
     }
 
 
-def _combina(con: sqlite3.Connection, models: list, idioma: str) -> list[str]:
-    """Noms dels models que el fitxer d'origen suggereix combinar (només es mostren, sense enllaç)."""
-    noms = []
-    for m in models[:6]:
-        if not isinstance(m, str):
+def _nom_model(con: sqlite3.Connection, model: str, idioma: str) -> tuple[str | None, sqlite3.Row | None]:
+    propi, reserva = _contingut(con, model, idioma)
+    fila = con.execute("""SELECT model, color, categoria, preu_eur, origen_json FROM catalog_sku WHERE model = ?
+                          ORDER BY origen_json IS NULL, rowid LIMIT 1""", (model,)).fetchone()
+    nom = propi.get("nom") or next((r["nom"] for r in reserva if r.get("nom")), None)
+    if not nom and fila is not None and fila["origen_json"]:
+        nom = tr(json.loads(fila["origen_json"]).get("nom"), idioma)
+    return nom, fila
+
+
+def provat_amb(con: sqlite3.Connection, model: str, minim: int = MIN_SESSIONS_COMBINA, limit: int = MAX_COMBINA,
+               dies: int = 90) -> list[str]:
+    """Models d'una altra categoria que més sovint entren a la cabina amb aquest (sessions diferents)."""
+    des = (datetime.fromisoformat(temps.ara()) - timedelta(days=dies)).isoformat(timespec="seconds")
+    files = con.execute(
+        """SELECT k2.model, COUNT(DISTINCT p2.sessio_id) AS n
+           FROM prova p1 JOIN catalog_sku k1 ON k1.gtin = p1.gtin
+           JOIN sessio s ON s.id = p1.sessio_id
+           JOIN prova p2 ON p2.sessio_id = p1.sessio_id JOIN catalog_sku k2 ON k2.gtin = p2.gtin
+           WHERE k1.model = ? AND k2.model <> k1.model AND k2.categoria <> k1.categoria
+             AND p1.confianca <> 'ambigua' AND p2.confianca <> 'ambigua' AND s.inici >= ?
+           GROUP BY k2.model HAVING n >= ? ORDER BY n DESC, k2.model LIMIT ?""",
+        (model, des, minim, limit)).fetchall()
+    return [f["model"] for f in files]
+
+
+def _combina(con: sqlite3.Connection, fila: sqlite3.Row, models: list, idioma: str,
+             resolutor: "imatges.Resolutor") -> tuple[list[dict], str | None]:
+    """Peces per completar el look, amb foto: les que tria la marca (fitxer d'origen o contingut propi) o,
+    si no n'ha triat cap, les que més es proven juntes a la cabina. Torna (peces, font)."""
+    font = "marca"
+    triats = [m for m in models if isinstance(m, str)][:MAX_COMBINA]
+    if not triats:
+        triats, font = provat_amb(con, fila["model"]), "provador"
+    out = []
+    for m in triats:
+        nom, k = _nom_model(con, m, idioma)
+        if k is None:  # la marca en parla però no és al catàleg: només el nom, amb una silueta neutra
+            out.append({"model": m, "nom": nom or m, "preu": None, "color": "",
+                        "imatge": {"url": siluetes.url(None, None, nom or m), "silueta": True}})
             continue
-        propi, reserva = _contingut(con, m, idioma)
-        nom = propi.get("nom") or next((r["nom"] for r in reserva if r.get("nom")), None)
-        if not nom:
-            fila = con.execute("SELECT origen_json FROM catalog_sku WHERE model = ? AND origen_json IS NOT NULL LIMIT 1",
-                               (m,)).fetchone()
-            nom = tr(json.loads(fila["origen_json"]).get("nom"), idioma) if fila else None
-        noms.append(nom or m)
-    return noms
+        origen = json.loads(k["origen_json"] or "{}")
+        out.append({"model": m, "nom": nom or m, "preu": k["preu_eur"],
+                    "color": tr(origen.get("color", k["color"]), idioma) or "",
+                    "imatge": resolutor.de(m, k["color"], k["categoria"], nom)})
+    return out, (font if out else None)
 
 
 def registra(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str | None, gtin: str,

@@ -1,0 +1,10 @@
+---
+import { getCollection } from 'astro:content';
+import View from '../../views/BlogPost.astro';
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', (e) => e.id.startsWith('es/'));
+  return posts.map((entry) => ({ params: { slug: entry.id.split('/').slice(1).join('/') }, props: { entry } }));
+}
+const { entry } = Astro.props;
+---
+<View lang="es" entry={entry} />

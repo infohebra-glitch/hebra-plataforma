@@ -4,17 +4,24 @@
  * desar res ni registrar cap esdeveniment. Amb backend, es fa servir l'iframe de
  * GET /fitxa/previsualitza (la versió desada).
  */
-import type { ConfigFitxa, ContingutModel, ModelDetall, SeccioFitxa } from '../api/types';
+import type { ConfigFitxa, ContingutModel, ModelDetall, ModelFitxa, SeccioFitxa } from '../api/types';
 import { contrast, esPropi, textEnIdioma } from '../lib/fitxa';
 import { motiuFitxa, textFitxa } from '../lib/textosFitxa';
 
 interface Etapa { etapa?: string; pais?: string; regio?: string }
 interface Comp { material?: string; pct?: number; pais?: string }
 
-export function FitxaPrevia({ config, idioma, contingut, origen, detall, nomsModels }: {
+/** Igual que NOTA_COMBINA_PROVADOR de hebra/fitxa.py: quan la marca no tria, proposa el que es prova junt. */
+const NOTA_PROVADOR: Record<string, string> = {
+  ca: 'El que més es prova amb aquesta peça', es: 'Lo que más se prueba con esta prenda',
+  fr: 'Ce qu’on essaie le plus avec cette pièce', en: 'What people try on most with this piece',
+};
+
+export function FitxaPrevia({ config, idioma, contingut, origen, detall, nomsModels, models = [] }: {
   config: ConfigFitxa; idioma: string; contingut: ContingutModel; origen: Record<string, unknown> | null;
-  detall?: ModelDetall; nomsModels: Record<string, string>;
+  detall?: ModelDetall; nomsModels: Record<string, string>; models?: ModelFitxa[];
 }) {
+  const fotoDe = (m: string) => models.find((x) => x.model === m)?.imatge;
   const t = (k: string) => textFitxa(idioma, k);
   const ap = config['aparença'];
   const color = /^#[0-9A-Fa-f]{6}$/.test(ap.color_principal) ? ap.color_principal : '#14457D';
@@ -78,10 +85,22 @@ export function FitxaPrevia({ config, idioma, contingut, origen, detall, nomsMod
         ) : null;
       case 'cura':
         return cura.length ? <section key={s} className="fp-panell"><h2>{t('cura')}</h2><ul>{cura.map((c) => <li key={c}>{c}</li>)}</ul></section> : null;
-      case 'combina':
-        return contingut.combina?.length ? (
-          <section key={s} className="fp-panell"><h2>{t('combina')}</h2><ul>{contingut.combina.map((m) => <li key={m}>{nomsModels[m] ?? m}</li>)}</ul></section>
-        ) : null;
+      case 'combina': {
+        const propis = contingut.combina?.length ? contingut.combina : null;
+        const llista = (propis ?? (detall?.provat_amb ?? []).map((p) => p.model)).slice(0, 4);
+        if (!llista.length) return null;
+        return (
+          <section key={s} className="fp-panell fp-combina"><h2>{t('combina')}</h2>
+            {!propis && <p className="fp-nota" style={{ marginTop: -2 }}>{NOTA_PROVADOR[idioma] ?? NOTA_PROVADOR.ca}</p>}
+            <ul className="fp-look">
+              {detall?.imatge && <li className="actual"><img src={detall.imatge} alt="" /><span>{nom}</span></li>}
+              {llista.map((m) => (
+                <li key={m}>{fotoDe(m) ? <img src={fotoDe(m)} alt="" /> : <span className="fp-sense-foto" />}<span>{nomsModels[m] ?? m}</span></li>
+              ))}
+            </ul>
+          </section>
+        );
+      }
       case 'faq':
         return contingut.faq?.length ? (
           <section key={s} className="fp-panell"><h2>{t('faq')}</h2>{contingut.faq.map((f, i) => <details key={i}><summary>{f.q}</summary><p>{f.a}</p></details>)}</section>
@@ -97,6 +116,7 @@ export function FitxaPrevia({ config, idioma, contingut, origen, detall, nomsMod
         <span className="fp-idiomes">{config.idiomes.map((i) => <span key={i} className={i === idioma ? 'actiu' : undefined} style={i === idioma ? { borderColor: color } : undefined}>{i.toUpperCase()}</span>)}</span>
       </div>
       {config.textos.benvinguda?.[idioma] && <p className="fp-benvinguda">{config.textos.benvinguda[idioma]}</p>}
+      {(detall?.imatge || fotoDe(detall?.model ?? '')) && <figure className="fp-foto"><img src={detall?.imatge ?? fotoDe(detall!.model)} alt={nom} /></figure>}
       <h1>{nom}</h1>
       {detall && <p className="fp-petit">{detall.color}{actual ? ` · ${actual}` : ''} · {Math.round(detall.preu)} €</p>}
       {descripcio && <p>{descripcio}</p>}

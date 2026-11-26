@@ -4,7 +4,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { analitica, fitxa } from '../api/endpoints';
+import { analitica, fitxa, imatges } from '../api/endpoints';
 import type { ConfigFitxa, ConfigFitxaParcial, ContingutModel, DetallModelFitxa, IdPropi, ModelFitxa, MostraEstoc, MotiuFitxa, MotiuPropi, SeccioFitxa, SeccioPropia, TextIdiomes } from '../api/types';
 import { Consulta, ErrorEstat, Esquelet } from '../components/Estat';
 import { FitxaPrevia } from '../components/FitxaPrevia';
@@ -26,7 +26,7 @@ export function FitxaNfc() {
   const { botigues } = useSessio();
   const { filtre } = useFiltre();
   const [ambit, setAmbit] = useState<string>(filtre.botiga ?? '');
-  const [pestanya, setPestanya] = useState<'config' | 'contingut'>('config');
+  const [pestanya, setPestanya] = useState<'config' | 'contingut' | 'imatges'>('config');
   const qc = useApi((s) => fitxa.config(ambit || undefined, s), [ambit]);
   const qm = useApi((s) => fitxa.models(s), []);
   const [model, setModel] = useState('');
@@ -59,6 +59,7 @@ export function FitxaNfc() {
         <div className="pestanyes" role="tablist" aria-label="Fitxa NFC" style={{ margin: 0, border: 0 }}>
           <button type="button" role="tab" aria-selected={pestanya === 'config'} className={`pestanya${pestanya === 'config' ? ' activa' : ''}`} onClick={() => setPestanya('config')}>Configuració</button>
           <button type="button" role="tab" aria-selected={pestanya === 'contingut'} className={`pestanya${pestanya === 'contingut' ? ' activa' : ''}`} onClick={() => setPestanya('contingut')}>Contingut per model</button>
+          <button type="button" role="tab" aria-selected={pestanya === 'imatges'} className={`pestanya${pestanya === 'imatges' ? ' activa' : ''}`} onClick={() => setPestanya('imatges')}>Imatges de les peces</button>
         </div>
       </div>
       <div className="fitxa-disseny">
@@ -71,6 +72,8 @@ export function FitxaNfc() {
                 setGeneral={setGeneral} setParcial={setParcial}
                 enDesat={(r) => { setGeneral(structuredClone(r.general)); setParcial(structuredClone(r.botiga ?? {})); setVersio((v) => v + 1); }} />
             )
+          ) : pestanya === 'imatges' ? (
+            <GestorImatges enCanvi={(m) => { qm.recarrega(); setModel(m); setVersio((v) => v + 1); }} />
           ) : (
             <Consulta q={qm} esquelet={<Esquelet tipus="taula" files={6} />}>
               {(r) => <EditorContingut models={r.models} model={model} setModel={setModel} idiomes={general?.idiomes ?? ['ca']}
@@ -86,6 +89,83 @@ export function FitxaNfc() {
         </aside>
       </div>
     </>
+  );
+}
+
+const llegeixFitxer = (f: File) => new Promise<string>((ok, ko) => {
+  const r = new FileReader();
+  r.onload = () => ok(String(r.result));
+  r.onerror = () => ko(new Error('No s’ha pogut llegir el fitxer.'));
+  r.readAsDataURL(f);
+});
+
+/** v0.5: la foto de cada peça que veu el client a la fitxa (i la marca al tauler). */
+function GestorImatges({ enCanvi }: { enCanvi: (model: string) => void }) {
+  const q = useApi((s) => imatges.llista(s), []);
+  const mock = esMock();
+  const [missatge, setMissatge] = useState<{ model: string; text: string; error?: boolean } | null>(null);
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [ocupat, setOcupat] = useState('');
+  const fet = (model: string, text: string) => { setMissatge({ model, text }); q.recarrega(); enCanvi(model); };
+  const malament = (model: string, e: unknown) => setMissatge({ model, text: e instanceof Error ? e.message : String(e), error: true });
+  const puja = async (model: string, color: string, f: File | undefined) => {
+    if (!f) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type)) return malament(model, 'Només s’accepten imatges JPEG, PNG o WebP.');
+    if (f.size > 6 * 1024 * 1024) return malament(model, 'La imatge fa més de 6 MB.');
+    setOcupat(model);
+    try { await imatges.puja(model, color, { data_url: await llegeixFitxer(f) }); fet(model, 'Foto desada. Ja surt a la fitxa NFC.'); } catch (e) { malament(model, e); } finally { setOcupat(''); }
+  };
+  const perUrl = async (model: string, color: string) => {
+    const url = (urls[model] ?? '').trim();
+    if (!url) return;
+    setOcupat(model);
+    try { await imatges.puja(model, color, { url }); fet(model, 'Imatge descarregada i desada.'); } catch (e) { malament(model, e); } finally { setOcupat(''); }
+  };
+  const esborra = async (model: string, color: string) => {
+    setOcupat(model);
+    try { await imatges.esborra(model, color); fet(model, 'Foto treta: la fitxa ensenya la silueta de la categoria.'); } catch (e) { malament(model, e); } finally { setOcupat(''); }
+  };
+  const FONTS: Record<string, string> = { pujada: 'pujada des del tauler', url: 'des d’una URL', cataleg: 'del catàleg (CSV)', shopify: 'de Shopify', prova: 'foto de demostració' };
+  return (
+    <section className="panell">
+      <h2>Imatges de les peces</h2>
+      <p className="muted">La foto que veu el client quan toca l’etiqueta i la que surt al tauler. Si connectes Shopify o puges el catàleg amb la columna <code>imatge_url</code>, es posen soles. La plataforma la desa i la serveix ella mateixa (el mòbil del client no es connecta a cap altre lloc) i li treu les metadades, com la ubicació. JPEG, PNG o WebP, fins a 6 MB.</p>
+      <Consulta q={q} esquelet={<Esquelet tipus="taula" files={5} />}>
+        {(r) => (
+          <ul className="llista-imatges">
+            {(() => {
+              const vistos = new Set<string>();
+              return r.imatges.filter((i) => (vistos.has(i.model) ? false : (vistos.add(i.model), true)));
+            })().map((i) => (
+              <li key={i.model}>
+                <img src={i.imatge} alt={`${i.nom}, ${i.color}`} className={i.silueta ? 'silueta' : undefined} />
+                <div className="cos">
+                  <b>{i.nom}</b>
+                  <span className="petit muted">{i.model} · {i.color}{i.categoria ? ` · ${i.categoria}` : ''}</span>
+                  <span className="petit">{i.silueta ? <span className="insignia insignia-mostra">Sense foto: silueta</span> : <>Foto {FONTS[i.font ?? ''] ?? ''}</>}</span>
+                  <div className="fila" style={{ gap: 6, marginTop: 6 }}>
+                    <label className="boto boto-petit">
+                      {i.silueta ? 'Puja la foto' : 'Canvia la foto'}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={ocupat === i.model}
+                        onChange={(e) => { void puja(i.model, '', e.target.files?.[0]); e.target.value = ''; }} />
+                    </label>
+                    {!i.silueta && <button type="button" className="boto-fantasma boto-petit boto-perill" disabled={ocupat === i.model} onClick={() => void esborra(i.model, '')}>Treu-la</button>}
+                  </div>
+                  {!mock && (
+                    <div className="fila" style={{ gap: 6, marginTop: 6 }}>
+                      <label className="sr-only" htmlFor={`url-${i.model}`}>URL de la imatge de {i.nom}</label>
+                      <input id={`url-${i.model}`} type="url" placeholder="o enganxa una URL https://…" value={urls[i.model] ?? ''} onChange={(e) => setUrls({ ...urls, [i.model]: e.target.value })} style={{ flex: '1 1 160px' }} />
+                      <button type="button" className="boto-petit" disabled={ocupat === i.model || !(urls[i.model] ?? '').trim()} onClick={() => void perUrl(i.model, '')}>Descarrega</button>
+                    </div>
+                  )}
+                  {missatge?.model === i.model && <p className={`petit ${missatge.error ? 'text-critic' : 'text-ok'}`} role="status">{missatge.text}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Consulta>
+    </section>
   );
 }
 
@@ -572,7 +652,7 @@ function Previa({ config, models, model, setModel, idioma, setIdioma, botiga, ve
       <div className="mobil">
         <div className="mobil-pantalla">
           {mock ? (
-            <FitxaPrevia config={config} idioma={idioma} contingut={contingut} origen={qd.dades?.origen ?? null} detall={qa.dades ?? undefined} nomsModels={nomsModels} />
+            <FitxaPrevia config={config} idioma={idioma} contingut={contingut} origen={qd.dades?.origen ?? null} detall={qa.dades ?? undefined} nomsModels={nomsModels} models={models} />
           ) : (
             <iframe key={`${model}${idioma}${botiga}${versio}`} title={`Vista prèvia de la fitxa de ${nomsModels[model] ?? model}`} src={fitxa.urlPrevisualitza(model, botiga, idioma)} />
           )}

@@ -10,6 +10,7 @@
 
 ## Funcionalitat pendent
 
+- **v0.5 (26-11-2026, després de la reunió amb Mango)**: foto de cada peça a la fitxa NFC i al tauler (pujada, URL, catàleg CSV `imatge_url` o Shopify; silueta de la categoria si no n'hi ha), «Combina amb» automàtic amb el que es prova junt, i el Panorama del Resum (embut, mapa de calor dia × hora, conversió per categoria, temps a la cabina, peces per sessió, galeria de peces). Falta: foto per color a la pantalla d'imatges (ara una per model), connectar Square/altres TPV a les imatges, i decidir si la galeria mostra també ingressos.
 - **Insight 19 («Combina amb» mesurat)** i **20 (venda recuperada en línia)**: fora del MVP segons la Proposta; el 20 depèn d'«Envia'm la llista», en suspens fins que l'advocat ho validi.
 - **Devolucions de Shopify**: la sincronització importa comandes i estoc, però encara no els reemborsaments.
 - **Gestió de botigues, cabines i antenes** des del tauler (ara: `python -m hebra.admin`).

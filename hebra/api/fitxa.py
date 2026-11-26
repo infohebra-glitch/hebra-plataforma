@@ -66,14 +66,17 @@ def models(con: sqlite3.Connection = Depends(bd), _u: dict = Depends(rol(*MARCA_
     idiomes: dict[str, list[str]] = {}
     for f in con.execute("SELECT model, idioma FROM contingut_model ORDER BY model, idioma"):
         idiomes.setdefault(f["model"], []).append(f["idioma"])
+    from hebra import imatges
+    res = imatges.Resolutor(con)
     out = []
-    for f in con.execute("""SELECT model, MIN(categoria) AS categoria, MAX(origen_json IS NOT NULL) AS te_origen,
+    for f in con.execute("""SELECT model, MIN(categoria) AS categoria, MIN(color) AS color, MAX(origen_json IS NOT NULL) AS te_origen,
                                    MAX(origen_json) AS origen_json
                             FROM catalog_sku GROUP BY model ORDER BY model"""):
         propi = fitxa_config.contingut(con, f["model"]).get("ca", {})
         nom = propi.get("nom") or fitxa_mod.tr(json.loads(f["origen_json"] or "{}").get("nom"), "ca") or f["model"]
         out.append({"model": f["model"], "nom": nom, "categoria": f["categoria"],
-                    "idiomes_amb_contingut": idiomes.get(f["model"], []), "te_origen": bool(f["te_origen"])})
+                    "idiomes_amb_contingut": idiomes.get(f["model"], []), "te_origen": bool(f["te_origen"]),
+                    "imatge": res.de(f["model"], f["color"], f["categoria"], nom)["url"]})
     return {"models": out}
 
 

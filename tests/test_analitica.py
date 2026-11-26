@@ -51,11 +51,11 @@ def test_models_i_detall(con):
     ms = A.models(con, F)["models"]
     claus(ms[0], "model", "nom", "categoria", "preu", "proves", "compres", "conversio", "conversio_categoria",
           "quartil_categoria", "molt_provat_poc_venut", "venut_sense_provar", "estoc", "motiu_principal",
-          "demanda_perduda")
+          "demanda_perduda", "color", "imatge")
     marcats = [m["model"] for m in ms if m["molt_provat_poc_venut"]]
     assert marcats == ["VV-26-VRD"]  # el vestit "es prova i no es ven"
     d = A.model_detall(con, F, "CL-24-NAT")
-    claus(d, "model", "nom", "categoria", "color", "preu", "kpi", "talles", "motius", "serie_setmanal",
+    claus(d, "model", "nom", "categoria", "color", "preu", "imatge", "kpi", "talles", "motius", "serie_setmanal",
           "provat_amb", "origen", "efecte_origen", "dubte_talla")
     claus(d["kpi"], "proves", "compres", "conversio", "venut_sense_provar", "respostes_motiu", "taxa_resposta_motiu")
     claus(d["talles"][0], "talla", "gtin", "proves", "compres", "conversio", "pct_proves", "pct_compres", "estoc",

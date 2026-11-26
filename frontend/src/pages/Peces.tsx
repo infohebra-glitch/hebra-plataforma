@@ -4,6 +4,7 @@ import { analitica } from '../api/endpoints';
 import type { ModelResum } from '../api/types';
 import { Buit, Consulta, Esquelet } from '../components/Estat';
 import { MoltProvat, MostraPetita } from '../components/Insignies';
+import { FotoPeca } from '../components/Peca';
 import { TaulaOrdenable, type Columna } from '../components/TaulaOrdenable';
 import { TitolPagina } from '../components/TitolPagina';
 import { useFiltre } from '../context/Filtre';
@@ -13,10 +14,13 @@ import { useApi } from '../lib/useApi';
 
 const COLUMNES: Columna<ModelResum>[] = [
   { clau: 'nom', cap: 'Model', ordre: (m) => m.nom, cel: (m) => (
-    <div style={{ display: 'grid', gap: 2 }}>
-      <Link className="nom-model" to={`/peces/${encodeURIComponent(m.model)}`}>{m.nom}</Link>
-      <span className="codi">{m.model}</span>
-      {m.molt_provat_poc_venut && <span><MoltProvat /></span>}
+    <div className="cel-peca">
+      <FotoPeca src={m.imatge} nom={m.nom} mida="mini" />
+      <div style={{ display: 'grid', gap: 2 }}>
+        <Link className="nom-model" to={`/peces/${encodeURIComponent(m.model)}`}>{m.nom}</Link>
+        <span className="codi">{m.model}{m.color ? ` · ${m.color}` : ''}</span>
+        {m.molt_provat_poc_venut && <span><MoltProvat /></span>}
+      </div>
     </div>
   ) },
   { clau: 'categoria', cap: 'Categoria', ordre: (m) => m.categoria, cel: (m) => <span style={{ whiteSpace: 'nowrap' }}>{m.categoria}</span> },
@@ -42,6 +46,8 @@ export function Peces() {
   const q = useApi((s) => analitica.models(filtre, s), [clau]);
   const [nomesAlerta, setNomesAlerta] = useState(false);
   const [cerca, setCerca] = useState('');
+  const [vista, setVista] = useState<'galeria' | 'taula'>(() => { try { return localStorage.getItem('hebra-vista-peces') === 'taula' ? 'taula' : 'galeria'; } catch { return 'galeria'; } });
+  const triaVista = (v: 'galeria' | 'taula') => { setVista(v); try { localStorage.setItem('hebra-vista-peces', v); } catch { /* res */ } };
   const navega = useNavigate();
   return (
     <>
@@ -50,21 +56,55 @@ export function Peces() {
         <label className="sr-only" htmlFor="cerca-model">Cerca un model</label>
         <input id="cerca-model" type="search" placeholder="Cerca per nom o codi" value={cerca} onChange={(e) => setCerca(e.target.value)} style={{ flex: '1 1 220px', maxWidth: 320 }} />
         <label className="interruptor"><input type="checkbox" checked={nomesAlerta} onChange={(e) => setNomesAlerta(e.target.checked)} />Només «molt provat, poc venut»</label>
+        <div className="segmentat" role="group" aria-label="Vista" style={{ marginLeft: 'auto' }}>
+          <button type="button" aria-pressed={vista === 'galeria'} onClick={() => triaVista('galeria')}>Galeria</button>
+          <button type="button" aria-pressed={vista === 'taula'} onClick={() => triaVista('taula')}>Taula</button>
+        </div>
       </div>
       <Consulta q={q} esquelet={<Esquelet tipus="taula" files={7} />}>
-        {(r) => <Llista models={r.models} nomesAlerta={nomesAlerta} cerca={cerca} enClic={(m) => navega(`/peces/${encodeURIComponent(m.model)}`)} />}
+        {(r) => <Llista models={r.models} vista={vista} nomesAlerta={nomesAlerta} cerca={cerca} enClic={(m) => navega(`/peces/${encodeURIComponent(m.model)}`)} />}
       </Consulta>
       <p className="petit muted" style={{ marginTop: 12 }}>«Molt provat, poc venut»: moltes proves al període i conversió al quartil inferior de la seva categoria (o per sota del 60 % de la mitjana si la categoria té menys de 4 models). «Perduda»: peticions de talles que no hi eren. «Mostra petita»: menys de 30 proves, el percentatge encara pot variar molt.</p>
     </>
   );
 }
 
-function Llista({ models, nomesAlerta, cerca, enClic }: { models: ModelResum[]; nomesAlerta: boolean; cerca: string; enClic: (m: ModelResum) => void }) {
+function Galeria({ models }: { models: ModelResum[] }) {
+  const ordenats = [...models].sort((a, b) => b.proves - a.proves);
+  return (
+    <ul className="galeria-peces">
+      {ordenats.map((m) => (
+        <li key={m.model}>
+          <Link to={`/peces/${encodeURIComponent(m.model)}`} className={`targeta-peca${m.molt_provat_poc_venut ? ' alerta' : ''}`}>
+            <FotoPeca src={m.imatge} nom={`${m.nom}${m.color ? `, ${m.color}` : ''}`} />
+            <span className="cos">
+              <span className="nom">{m.nom}</span>
+              <span className="petit muted">{[m.color, m.categoria, eur(m.preu)].filter(Boolean).join(' · ')}</span>
+              <span className="xifres">
+                <span><b>{enter(m.proves)}</b> proves</span>
+                <span><b>{pct(m.conversio)}</b> conv. <MostraPetita n={m.proves} /></span>
+              </span>
+              <span className="petit muted">
+                {m.conversio !== null && m.conversio_categoria !== null ? <>{punts(m.conversio - m.conversio_categoria)} vs categoria</> : 'sense comparació'}
+                {' · '}estoc {enter(m.estoc)}
+              </span>
+              {m.motiu_principal && <span className="petit">Motiu principal: {motiu(m.motiu_principal)}</span>}
+              {m.molt_provat_poc_venut && <span><MoltProvat /></span>}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Llista({ models, vista, nomesAlerta, cerca, enClic }: { models: ModelResum[]; vista: 'galeria' | 'taula'; nomesAlerta: boolean; cerca: string; enClic: (m: ModelResum) => void }) {
   const files = useMemo(() => {
     const c = cerca.trim().toLowerCase();
     return models.filter((m) => (!nomesAlerta || m.molt_provat_poc_venut) && (!c || m.nom.toLowerCase().includes(c) || m.model.toLowerCase().includes(c)));
   }, [models, nomesAlerta, cerca]);
   if (!models.length) return <div className="panell"><Buit titol="Encara no hi ha proves en aquest període">Quan els lectors de les cabines registrin proves, hi veuràs cada model. Prova un període més llarg o una altra botiga.</Buit></div>;
   if (!files.length) return <div className="panell"><Buit titol="Cap model coincideix amb el filtre">Treu el filtre o canvia la cerca.</Buit></div>;
+  if (vista === 'galeria') return <Galeria models={files} />;
   return <div className="panell" style={{ padding: 0 }}><TaulaOrdenable titol="Models" files={files} columnes={COLUMNES} clauFila={(m) => m.model} ordreInicial={{ clau: 'proves', desc: true }} enClic={enClic} /></div>;
 }
