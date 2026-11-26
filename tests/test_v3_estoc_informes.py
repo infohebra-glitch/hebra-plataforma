@@ -307,7 +307,7 @@ def test_informes_rutes_no_es_trepitgen(entorn):
     for clau in ("tipus", "titol", "periode", "blocs", "accio", "avisos", "xifres", "grafics"):
         assert clau in inf
     g = inf["grafics"][0]
-    assert set(g) == {"id", "titol", "tipus", "unitat", "eix_x", "series", "nota"}
+    assert set(g) == {"id", "titol", "tipus", "unitat", "eix_x", "series", "nota", "destaca"}
     assert set(inf["xifres"][0]) == {"etiqueta", "valor", "unitat", "variacio", "vs"}
     assert c.get("/api/v2/informes/anual").status_code == 404
     assert "lliurats" in c.get("/api/v2/informes/lliurats").json()
@@ -549,3 +549,16 @@ def test_simulador_programacions_lliurats_i_tasques(entorn):
     assert n["diari"] == 7 and n["setmanal"] == 1     # una setmana simulada
     estats = {r[0] for r in con.execute("SELECT estat FROM tasca")}
     assert {"pendent", "feta"} <= estats
+
+
+def test_dispersio_svg():
+    """v0.7: «on és cada peça» al PDF: un punt amb el nom per model, el destacat en vermell."""
+    from hebra import grafics_svg
+    g = {"id": "mapa_peces", "titol": "On és cada peça", "tipus": "dispersio", "unitat": "pct",
+         "eix_x": ["Polo", "Vestit", "Texans"], "series": [{"nom": "Proves", "valors": [99, 75, 84]},
+                                                         {"nom": "Conversió", "valors": [0.31, 0.15, None]}],
+         "nota": None, "destaca": [False, True, False]}
+    s = grafics_svg.svg(g)
+    assert s.startswith("<svg") and "Polo" in s and "Vestit" in s and "Texans" not in s
+    assert s.count("<circle") == 2 and 'fill="#8C304B"' in s
+    assert "Sense dades" in grafics_svg.svg(dict(g, series=[]))

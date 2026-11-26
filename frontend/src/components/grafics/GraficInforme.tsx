@@ -2,12 +2,16 @@
 import type { GraficInforme as TGrafic } from '../../api/types';
 import { formatUnitat } from '../../lib/escala';
 import { Columnes } from './Columnes';
+import { Dispersio } from './Dispersio';
 import { Donut } from './Donut';
 import { SerieTemporal } from './SerieTemporal';
 
 export function GraficInforme({ g }: { g: TGrafic }) {
   let cos;
-  if (g.tipus === 'donut') cos = <Donut titol={g.titol} etiquetes={g.eix_x} valors={g.series[0]?.valors ?? []} unitat={g.unitat} />;
+  if (g.tipus === 'dispersio') {
+    cos = <Dispersio titol={g.titol} nomX={g.series[0]?.nom ?? ''} nomY="Acaben en compra" alcada={300}
+      punts={g.eix_x.map((nom, i) => ({ clau: `${i}-${nom}`, nom, x: g.series[0]?.valors[i] ?? 0, y: g.series[1]?.valors[i] ?? null, alerta: !!g.destaca?.[i] }))} />;
+  } else if (g.tipus === 'donut') cos = <Donut titol={g.titol} etiquetes={g.eix_x} valors={g.series[0]?.valors ?? []} unitat={g.unitat} />;
   else if (g.tipus === 'linia') {
     cos = (
       <SerieTemporal titol={g.titol} x={g.eix_x} etiquetaX={(i) => g.eix_x[i]} alcada={200}

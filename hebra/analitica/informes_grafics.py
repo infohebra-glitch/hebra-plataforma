@@ -3,7 +3,7 @@
 `enriqueix` afegeix a l'informe de `informes.informe` (sense treure'n res):
 
   * `xifres`:  [{"etiqueta", "valor", "unitat", "variacio", "vs"}]
-  * `grafics`: [{"id", "titol", "tipus", "unitat", "eix_x", "series": [{"nom", "valors"}], "nota"}]
+  * `grafics`: [{"id", "titol", "tipus", "unitat", "eix_x", "series": [{"nom", "valors"}], "nota", "destaca"}]
   * alguns blocs nous (p. ex. les cinc línies del diari o el dubte de talla de la temporada).
 
 El frontend i el PDF (hebra/grafics_svg.py) dibuixen els mateixos gràfics.
@@ -34,9 +34,10 @@ DIES_ABANS_DECISIO = 14
 
 
 def grafic(id_: str, titol: str, tipus: str, unitat: str, eix_x: list, series: list[dict],
-           nota: str | None = None) -> dict:
+           nota: str | None = None, destaca: list[bool] | None = None) -> dict:
+    """`destaca` (opcional): per a cada element de `eix_x`, si s'ha de remarcar (p. ex. «molt provat, poc venut»)."""
     return {"id": id_, "titol": titol, "tipus": tipus, "unitat": unitat, "eix_x": [str(x) for x in eix_x],
-            "series": series, "nota": nota}
+            "series": series, "nota": nota, "destaca": destaca}
 
 
 def serie(nom: str, valors: list) -> dict:
@@ -94,6 +95,26 @@ def _conversio_models(taula: list[dict]) -> tuple[list[dict], list[dict]]:
         meitat = (len(amb) + 1) // 2
         return amb[:meitat], list(reversed(amb[meitat:]))
     return amb[:5], list(reversed(amb[-5:]))
+
+
+def _mapa_peces(taula: list[dict]) -> dict:
+    """«On és cada peça»: proves contra conversió de cada model, el mateix gràfic que a Peces del tauler."""
+    ms = [m for m in taula if m["proves"] and m["conversio"] is not None]
+    return grafic("mapa_peces", "On és cada peça: proves i conversió de cada model", "dispersio", "pct",
+               [m["nom"] or m["model"] for m in ms],
+               [serie("Proves", [m["proves"] for m in ms]), serie("Conversió", [m["conversio"] for m in ms])],
+               "A la dreta, els models més provats; a dalt, els que més es compren després de provar-los. "
+               "Les línies són la mitjana. En vermell, «molt provat, poc venut»: cal mirar-ne la talla, el preu o el tall.",
+               [bool(m.get("molt_provat_poc_venut")) for m in ms])
+
+
+def _sessions_hora(con, f) -> dict:
+    """Quan s'omplen els provadors: sessions per hora (al tauler, el mapa de calor de Servei i del Resum)."""
+    per_hora: Counter = Counter(base.dt(s["inici"]).hour for s in base.sessions(con, f))
+    hores = list(range(min(per_hora, default=10), max(per_hora, default=20) + 1))
+    return grafic("sessions_hora", "Quan s'omplen els provadors: sessions per hora", "barres", "enter",
+                  [f"{h} h" for h in hores], [serie("Sessions", [per_hora[h] for h in hores])],
+                  "Per posar-hi més gent a les hores fortes i reposar abans.")
 
 
 def _grafic_models(id_: str, titol: str, models: list[dict]) -> dict:
@@ -180,10 +201,7 @@ def _diari(con, f, k, inf) -> None:
     ]
     inf["blocs"].insert(0, {"id": "cinc_linies", "titol": "El dia en cinc línies", "text": " ".join(linies),
                             "dades": {"linies": linies}})
-    per_hora: Counter = Counter(base.dt(s["inici"]).hour for s in base.sessions(con, f))
-    hores = list(range(min(per_hora, default=10), max(per_hora, default=20) + 1))
-    inf["grafics"] = [grafic("sessions_hora", "Sessions de cabina per hora", "barres", "enter",
-                             [f"{h} h" for h in hores], [serie("Sessions", [per_hora[h] for h in hores])])]
+    inf["grafics"] = [_sessions_hora(con, f)]
 
 
 def _setmanal(con, f, k, inf) -> None:
@@ -206,17 +224,21 @@ def _setmanal(con, f, k, inf) -> None:
         c[0] += 1
         c[1] += p["venuda"]
     cats = sorted(per_cat, key=lambda c: -per_cat[c][0])
-    top, cua = _conversio_models(models_mod.taula_models(con, f, proves))
+    taula = models_mod.taula_models(con, f, proves)
+    top, cua = _conversio_models(taula)
+    # El mateix ordre que el tauler: com ha anat, quines peces cal mirar, per què, i quan hi ha gent.
     inf["grafics"] = [
         grafic("proves_compres_dia", "Proves i compres per dia", "barres", "enter",
                [_dia(date.fromisoformat(d["data"])) for d in dies],
                [serie("Proves", [d["proves"] for d in dies]), serie("Compres", [d["compres"] for d in dies])]),
-        grafic("conversio_categoria", "Conversió per categoria", "barres", "pct", cats,
-               [serie("Conversió", [base.frac(per_cat[c][1], per_cat[c][0]) for c in cats])]),
+        _mapa_peces(taula),
         _grafic_models("top_models", "Els 5 models que més converteixen", top),
         _grafic_models("cua_models", "Els 5 models que menys converteixen", cua),
-        _peces_per_sessio(proves),
+        grafic("conversio_categoria", "Conversió per categoria", "barres", "pct", cats,
+               [serie("Conversió", [base.frac(per_cat[c][1], per_cat[c][0]) for c in cats])]),
         _motius_donut(con, f),
+        _peces_per_sessio(proves),
+        _sessions_hora(con, f),
     ]
 
 
@@ -278,6 +300,7 @@ def _mensual(con, f, k, inf) -> None:
     rp = e["resum_parat"]["per_categoria"]
     inf["grafics"] = [
         _conversio_setmanal(con, f, proves),
+        _mapa_peces(models_mod.taula_models(con, f, proves)),
         grafic("decisions_abans_despres", "Conversió del model abans i després de cada decisió", "barres", "pct",
                [d["titol"] for d in dec],
                [serie("Abans", [d["conversio_abans"] for d in dec]),

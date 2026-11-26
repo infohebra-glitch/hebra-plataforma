@@ -133,8 +133,8 @@ def test_informes(con, tipus):
     claus(r, "tipus", "titol", "periode", "blocs", "accio", "avisos", "xifres", "grafics")
     assert r["tipus"] == tipus and r["blocs"] and r["xifres"] and r["grafics"]
     for g in r["grafics"]:
-        claus(g, "id", "titol", "tipus", "unitat", "eix_x", "series", "nota")
-        assert g["tipus"] in ("linia", "barres", "barres_apilades", "donut")
+        claus(g, "id", "titol", "tipus", "unitat", "eix_x", "series", "nota", "destaca")
+        assert g["tipus"] in ("linia", "barres", "barres_apilades", "donut", "dispersio")
         assert all(len(s["valors"]) == len(g["eix_x"]) for s in g["series"])
     for x in r["xifres"]:
         assert {"etiqueta", "valor", "unitat", "variacio", "vs"} <= set(x)

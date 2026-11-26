@@ -2,7 +2,7 @@
 
 Dibuixa la forma `grafics` de l'informe (docs/ESPECIFICACIO-v3.md, E.2):
 
-    {"id", "titol", "tipus": "linia" | "barres" | "barres_apilades" | "donut",
+    {"id", "titol", "tipus": "linia" | "barres" | "barres_apilades" | "donut" | "dispersio",
      "unitat": "pct" | "enter" | "eur" | "segons", "eix_x": [...],
      "series": [{"nom", "valors": [...]}], "nota"}
 
@@ -14,6 +14,9 @@ Criteris de disseny (llegible en A4 i en blanc i negre):
     de cada línia (en paper no hi ha «hover»);
   * números en format català: 1.234,5 · 34 % · 1.234 € · 92 s.
 Un valor `None` és «sense dada»: no es dibuixa.
+
+`dispersio` (v0.7, «on és cada peça»): `eix_x` són els noms dels models; series[0] = proves (eix X),
+series[1] = conversió (eix Y, `unitat`) i, opcional, `destaca` = [bool] per als «molt provat, poc venut».
 """
 
 import math
@@ -321,6 +324,63 @@ def _arc(cx, cy, r_ext, r_int, a0, a1, color, sola=False) -> str:
             f'A{r_int},{r_int} 0 {gran} 0 {p(r_int, a0)} Z" fill="{color}" stroke="{FONS}" stroke-width="2"/>')
 
 
+def _interval(v: list[float], gra: float, baix: float, alt: float, topall: float) -> tuple[float, float, list[float]]:
+    lo = max(0.0, math.floor(min(v) * baix / gra) * gra)
+    hi = min(topall, max(lo + gra, math.ceil(max(v) * alt / gra) * gra))
+    brut = (hi - lo) / 4
+    ordre = 10 ** math.floor(math.log10(brut))
+    pas = next(m * ordre for m in (1, 2, 2.5, 5, 10) if m * ordre >= brut)
+    marques, x = [], math.ceil(lo / pas - 1e-9) * pas
+    while x <= hi + 1e-9:
+        marques.append(round(x, 10))
+        x += pas
+    return lo, hi, marques
+
+
+def dispersio(g: dict, amplada: int = 640, alcada: int = 300) -> str:
+    """Cada model és un punt amb el nom al costat: a la dreta, els més provats; a dalt, els que més es compren.
+    Les línies discontínues són la mitjana; el racó de baix a la dreta (molt provat, poc venut) va ombrejat."""
+    noms, series = g.get("eix_x", []), g.get("series", [])
+    destaca = g.get("destaca") or []
+    punts = [(n, x, y, bool(destaca[i]) if i < len(destaca) else False)
+             for i, (n, x, y) in enumerate(zip(noms, series[0]["valors"], series[1]["valors"]))
+             if x is not None and y is not None] if len(series) >= 2 else []
+    if not punts:
+        return _sense_dades(amplada, alcada, g["titol"])
+    x0, x1, y0, y1 = 52, amplada - 16, 14, alcada - 40
+    xlo, xhi, xm = _interval([p[1] for p in punts], 10, 0.8, 1.15, math.inf)
+    ylo, yhi, ym = _interval([p[2] for p in punts], 0.05, 0.6, 1.2, 1)
+    px = lambda v: x0 + (v - xlo) / (xhi - xlo) * (x1 - x0)  # noqa: E731
+    py = lambda v: y1 - (v - ylo) / (yhi - ylo) * (y1 - y0)  # noqa: E731
+    mx = sum(p[1] for p in punts) / len(punts)
+    my = sum(p[2] for p in punts) / len(punts)
+    out = [f'<rect x="{px(mx):.1f}" y="{py(my):.1f}" width="{x1 - px(mx):.1f}" height="{y1 - py(my):.1f}" fill="#f6e9ec"/>']
+    for m in ym:
+        out.append(f'<line x1="{x0}" x2="{x1}" y1="{py(m):.1f}" y2="{py(m):.1f}" stroke="{QUADRICULA}" stroke-width="1"/>')
+        out.append(_text(x0 - 6, py(m) + 3.5, format_valor(m, g.get("unitat", "pct"), compacte=True), 9, TEXT_SECUNDARI, "end"))
+    for m in xm:
+        out.append(_text(px(m), y1 + 14, format_valor(m, "enter", compacte=True), 9, TEXT_SECUNDARI, "middle"))
+    out.append(f'<line x1="{px(mx):.1f}" x2="{px(mx):.1f}" y1="{y0}" y2="{y1}" stroke="{EIX}" stroke-dasharray="3 3"/>')
+    out.append(f'<line x1="{x0}" x2="{x1}" y1="{py(my):.1f}" y2="{py(my):.1f}" stroke="{EIX}" stroke-dasharray="3 3"/>')
+    out.append(_text(x1 - 4, y1 - 6, "Molt provat, poc venut", 9, "#8C304B", "end", "bold"))
+    out.append(_text((x0 + x1) / 2, alcada - 6, "Proves al període", 9, TEXT_SECUNDARI, "middle"))
+    ocupats: list[tuple[float, float, float]] = []   # (x0, x1, y) dels noms ja posats, perquè no se solapin
+    for nom, x, y, alerta in sorted(punts, key=lambda p: py(p[2])):
+        cx, cy = px(x), py(y)
+        color = "#8C304B" if alerta else COLORS[0]
+        out.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5" fill="{color}" stroke="{FONS}" stroke-width="1.5"/>')
+        text = _retalla(nom, 24)
+        llarg = len(text) * 5.6 + 10
+        dreta = cx + llarg < x1 + 6
+        a0, a1 = (cx, cx + llarg) if dreta else (cx - llarg, cx)
+        ly = next((cy + d for d in (0, 12, -12, 24, -24)
+                   if not any(o0 < a1 and a0 < o1 and abs(oy - (cy + d)) < 11 for o0, o1, oy in ocupats)), cy)
+        ocupats.append((a0, a1, ly))
+        out.append(_text(cx + (8 if dreta else -8), ly + 3.5, text, 9.5, "#8C304B" if alerta else TEXT,
+                         "start" if dreta else "end", "bold" if alerta else "normal"))
+    return _embolcall(amplada, alcada, "".join(out), g["titol"])
+
+
 def svg(g: dict, amplada: int = 640) -> str:
     """SVG d'un gràfic de l'informe segons el seu `tipus`."""
     tipus = g.get("tipus")
@@ -332,4 +392,6 @@ def svg(g: dict, amplada: int = 640) -> str:
         return barres(g, amplada, apilades=True)
     if tipus == "donut":
         return donut(g, amplada)
+    if tipus == "dispersio":
+        return dispersio(g, amplada)
     raise ValueError(f"Tipus de gràfic desconegut: {tipus}")

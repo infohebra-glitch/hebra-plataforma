@@ -364,10 +364,12 @@ export interface BlocInforme {
   dades: unknown;
 }
 export type UnitatGrafic = 'pct' | 'enter' | 'eur' | 'segons';
-export type TipusGrafic = 'linia' | 'barres' | 'barres_apilades' | 'donut';
+export type TipusGrafic = 'linia' | 'barres' | 'barres_apilades' | 'donut' | 'dispersio';
 export interface GraficInforme {
   id: string; titol: string; tipus: TipusGrafic; unitat: UnitatGrafic;
   eix_x: string[]; series: { nom: string; valors: (number | null)[] }[]; nota?: string | null;
+  /** v0.7: per a cada element de l'eix, si es remarca (p. ex. «molt provat, poc venut»). */
+  destaca?: boolean[] | null;
 }
 export interface XifraInforme { etiqueta: string; valor: number | null; unitat: UnitatGrafic; variacio?: number | null; vs?: string | null; /** pilot */ objectiu?: number | null; compleix?: boolean | null }
 export interface Informe {

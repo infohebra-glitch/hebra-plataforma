@@ -83,19 +83,18 @@ function MapaPeces({ models }: { models: ModelResum[] }) {
     <div className="graella-mapa">
       <section className="panell" aria-labelledby="titol-mapa-peces">
         <h2 id="titol-mapa-peces">On és cada peça</h2>
-        <p className="petit muted" style={{ marginTop: -4 }}>A la dreta, les que més es proven; a dalt, les que més es compren després de provar-les.</p>
+        <p className="petit muted" style={{ marginTop: -4 }}>A la dreta, les que més es proven; a dalt, les que més es compren després de provar-les. En grana, les molt provades i poc venudes: cal mirar-ne la talla, el preu o el tall.</p>
         <Dispersio titol="Mapa de les peces" nomX="Proves al període" nomY="Acaben en compra"
           punts={models.map((m) => ({ clau: m.model, nom: m.nom || m.model, x: m.proves, y: m.proves ? m.conversio : null,
-            mida: m.compres, imatge: m.imatge, alerta: m.molt_provat_poc_venut, enllac: `/peces/${encodeURIComponent(m.model)}` }))} />
+            alerta: m.molt_provat_poc_venut, enllac: `/peces/${encodeURIComponent(m.model)}` }))} />
       </section>
       <section className="panell" aria-labelledby="titol-proves-compres">
         <h2 id="titol-proves-compres">Proves i compres</h2>
-        <p className="petit muted" style={{ marginTop: -4 }}>La distància entre les dues barres és el que es perd al provador.</p>
+        <p className="petit muted" style={{ marginTop: -4 }}>La barra clara són les proves; la fosca, les que acaben en compra. El que queda entremig es perd al provador.</p>
         <ul className="proves-compres">
           {ordenats.map((m) => (
             <li key={m.model} className={m.molt_provat_poc_venut ? 'alerta' : undefined}>
               <Link to={`/peces/${encodeURIComponent(m.model)}`}>
-                <span className="pc-foto">{m.imatge ? <img src={m.imatge} alt="" loading="lazy" /> : null}</span>
                 <span className="pc-nom">{m.nom || m.model}</span>
                 <span className="pc-barra" aria-hidden="true">
                   <span className="pc-proves" style={{ width: `${(m.proves / maxProves) * 100}%` }} />

@@ -1,14 +1,15 @@
 /**
- * Mapa de les peces: cada model és la seva foto, col·locada segons quantes vegades s'ha provat (x)
- * i quina part d'aquestes proves acaba en compra (y). Les línies de la mitjana parteixen el pla en
- * quatre zones; la de baix a la dreta (molt provat, poc venut) és la que cal mirar.
+ * Mapa de les peces: cada model és un punt amb el seu nom, col·locat segons quantes vegades s'ha provat (x)
+ * i quina part d'aquestes proves acaba en compra (y). Les línies de la mitjana parteixen el pla en quatre
+ * zones; la de baix a la dreta (molt provat, poc venut) és la que cal mirar i va en grana.
+ * És el mateix gràfic que surt a l'informe setmanal i al mensual (hebra/grafics_svg.py, `dispersio`).
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatUnitat, sostre } from '../../lib/escala';
 import { useAmplada } from '../../lib/useApi';
 
-export interface PuntPeca { clau: string; nom: string; x: number; y: number | null; mida?: number; imatge?: string; alerta?: boolean; enllac?: string }
+export interface PuntPeca { clau: string; nom: string; x: number; y: number | null; alerta?: boolean; enllac?: string }
 
 export function Dispersio({ titol, punts, nomX, nomY, alcada = 380 }: {
   titol: string; punts: PuntPeca[]; nomX: string; nomY: string; alcada?: number;
@@ -26,19 +27,28 @@ export function Dispersio({ titol, punts, nomX, nomY, alcada = 380 }: {
   const py = (v: number) => m.s + ph - ((v - ymin) / (ymax - ymin)) * ph;
   const mitja = (a: number[]) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0);
   const mx = mitja(valids.map((p) => p.x)), my = mitja(valids.map((p) => p.y));
-  const mides = valids.map((p) => p.mida ?? 1);
-  const maxMida = Math.max(1, ...mides);
-  const radi = (p: PuntPeca) => 16 + 14 * Math.sqrt((p.mida ?? 1) / maxMida);
+  const radi = (p: PuntPeca) => (p.alerta ? 7 : 6);
+
+  // On va el nom de cada punt: a la dreta si hi cap; si xoca amb un altre nom, una mica més avall o amunt.
+  const etiquetes: Record<string, { dreta: boolean; ly: number }> = {};
+  const ocupats: { x0: number; x1: number; y: number }[] = [];
+  for (const p of [...valids].sort((a, b) => py(a.y) - py(b.y))) {
+    const cx = px(p.x), llarg = p.nom.length * 6.6 + 12;
+    const dreta = cx + llarg < m.e + pw + 8;
+    const x0 = dreta ? cx : cx - llarg, x1 = dreta ? cx + llarg : cx;
+    let ly = py(p.y);
+    for (const d of [0, 15, -15, 30, -30]) {
+      const y = py(p.y) + d;
+      if (!ocupats.some((o) => o.x0 < x1 && x0 < o.x1 && Math.abs(o.y - y) < 14)) { ly = y; break; }
+    }
+    ocupats.push({ x0, x1, y: ly });
+    etiquetes[p.clau] = { dreta, ly };
+  }
 
   return (
     <figure className="grafic dispersio" style={{ margin: 0 }} ref={ref}>
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} role="img"
         aria-label={`${titol}. ${valids.map((p) => `${p.nom}: ${p.x} proves, ${formatUnitat(p.y, 'pct')}`).join('; ')}.`}>
-        <defs>
-          {valids.map((p) => (
-            <clipPath key={p.clau} id={`cp-${p.clau.replace(/[^a-zA-Z0-9]/g, '')}`}><circle cx={px(p.x)} cy={py(p.y)} r={radi(p)} /></clipPath>
-          ))}
-        </defs>
         {/* Zona a vigilar: molt provat (dreta de la mitjana), poc venut (sota la mitjana) */}
         <rect x={px(mx)} y={py(my)} width={Math.max(0, m.e + pw - px(mx))} height={Math.max(0, m.s + ph - py(my))} className="zona-alerta" />
         {yticks.map((t) => (
@@ -55,15 +65,14 @@ export function Dispersio({ titol, punts, nomX, nomY, alcada = 380 }: {
         <text x={m.e + 8} y={m.s + 12} className="zona-text suau">Poc provat, es ven</text>
         <text x={m.e + pw / 2} y={h - 4} textAnchor="middle" className="eix-nom">{nomX}</text>
         <text x={12} y={m.s + ph / 2} textAnchor="middle" className="eix-nom" transform={`rotate(-90 12 ${m.s + ph / 2})`}>{nomY}</text>
-        {valids.map((p) => {
-          const r = radi(p), id = `cp-${p.clau.replace(/[^a-zA-Z0-9]/g, '')}`;
+        {[...valids].sort((a, b) => Number(a.alerta) - Number(b.alerta)).map((p) => {
+          const r = radi(p), cx = px(p.x), cy = py(p.y), { dreta, ly } = etiquetes[p.clau];
           const cos = (
             <g key={p.clau} className={`peca-punt${p.alerta ? ' alerta' : ''}${actiu === p.clau ? ' actiu' : ''}`}
               onPointerEnter={() => setActiu(p.clau)} onPointerLeave={() => setActiu(null)}>
-              <circle cx={px(p.x)} cy={py(p.y)} r={r + 3} className="anell" />
-              {p.imatge
-                ? <image href={p.imatge} x={px(p.x) - r} y={py(p.y) - r} width={r * 2} height={r * 2} preserveAspectRatio="xMidYMin slice" clipPath={`url(#${id})`} />
-                : <circle cx={px(p.x)} cy={py(p.y)} r={r} className="sense-foto" />}
+              <circle cx={cx} cy={cy} r={14} className="diana" />
+              <circle cx={cx} cy={cy} r={r} className="cercle" />
+              <text x={dreta ? cx + 11 : cx - 11} y={ly} dy="0.32em" textAnchor={dreta ? 'start' : 'end'} className="nom-punt">{p.nom}</text>
               <title>{`${p.nom}: ${p.x} proves, ${formatUnitat(p.y, 'pct')} acaben en compra`}</title>
             </g>
           );
@@ -71,13 +80,13 @@ export function Dispersio({ titol, punts, nomX, nomY, alcada = 380 }: {
         })}
         {valids.filter((p) => p.clau === actiu).map((p) => (
           <g key="globus" className="globus-svg" pointerEvents="none">
-            <rect x={Math.min(px(p.x) + radi(p) + 6, w - 170)} y={py(p.y) - 22} width={164} height={44} rx={4} />
-            <text x={Math.min(px(p.x) + radi(p) + 14, w - 162)} y={py(p.y) - 5}>{p.nom}</text>
-            <text x={Math.min(px(p.x) + radi(p) + 14, w - 162)} y={py(p.y) + 13} className="suau">{p.x} proves · {formatUnitat(p.y, 'pct')} compren</text>
+            <rect x={Math.max(m.e, Math.min(px(p.x) - 82, w - 170))} y={py(p.y) - 62} width={164} height={44} rx={4} />
+            <text x={Math.max(m.e, Math.min(px(p.x) - 82, w - 170)) + 8} y={py(p.y) - 45}>{p.nom}</text>
+            <text x={Math.max(m.e, Math.min(px(p.x) - 82, w - 170)) + 8} y={py(p.y) - 27} className="suau">{p.x} proves · {formatUnitat(p.y, 'pct')} compren</text>
           </g>
         ))}
       </svg>
-      <figcaption className="petit muted">Cada foto és un model. Les línies marquen la mitjana del període; com més gran, més unitats venudes.</figcaption>
+      <figcaption className="petit muted">Cada punt és un model. Les línies discontínues són la mitjana del període.</figcaption>
     </figure>
   );
 }
