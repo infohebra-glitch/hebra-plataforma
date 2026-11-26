@@ -33,7 +33,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import alertes, auth, cataleg, control, copies, db, demo_directe, estoc, proves, retencio, shopify, vendes
+from . import alertes, auth, cataleg, control, copies, db, demo_directe, demo_peca, estoc, proves, retencio, shopify, vendes
 from .integracions import ErrorIntegracio
 from .integracions import motor as integracions_motor
 from . import epc as epc_mod
@@ -205,6 +205,13 @@ def main() -> None:
     dd.add_argument("--model", action="append", default=[], help="codi de model, p. ex. CL-24-NAT (es pot repetir); per defecte, els dos primers")
     dd.add_argument("--minuts", type=float, default=3)
     dd.add_argument("--api", default="http://127.0.0.1:8000", help="on escolta la plataforma")
+    dp = sub.add_parser("demo-peca", help="converteix un model de prova en una peça real (mateixos enllaços NFC)")
+    dp.add_argument("--model", default="CL-24-NAT", help="model de prova que es canvia")
+    dp.add_argument("--nou-model", default="PH4012-166", help="codi nou del model")
+    dp.add_argument("--fitxer", default=str(Path(__file__).resolve().parent.parent / "dades" / "demo-polo.json"),
+                    help="dades de la peça (format de peça de hebra-origen)")
+    dp.add_argument("--fet-a", help="país de confecció de l'etiqueta, codi de 2 lletres (p. ex. PE, SV, TH, MA)")
+    dp.add_argument("--foto", help="foto de la peça (JPG o PNG); també es pot pujar des del tauler")
     args = ap.parse_args()
 
     cfg = carrega()
@@ -230,6 +237,15 @@ def main() -> None:
     elif args.ordre == "demo-enllacos":
         for e in demo_directe.enllacos(con, args.botiga, args.url):
             print(f"{e['model']} ({e['color']}, {e['talla']}): {e['url']}")
+    elif args.ordre == "demo-peca":
+        try:
+            r = demo_peca.canvia(con, args.model, args.nou_model,
+                                 json.loads(Path(args.fitxer).read_text(encoding="utf-8")), args.fet_a,
+                                 Path(args.foto).read_bytes() if args.foto else None)
+        except demo_peca.ErrorPeca as e:
+            sys.exit(str(e))
+        print(f"Fet: {args.model} ara és {r['model']} ({r['nom']}, {r['color']}), {r['variants']} talles. "
+              + ("Foto desada." if r["foto"] else "Puja'n la foto a «Imatges de les peces» del tauler."))
     elif args.ordre == "demo-directe":
         try:
             demo_directe.executa(con, args.botiga, args.cabina, args.model, args.minuts,

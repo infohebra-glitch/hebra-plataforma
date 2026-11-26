@@ -1,0 +1,57 @@
+{
+  "nom": {"ca": "Polo de piqué", "es": "Polo de piqué", "fr": "Polo en piqué", "en": "Piqué polo shirt"},
+  "marca": "Lacoste",
+  "ref_marca": "PH4012-166",
+  "color": {"ca": "Blau marí", "es": "Azul marino", "fr": "Bleu marine", "en": "Navy blue"},
+  "preu_eur": 110,
+  "forma": "polo",
+  "textura": "piqué",
+  "composicio": [
+    {"material": {"ca": "Cotó", "es": "Algodón", "fr": "Coton", "en": "Cotton"}, "pct": 100}
+  ],
+  "etapes": [],
+  "certificats": [],
+  "descripcio": {
+    "ca": "Polo de cotó amb teixit de punt piqué, que dona cos a la peça i manté la forma del coll. Tapeta de dos botons i el cocodril brodat al pit. Combina tant amb uns chinos com amb uns texans.",
+    "es": "Polo de algodón con tejido de punto piqué, que da cuerpo a la prenda y mantiene la forma del cuello. Tapeta de dos botones y el cocodrilo bordado en el pecho. Combina tanto con unos chinos como con unos vaqueros.",
+    "fr": "Polo en coton maille piqué, qui donne de la tenue au vêtement et garde la forme du col. Patte à deux boutons et crocodile brodé sur la poitrine. Se porte avec un chino comme avec un jean.",
+    "en": "Cotton polo in piqué knit, which gives the garment body and keeps the collar in shape. Two-button placket and the embroidered crocodile on the chest. Works with chinos or jeans."
+  },
+  "color_detall": {
+    "hex": "#1F2A48",
+    "descripcio": {"ca": "Blau marí fosc i uniforme.", "es": "Azul marino oscuro y uniforme.", "fr": "Bleu marine foncé et uniforme.", "en": "Deep, even navy blue."}
+  },
+  "colors": [
+    {"nom": {"ca": "Blau marí", "es": "Azul marino", "fr": "Bleu marine", "en": "Navy blue"}, "hex": "#1F2A48"}
+  ],
+  "talles": [
+    {"talla": "S", "estoc": 2},
+    {"talla": "M", "estoc": 3},
+    {"talla": "L", "estoc": 0},
+    {"talla": "XL", "estoc": 1}
+  ],
+  "ajust": {
+    "ca": "Tall entallat (slim fit): segueix el cos de prop. El model fa 191 cm i porta la M. Si el vols més ample, tria una talla més.",
+    "es": "Corte entallado (slim fit): sigue el cuerpo de cerca. El modelo mide 191 cm y usa la M. Si lo quieres más holgado, elige una talla más.",
+    "fr": "Coupe ajustée (slim fit) : elle suit le corps de près. Le mannequin mesure 191 cm et porte du M. Pour plus d'aisance, prenez une taille au-dessus.",
+    "en": "Slim fit: it follows the body closely. The model is 191 cm tall and wears M. For a looser fit, go one size up."
+  },
+  "teixit_detall": {
+    "ca": "Punt piqué de cotó, de tacte sec i transpirable.",
+    "es": "Punto piqué de algodón, de tacto seco y transpirable.",
+    "fr": "Maille piqué de coton, au toucher sec et respirant.",
+    "en": "Cotton piqué knit, dry to the touch and breathable."
+  },
+  "cura": [
+    {"ca": "Rentar a 30 °C del revés", "es": "Lavar a 30 °C del revés", "fr": "Laver à 30 °C sur l'envers", "en": "Wash at 30 °C inside out"},
+    {"ca": "No fer servir l'assecadora", "es": "No usar secadora", "fr": "Ne pas passer au sèche-linge", "en": "Do not tumble dry"},
+    {"ca": "Planxar a temperatura baixa, sense passar per sobre del logo", "es": "Planchar a baja temperatura, sin pasar por encima del logo", "fr": "Repasser à basse température, sans passer sur le logo", "en": "Iron at low temperature, avoiding the logo"}
+  ],
+  "faq": [
+    {"q": {"ca": "Com queda de talla?", "es": "¿Cómo queda de talla?", "fr": "Comment taille-t-il ?", "en": "How does it fit?"},
+     "a": {"ca": "És entallat. Si dubtes entre dues talles i el vols còmode, tria la més gran.", "es": "Es entallado. Si dudas entre dos tallas y lo quieres cómodo, elige la mayor.", "fr": "Il est ajusté. Si vous hésitez entre deux tailles et le voulez confortable, prenez la plus grande.", "en": "It is slim. If you are between two sizes and want it comfortable, take the larger one."}},
+    {"q": {"ca": "Amb què el puc portar?", "es": "¿Con qué lo puedo llevar?", "fr": "Avec quoi le porter ?", "en": "What can I wear it with?"},
+     "a": {"ca": "Amb uns chinos beix per a un look clàssic o amb uns texans per al dia a dia.", "es": "Con unos chinos beige para un look clásico o con unos vaqueros para el día a día.", "fr": "Avec un chino beige pour un look classique ou un jean au quotidien.", "en": "With beige chinos for a classic look, or jeans for every day."}}
+  ],
+  "combina": ["TX-26-IND", "JM-24-GRF"]
+}
