@@ -22,6 +22,7 @@ export function GraficInforme({ g }: { g: TGrafic }) {
   return (
     <figure className="grafic-informe" aria-labelledby={`g-${g.id}`}>
       <figcaption id={`g-${g.id}`} className="grafic-titol">{g.titol}</figcaption>
+      {g.lectura && <p className="grafic-lectura">{g.lectura}</p>}
       {cos}
       {g.nota && <p className="petit muted" style={{ margin: '6px 0 0' }}>{g.nota}</p>}
     </figure>

@@ -307,7 +307,7 @@ def test_informes_rutes_no_es_trepitgen(entorn):
     for clau in ("tipus", "titol", "periode", "blocs", "accio", "avisos", "xifres", "grafics"):
         assert clau in inf
     g = inf["grafics"][0]
-    assert set(g) == {"id", "titol", "tipus", "unitat", "eix_x", "series", "nota", "destaca"}
+    assert set(g) == {"id", "titol", "tipus", "unitat", "eix_x", "series", "nota", "destaca", "lectura"}
     assert set(inf["xifres"][0]) == {"etiqueta", "valor", "unitat", "variacio", "vs"}
     assert c.get("/api/v2/informes/anual").status_code == 404
     assert "lliurats" in c.get("/api/v2/informes/lliurats").json()

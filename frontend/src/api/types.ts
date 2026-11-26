@@ -370,6 +370,8 @@ export interface GraficInforme {
   eix_x: string[]; series: { nom: string; valors: (number | null)[] }[]; nota?: string | null;
   /** v0.7: per a cada element de l'eix, si es remarca (p. ex. «molt provat, poc venut»). */
   destaca?: boolean[] | null;
+  /** v0.7: què hi veiem i què en podem fer, amb les xifres del gràfic. */
+  lectura?: string | null;
 }
 export interface XifraInforme { etiqueta: string; valor: number | null; unitat: UnitatGrafic; variacio?: number | null; vs?: string | null; /** pilot */ objectiu?: number | null; compleix?: boolean | null }
 export interface Informe {

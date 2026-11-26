@@ -700,3 +700,6 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .proves-compres .alerta .pc-compres { background: var(--warn); }
 .proves-compres .pc-xifres { grid-area: xifres; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .proves-compres .pc-xifres b { color: var(--fg); }
+
+/* v0.7 — Informes: cada gràfic porta la seva lectura (què hi veiem i què en podem fer) */
+.grafic-lectura { margin: 4px 0 12px; font-size: 14px; line-height: 1.5; color: var(--fg-2, var(--fg)); max-width: 68ch; }
