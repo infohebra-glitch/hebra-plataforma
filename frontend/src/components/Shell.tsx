@@ -22,6 +22,7 @@ export const ENLLACOS: Enllac[] = [
   { a: '/talles', nom: 'Talles', icona: 'talles', grup: 'Tauler' },
   { a: '/sessions', nom: 'Sessions', icona: 'sessions', grup: 'Tauler' },
   { a: '/per-que', nom: 'Per què no compren', icona: 'perque', grup: 'Tauler' },
+  { a: '/provador-online', nom: 'Provador i online', icona: 'online', grup: 'Tauler', rols: MARCA },
   { a: '/origen', nom: 'Origen i proves', icona: 'origen', grup: 'Tauler', rols: MARCA },
   { a: '/provadors', nom: 'Provadors en directe', icona: 'provadors', grup: 'Botiga' },
   { a: '/servei', nom: 'Servei', icona: 'servei', grup: 'Botiga' },

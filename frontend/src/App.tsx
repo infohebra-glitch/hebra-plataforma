@@ -14,6 +14,7 @@ const Peces = lazy(() => import('./pages/Peces').then((m) => ({ default: m.Peces
 const PecaDetall = lazy(() => import('./pages/PecaDetall').then((m) => ({ default: m.PecaDetall })));
 const Talles = lazy(() => import('./pages/Talles').then((m) => ({ default: m.Talles })));
 const PerQue = lazy(() => import('./pages/PerQue').then((m) => ({ default: m.PerQue })));
+const ProvadorOnline = lazy(() => import('./pages/ProvadorOnline').then((m) => ({ default: m.ProvadorOnline })));
 const Origen = lazy(() => import('./pages/Origen').then((m) => ({ default: m.Origen })));
 const Servei = lazy(() => import('./pages/Servei').then((m) => ({ default: m.Servei })));
 const Estoc = lazy(() => import('./pages/Estoc').then((m) => ({ default: m.Estoc })));
@@ -57,6 +58,7 @@ export function App() {
           <Route path="peces/:model" element={<Suspense fallback={espera}><PecaDetall /></Suspense>} />
           <Route path="talles" element={<Suspense fallback={espera}><Talles /></Suspense>} />
           <Route path="per-que" element={<Suspense fallback={espera}><PerQue /></Suspense>} />
+          <Route path="provador-online" element={<NomesPer rols={MARCA}><Suspense fallback={espera}><ProvadorOnline /></Suspense></NomesPer>} />
           <Route path="origen" element={<NomesPer rols={MARCA}><Suspense fallback={espera}><Origen /></Suspense></NomesPer>} />
           <Route path="servei" element={<Suspense fallback={espera}><Servei /></Suspense>} />
           <Route path="estoc" element={<Suspense fallback={espera}><Estoc /></Suspense>} />

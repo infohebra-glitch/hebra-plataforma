@@ -25,7 +25,7 @@ import threading
 from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
 
-from . import alertes, simulador, temps
+from . import alertes, devolucions, simulador, temps
 
 BOTIGA = "PROVA-01"
 NOM = "Botiga de prova"
@@ -118,6 +118,8 @@ def carrega(con: sqlite3.Connection, avui: date | None = None) -> dict:
 
         _dies_especials(con, inici, avui)
         gtins = sorted({r[0] for r in con.execute("SELECT gtin FROM catalog_sku")} - gtins_abans)
+        # v0.9: devolucions online inventades dels mateixos models, per veure la comparativa provador-online.
+        devolucions.simula(con, inici, ahir, gtins, lot_prova=True)
         epcs = sorted({r[0] for r in con.execute("SELECT epc FROM etiqueta")} - epcs_abans)
         resum.pop("csv_vendes", None)
         resum = {"sessions": resum["sessions"], "proves": resum["proves_detectades"],
@@ -233,6 +235,9 @@ def _esborra_botiga(con: sqlite3.Connection, gtins: set[str], epcs: set[str]) ->
         if t not in ("botiga", "cabina"):
             esborra(f'DELETE FROM "{t}" WHERE botiga_id = ?', (BOTIGA,), t)
     esborra("DELETE FROM colleccio WHERE lot_prova = 1", (), "colleccio")
+    k = devolucions.esborra_lot_prova(con)
+    if k:
+        n["devolucio_online"] = k
     esborra("DELETE FROM cabina WHERE botiga_id = ?", (BOTIGA,), "cabina")
     esborra("DELETE FROM botiga WHERE id = ?", (BOTIGA,), "botiga")
     # Catàleg i etiquetes que va crear el lot (no els que ja hi eren).

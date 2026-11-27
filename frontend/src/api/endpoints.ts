@@ -37,6 +37,7 @@ export const analitica = {
     api.put<{ tipus: string; grafics_triats: string[] | null }>(`/informes/${tipus}/grafics`, { grafics }, f(x)),
   comparativa: (x: T.Filtre, o: { compara?: string; colleccio?: number; franja?: string; condicio?: string }, s?: AbortSignal) =>
     api.get<T.Comparativa>('/comparativa', { ...f(x), ...o }, s),
+  provadorOnline: (x: T.Filtre, s?: AbortSignal, model?: string) => api.get<T.ProvadorOnline>('/provador-online', { ...f(x), model }, s),
   colleccions: (s?: AbortSignal) => api.get<T.Colleccio[]>('/colleccions', undefined, s),
   novaColleccio: (c: { nom: string; des: string; fins: string }) => api.post<T.Colleccio>('/colleccions', c),
   esborraColleccio: (id: number) => api.del<{ ok: boolean }>(`/colleccions/${id}`),
@@ -110,6 +111,13 @@ export const integracions = {
   registre: (id: number, s?: AbortSignal) => api.get<{ registre: T.RegistreSync[] }>(`/integracions/${id}/registre`, undefined, s),
 };
 
+export const devolucions = {
+  mapa: (s?: AbortSignal) => api.get<T.MapaDevolucions>('/devolucions/mapa', undefined, s),
+  desaMapa: (codi: string, motiu: string, sentit: 'petita' | 'gran' | null) =>
+    api.put<T.CodiDevolucio>('/devolucions/mapa', { codi, motiu, sentit }),
+  esborra: () => api.del<{ esborrades: number }>('/devolucions'),
+};
+
 export const operacio = {
   peticions: (botiga?: string, estat?: T.EstatPeticio) => api.get<T.RespostaPeticions>('/peticions', { botiga, estat }),
   canviaPeticio: (id: number, estat: Exclude<T.EstatPeticio, 'pendent'>) => api.patch<T.Peticio>(`/peticions/${id}`, { estat }),
@@ -119,7 +127,7 @@ export const operacio = {
   creaDecisio: (d: T.NovaDecisio) => api.post<T.Decisio>('/decisions', d),
   canviaDecisio: (id: number, canvis: Partial<T.NovaDecisio>) => api.patch<T.Decisio>(`/decisions/${id}`, canvis),
   creaExperiment: (e: T.NouExperiment) => api.post<T.Experiment>('/experiments', e),
-  importa: (tipus: 'vendes' | 'estoc' | 'cataleg', fitxer: File) => api.puja<T.ResultatImport>(`/importa/${tipus}`, fitxer),
+  importa: (tipus: 'vendes' | 'estoc' | 'cataleg' | 'devolucions', fitxer: File) => api.puja<T.ResultatImport>(`/importa/${tipus}`, fitxer),
   parametres: (botiga?: string) => api.get<T.Parametres>('/parametres', { botiga }),
   desaParametres: (p: T.Parametres) => api.put<T.Parametres>('/parametres', p),
   sincronitzaShopify: (botiga?: string) => api.post<T.ResultatShopify>('/shopify/sincronitza', undefined, { botiga }),

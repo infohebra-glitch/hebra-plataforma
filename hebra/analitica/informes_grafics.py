@@ -17,6 +17,7 @@ conversió del període (la probabilitat que s'haguessin comprat si hi haguessin
 """
 
 import json
+import re
 import sqlite3
 from collections import Counter, defaultdict
 from datetime import date, timedelta
@@ -437,6 +438,29 @@ def _mango(con, f, k, inf) -> None:
     inf["grafics"] = [_origen_setmanal(con, f, proves), _conversio_setmanal(con, f, proves), _motius_donut(con, f)]
 
 
+def _provador_online(con, f) -> dict | None:
+    """v0.9: motius del provador i de les devolucions online, en %. None si no hi ha devolucions al període."""
+    from .devolucions import provador_online
+    r = provador_online(con, f)
+    if not r["devolucions_online"]:
+        return None
+    cats = r["categories"]
+    nota = (f"{r['respostes_provador']} respostes al provador i {r['devolucions_online']} unitats tornades online. "
+            f"Coincidència: {base.pct_txt(r['coincidencia'])}.")
+    if r["nomes_online"]:
+        nota += f" A més, {base.pct_txt(r['pct_nomes_online'])} de les devolucions són per motius que només passen online."
+    g = grafic("provador_online", "Per què no se l'emporten (provador) i per què la tornen (online)", "barres", "pct",
+               [re.sub(r" (o|i) .*$", "", c["nom"]) for c in cats],  # noms curts: «Qualitat», «Tall»
+               [serie("Provador", [c["pct_provador"] for c in cats]), serie("Online", [c["pct_online"] for c in cats])],
+               nota)
+    g["extra"] = {"coincidencia": r["coincidencia"],
+                  "divergents": [m["nom"] for m in r["models"] if m["divergent"]][:3]}
+    return g
+
+
+# Informes que porten el gràfic provador-online quan la marca ha pujat devolucions.
+_AMB_ONLINE = {"mensual", "temporada", "pilot", "mango"}
+
 _PER_TIPUS = {"diari": _diari, "setmanal": _setmanal, "mensual": _mensual, "temporada": _temporada,
               "pilot": _pilot, "mango": _mango}
 
@@ -446,6 +470,10 @@ def enriqueix(con: sqlite3.Connection, f: Filtre, tipus: str, k: dict, inf: dict
     inf.setdefault("xifres", [])
     inf.setdefault("grafics", [])
     _PER_TIPUS[tipus](con, f, k, inf)
+    if tipus in _AMB_ONLINE:
+        g = _provador_online(con, f)
+        if g:
+            inf["grafics"].append(g)
     ctx = Context(con, f, inf)
     for g in inf["grafics"]:
         g["lectura"] = llegeix(g, ctx)
@@ -827,7 +855,28 @@ def _l_origen(g: dict) -> str | None:
             f"no en treguis conclusions: el resultat i l'interval són a «Origen i proves».")
 
 
+def _l_provador_online(g: dict) -> str | None:
+    pp = list(zip(g["eix_x"], g["series"][0]["valors"], g["series"][1]["valors"]))
+    if not pp:
+        return None
+    coin = (g.get("extra") or {}).get("coincidencia")
+    p = max(pp, key=lambda x: x[1] or 0)
+    o = max(pp, key=lambda x: x[2] or 0)
+    if coin is None:
+        return "Encara hi ha poques respostes o devolucions per comparar els dos canals."
+    txt = (f"Al provador el motiu més citat és «{p[0]}» ({_f(p[1], 'pct')}); online, «{o[0]}» ({_f(o[2], 'pct')}). "
+           f"Els dos canals coincideixen en un {_f(coin, 'pct')}. ")
+    div = (g.get("extra") or {}).get("divergents") or []
+    if div:
+        txt += (f"On menys coincideixen: {', '.join(div)}. Allà el problema online no és el de la botiga: "
+                "revisa la foto, la descripció o la guia de talles de la web abans de tocar la peça.")
+    elif p[0] == o[0]:
+        txt += "Si el motiu és el mateix als dos llocs, és de la peça: és la primera cosa a canviar."
+    return txt
+
+
 _LECTURES = {
+    "provador_online": _l_provador_online,
     "models_repetir": _l_repetir, "models_canviar": _l_canviar, "dubte_talla": _l_dubte,
     "efecte_origen": _l_origen, "conversio_origen": _l_origen,
     "proves_compres_dia": _l_proves_compres, "proves_compres_setmana": _l_proves_compres,

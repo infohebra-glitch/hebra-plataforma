@@ -56,7 +56,7 @@ def test_models_i_detall(con):
     assert marcats == ["VV-26-VRD"]  # el vestit "es prova i no es ven"
     d = A.model_detall(con, F, "CL-24-NAT")
     claus(d, "model", "nom", "categoria", "color", "preu", "imatge", "kpi", "talles", "motius", "serie_setmanal",
-          "provat_amb", "origen", "efecte_origen", "dubte_talla")
+          "provat_amb", "origen", "efecte_origen", "dubte_talla", "provador_online")
     claus(d["kpi"], "proves", "compres", "conversio", "venut_sense_provar", "respostes_motiu", "taxa_resposta_motiu")
     claus(d["talles"][0], "talla", "gtin", "proves", "compres", "conversio", "pct_proves", "pct_compres", "estoc",
           "demanda_perduda", "canvis_de_talla")

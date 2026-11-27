@@ -192,6 +192,8 @@ export interface ModelDetall {
   efecte_origen: Experiment | null;
   /** v0.3 (C): el mateix model en dues talles a la mateixa sessió. */
   dubte_talla?: DubteTallaModel | null;
+  /** v0.9: provador contra devolucions online d'aquest model (null si la marca no n'ha pujat cap). */
+  provador_online?: ProvadorOnlineModel | null;
 }
 
 export interface CompraParell { [talla: string]: number }
@@ -483,7 +485,36 @@ export interface Decisio {
 export interface RespostaDecisions { decisions: Decisio[] }
 export type NovaDecisio = Omit<Decisio, 'id' | 'creada'>;
 
-export interface ResultatImport { importades: number; errors: string[] }
+export interface ResultatImport { importades: number; errors: string[]; /** v0.9 devolucions */ repetides?: number; avisos?: string[] }
+
+/** v0.9: motius del provador comparats amb els motius de devolució online (sempre agregats, mai per persona). */
+export interface SentitTalla { petita: number; gran: number }
+export interface CategoriaProvadorOnline { motiu: string; nom: string; provador: number; pct_provador: Fraccio; online: number; pct_online: Fraccio }
+export interface ModelProvadorOnline {
+  model: string; nom: string; respostes_provador: number; devolucions_online: number;
+  motiu_provador: string | null; motiu_online: string | null;
+  provador: Record<string, number>; online: Record<string, number>; nomes_online: number;
+  coincidencia: Fraccio; divergent: boolean; talla_online: SentitTalla; talla_provador: SentitTalla; lectura: string;
+}
+export interface TallaOnline { model: string; nom: string; talla: string | null; petita: number; gran: number; sense: number }
+export interface ProvadorOnline {
+  periode?: Periode;
+  respostes_provador: number; devolucions_online: number; nomes_online: number; pct_nomes_online: Fraccio;
+  coincidencia: Fraccio;
+  categories: CategoriaProvadorOnline[];
+  nomes_online_detall: { motiu: string; nom: string; online: number; pct: Fraccio }[];
+  talla_sentit: { online: SentitTalla; provador: SentitTalla };
+  models: ModelProvadorOnline[]; talles: TallaOnline[];
+  etiquetes: Record<string, string>; minim: number; text: string;
+  importat: { linies: number; unitats: number; des: string | null; fins: string | null };
+}
+export type ProvadorOnlineModel = Pick<ProvadorOnline, 'respostes_provador' | 'devolucions_online' | 'nomes_online' | 'coincidencia' | 'categories' | 'nomes_online_detall' | 'talla_sentit' | 'minim' | 'talles'> & { lectura: string };
+export interface CodiDevolucio { codi: string; motiu: string; sentit: 'petita' | 'gran' | null; manual: boolean; unitats: number; suggeriment: string | null }
+export interface MapaDevolucions {
+  codis: CodiDevolucio[];
+  categories: { clau: string; nom: string; nomes_online: boolean }[];
+  importat: ProvadorOnline['importat'];
+}
 
 export interface Parametres { botiga_id: string; valors: Record<string, string> }
 

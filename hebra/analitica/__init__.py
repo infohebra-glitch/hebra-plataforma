@@ -43,10 +43,11 @@ from .sistema import estat_sistema  # noqa: E402
 from .sessions import sessions  # noqa: E402  (v0.3, C)
 from .visual import panorama  # noqa: E402  (v0.5)
 from .comparativa import colleccions, comparativa  # noqa: E402  (v0.7)
+from .devolucions import provador_online  # noqa: E402  (v0.9)
 
 __all__ = [
     "Filtre", "parametre",
     "resum", "models", "model_detall", "talles", "demanda_perduda", "motius", "servei", "estoc",
     "fitxa_nfc", "experiments", "alertes", "valor", "informe", "historial_peca", "perdues", "estat_sistema",
-    "sessions",
+    "sessions", "provador_online",
 ]
