@@ -11,9 +11,11 @@
    A la previsualització del tauler (`previsualitza`) no hi ha script ni formularis actius: no es registra res. #}
 {% set inactiu = 'disabled' if previsualitza else '' %}
 {% macro ocults() %}<input type="hidden" name="s" value="{{ s }}"><input type="hidden" name="b" value="{{ b }}"><input type="hidden" name="lang" value="{{ lang }}">{% endmacro %}
-{% macro url_idioma(i) %}{% if previsualitza %}/api/v2/fitxa/previsualitza?model={{ previsualitza.model|urlencode }}&botiga={{ previsualitza.botiga|urlencode }}&idioma={{ i }}{% else %}/p/{{ p.token }}?b={{ b|urlencode }}&lang={{ i }}&s={{ s|urlencode }}{% endif %}{% endmacro %}
+{% macro url_idioma(i) %}{% if previsualitza %}/api/v2/fitxa/previsualitza?model={{ previsualitza.model|urlencode }}&botiga={{ previsualitza.botiga|urlencode }}&idioma={{ i }}{% if previsualitza.mode %}&mode={{ previsualitza.mode }}{% endif %}{% else %}/p/{{ p.token }}?b={{ b|urlencode }}&lang={{ i }}&s={{ s|urlencode }}{% endif %}{% endmacro %}
 {% macro estoc_talla(v) %}{% if accions.mostra_estoc == 'unitats' and v.estoc is not none %} · {{ v.estoc }} {{ t.unitats }}{% elif accions.mostra_estoc != 'no' and v.estoc == 0 %} ({{ t.no_disponible }}){% endif %}{% endmacro %}
 
+{# v0.8: dins del provador ja sabem la cabina (el lector hi té la peça): no cal escriure-la. #}
+{% macro camp_cabina() %}{% if on.cabina %}<input type="hidden" name="cabina" value="{{ on.cabina }}">{% else %}<input type="text" name="cabina" placeholder="{{ t.cabina }}" size="10" maxlength="20" aria-label="{{ t.cabina }}" {{ inactiu }}>{% endif %}{% endmacro %}
 {% macro form_talla() %}
   <h3 id="demana">{{ t.demana }}</h3>
   <p class="petit muted">{{ t.demana_ajuda }}</p>
@@ -23,13 +25,13 @@
       <select name="gtin" aria-label="{{ t.talles }}" {{ inactiu }}>
         {% for v in p.talles if not v.actual %}<option value="{{ v.gtin }}">{{ v.talla }}{{ estoc_talla(v) }}</option>{% endfor %}
       </select>
-      <input type="text" name="cabina" placeholder="{{ t.cabina }}" size="10" maxlength="20" aria-label="{{ t.cabina }}" {{ inactiu }}>
+      {{ camp_cabina() }}
       <button class="primari" {{ 'disabled' if not b or previsualitza }}>{{ t.envia }}</button>
     </div>
   </form>
 {% endmacro %}
 
-{% if previsualitza %}<p class="nota-previa" role="note">Previsualització: no es registra cap esdeveniment.{% if p.origen_amagat_per_control and cfg.seccions.visibles.origen %} Avui la botiga és al grup «sense origen» (grup de control): el client no veu l'origen.{% endif %}</p>{% endif %}
+{% if previsualitza %}<p class="nota-previa" role="note">Previsualització{% if previsualitza.mode == 'fora' %} fora del provador{% elif previsualitza.mode == 'dins' %} dins del provador{% endif %}: no es registra cap esdeveniment.{% if p.origen_amagat_per_control and cfg.seccions.visibles.origen %} Avui la botiga és al grup «sense origen» (grup de control): el client no veu l'origen.{% endif %}</p>{% endif %}
 
 {# v0.6: galeria a tota l'amplada. Les fotos amb fons llis es veuen senceres sobre el seu color (sense retallar);
    les ambientades omplen el marc. Es llisca amb el dit (scroll-snap); l'script només mou els punts. #}
@@ -57,6 +59,7 @@
 {# v0.7: a l'ordinador, la galeria va a l'esquerra i tot això a la dreta (vegeu .fx-info a estil.css). #}
 <div class="fx-info">
 <section class="fx-full">
+  {% if on.mode == 'dins' %}<p class="fx-provador" role="status">{{ t.dins|replace('{cabina}', on.cabina) }}</p>{% endif %}
   {% if p.marca %}<p class="fx-marca">{{ p.marca }}</p>{% endif %}
   <div class="fx-titol">
     <h1>{{ p.nom }}</h1>
@@ -169,7 +172,7 @@
   <p class="petit muted">{{ t.assistencia_ajuda }}</p>
   <form method="post" action="/p/{{ p.token }}/assistencia" class="fila">
     {{ ocults() }}
-    <input type="text" name="cabina" placeholder="{{ t.cabina }}" size="10" maxlength="20" aria-label="{{ t.cabina }}" {{ inactiu }}>
+    {{ camp_cabina() }}
     <button class="primari" {{ 'disabled' if not b or previsualitza }}>{{ t.assistencia }}</button>
   </form>
 </section>

@@ -430,15 +430,16 @@ def fitxa_peca(request: Request, token: str, b: str | None = None, lang: str | N
     b = fitxa.botiga_existent(con, b)  # una botiga que no existeix es tracta com «sense botiga»
     cfg_fitxa = fitxa_config.efectiva(con, b)  # v0.3: configuració de la marca (general + botiga)
     idioma = fitxa.tria_idioma(lang, request.headers.get("accept-language"), cfg_fitxa["idiomes"])
+    on = fitxa.on_es_peca(con, peca["epc"], b)  # v0.8: dins o fora del provador
     if not fitxa.sessio_valida(s):
         s = fitxa.nova_sessio()
         # Les previsualitzacions d'enllaços (WhatsApp, cercadors...) no són tocs de clients: no es compten.
         if not _ROBOTS.search(request.headers.get("user-agent", "")):
-            fitxa.registra(con, s, b, peca["gtin"], "obre_fitxa", idioma)
+            fitxa.registra(con, s, b, peca["gtin"], "obre_fitxa", idioma, on["mode"])
     if ok not in ("talla", "assistencia", "motiu", "origen", "limit"):
         ok = None
     return plantilles.TemplateResponse(request, "fitxa.html",
-                                       fitxa.context_pagina(con, peca, b, idioma, cfg_fitxa, s, ok))
+                                       fitxa.context_pagina(con, peca, b, idioma, cfg_fitxa, s, ok, on=on))
 
 
 def _accio_activa(b: str | None, accio: str) -> None:

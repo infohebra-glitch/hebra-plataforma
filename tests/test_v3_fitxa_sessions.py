@@ -146,6 +146,7 @@ def test_fitxa_aplica_configuracio(entorn):
     fitxa_config.desa(con, "BCN-01", {"seccions": {"ordre": ["cura", "talles"], "visibles": {"faq": False}},
                                       "accions": {"mostra_estoc": "unitats", "demana_assistencia": False}})
     fitxa_config.desa_contingut(con, "CL-24-NAT", "es", {"nom": "Camisa Mar", "guia_talles": "Talla justa."})
+    _dins_del_provador(con, p["epc"])
     c = TestClient(app_mod.app)
     r = c.get(f"/p/{p['nfc_token']}?b=BCN-01", headers={"accept-language": "fr-FR"})
     assert r.status_code == 200 and "set-cookie" not in r.headers
@@ -505,3 +506,16 @@ def test_simulador_genera_novetats(tmp_path):
     assert s["mateix_model_diferent_talla"]["sessions"] > 10
     assert {r["peces"]: r["sessions"] for r in s["per_nombre_peces"]}["4"] > 0
     assert analitica.servei(con, f)["peticions_assistencia"] > 0
+
+
+def _dins_del_provador(con, epc, botiga="BCN-01"):
+    """v0.8: la fitxa ensenya talla, assistència i motius només si el lector té la peça ara dins d'una cabina."""
+    from datetime import datetime, timedelta
+    from hebra import temps
+    ara = datetime.fromisoformat(temps.ara())
+    antena = con.execute("SELECT a.id FROM antena a JOIN cabina c ON c.id = a.cabina_id WHERE c.botiga_id = ? "
+                         "ORDER BY a.id LIMIT 1", (botiga,)).fetchone()["id"]
+    con.execute("INSERT INTO lectura_agregada (epc, antena_id, inici, fi, n_lectures, rssi_max, rssi_mitja) "
+                "VALUES (?, ?, ?, ?, 10, -40, -45)",
+                (epc, antena, (ara - timedelta(seconds=20)).isoformat(timespec="seconds"), ara.isoformat(timespec="seconds")))
+    con.commit()
