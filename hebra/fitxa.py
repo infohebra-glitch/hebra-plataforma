@@ -146,6 +146,46 @@ def peca_per_token(con: sqlite3.Connection, token: str) -> sqlite3.Row | None:
            WHERE e.nfc_token = ?""", (token,)).fetchone()
 
 
+# v0.8: la fitxa canvia segons on és la peça. «dins»: el lector la té ara mateix dins d'una cabina
+# (demanar talla, avisar el dependent amb la cabina ja posada, motiu). «fora»: botiga, carrer o casa
+# (només informació). «sempre»: la botiga no té lectors de cabina (nivell bàsic) i es veu tot, com abans.
+# Només mirem on és la peça, mai qui la toca.
+FINESTRA_DINS_S = 90          # una lectura més antiga ja no compta com «dins»
+_MARGE_DINS = timedelta(hours=3)  # prefiltre de text per l'índex (canvi d'hora, offsets diferents)
+
+
+def on_es_peca(con: sqlite3.Connection, epc: str | None, botiga_id: str | None,
+               ara: str | None = None) -> dict:
+    """{"mode": "dins" | "fora" | "sempre", "cabina": nom de la cabina o None}."""
+    if not botiga_id:
+        return {"mode": "fora", "cabina": None}
+    te_cabines = con.execute("""SELECT 1 FROM antena a JOIN cabina c ON c.id = a.cabina_id
+                                WHERE c.botiga_id = ? LIMIT 1""", (botiga_id,)).fetchone()
+    if not te_cabines:
+        return {"mode": "sempre", "cabina": None}
+    if not epc:
+        return {"mode": "fora", "cabina": None}
+    ara_dt = datetime.fromisoformat(ara or temps.ara())
+    des = (ara_dt - timedelta(seconds=FINESTRA_DINS_S)).isoformat(timespec="seconds")
+    fila = con.execute(
+        """SELECT c.id, c.nom, l.fi FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
+           JOIN cabina c ON c.id = a.cabina_id
+           WHERE l.epc = ? AND c.botiga_id = ? AND l.inici >= ? AND julianday(l.fi) >= julianday(?)
+                 AND julianday(l.inici) <= julianday(?) AND l.n_lectures > 0 AND l.rssi_mitja >= a.llindar_rssi
+           ORDER BY l.rssi_mitja DESC LIMIT 1""",
+        (epc, botiga_id, (ara_dt - _MARGE_DINS - timedelta(seconds=FINESTRA_DINS_S)).isoformat(timespec="seconds"),
+         des, ara_dt.isoformat(timespec="seconds"))).fetchone()
+    if not fila:
+        return {"mode": "fora", "cabina": None}
+    # Si el sensor ja diu que la cabina s'ha buidat després de l'última lectura, la peça ha sortit.
+    buida = con.execute("""SELECT 1 FROM sensor_event WHERE cabina_id = ? AND tipus = 'presencia_no'
+                           AND julianday(ts) > julianday(?) AND julianday(ts) <= julianday(?) LIMIT 1""",
+                        (fila["id"], fila["fi"], ara_dt.isoformat(timespec="seconds"))).fetchone()
+    if buida:
+        return {"mode": "fora", "cabina": None}
+    return {"mode": "dins", "cabina": fila["nom"]}
+
+
 def tria_idioma(lang: str | None, accept_language: str | None, oferts: list[str]) -> str:
     """Idioma de la pàgina: el demanat (si s'ofereix), el del navegador (si s'ofereix) o el primer de la marca."""
     if lang in oferts:
@@ -355,7 +395,8 @@ def demana_assistencia(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str,
 
 
 def context_pagina(con: sqlite3.Connection, peca: sqlite3.Row, botiga_id: str | None, idioma: str,
-                   cfg: dict, s: str, ok: str | None, previsualitza: dict | None = None) -> dict:
+                   cfg: dict, s: str, ok: str | None, previsualitza: dict | None = None,
+                   on: dict | None = None) -> dict:
     """Context de la plantilla `fitxa.html` (la fitxa real i la previsualització del tauler).
 
     `previsualitza` (només el tauler): {"model", "botiga"}; la pàgina no porta l'script ni
@@ -363,10 +404,15 @@ def context_pagina(con: sqlite3.Connection, peca: sqlite3.Row, botiga_id: str | 
     """
     from . import textos
     t = textos.TEXTOS[idioma]
-    return {"p": dades_fitxa(con, peca, botiga_id, idioma, cfg), "t": t, "lang": idioma,
+    on = on or on_es_peca(con, peca["epc"], botiga_id)
+    # Fora del provador no té sentit demanar talla ni que t'atenguin a la cabina.
+    accions = dict(cfg["accions"])
+    if on["mode"] == "fora":
+        accions.update(demana_talla=False, demana_assistencia=False, per_que_no=False)
+    return {"p": dades_fitxa(con, peca, botiga_id, idioma, cfg), "t": t, "lang": idioma, "on": on,
             "idiomes": cfg["idiomes"], "b": botiga_id or "", "s": s, "ok": ok, "script": SCRIPT_SECCIONS,
             "cfg": cfg, "seccions": [x for x in cfg["seccions"]["ordre"] if cfg["seccions"]["visibles"].get(x, True)],
-            "accions": cfg["accions"], "ap": cfg["aparença"],
+            "accions": accions, "ap": cfg["aparença"],
             "benvinguda": tr(cfg["textos"].get("benvinguda") or None, idioma) or "",
             "peu": tr(cfg["textos"].get("peu") or None, idioma) or "",
             "motius": motius_pagina(cfg, idioma),

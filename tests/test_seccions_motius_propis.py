@@ -55,6 +55,7 @@ def test_la_fitxa_ensenya_seccio_i_motius_propis(entorn):
     fitxa_config.desa(con, None, {"seccions_propies": [SECCIO, {**SECCIO, "id": "p-plegada", "plegable": True}],
                                   "motius_propis": [MOTIU], "motius": ["preu", "p-massa-llarg"],
                                   "textos_motius": {"preu": {"ca": "Ara no m'ho puc permetre"}}})
+    _dins_del_provador(con, p["epc"])
     c = TestClient(app_mod.app)
     html = c.get(f"/p/{p['nfc_token']}?b=BCN-01&lang=ca&s=sessio-prova-1").text
     assert "Arranjaments" in html and "<p>Fem la vora gratis.</p>" in html and "<p>En 48 hores.</p>" in html
@@ -85,3 +86,16 @@ def test_motius_pagina_respecta_ordre(entorn):
     cfg = fitxa_config.normalitza(fitxa_config.fusiona(fitxa_config.DEFECTE, {
         "motius_propis": [MOTIU], "motius": ["p-massa-llarg", "talla"]}))
     assert [k for k, _ in fitxa.motius_pagina(cfg, "ca")] == ["p-massa-llarg", "talla"]
+
+
+def _dins_del_provador(con, epc, botiga="BCN-01"):
+    """v0.8: la fitxa ensenya talla, assistència i motius només si el lector té la peça ara dins d'una cabina."""
+    from datetime import datetime, timedelta
+    from hebra import temps
+    ara = datetime.fromisoformat(temps.ara())
+    antena = con.execute("SELECT a.id FROM antena a JOIN cabina c ON c.id = a.cabina_id WHERE c.botiga_id = ? "
+                         "ORDER BY a.id LIMIT 1", (botiga,)).fetchone()["id"]
+    con.execute("INSERT INTO lectura_agregada (epc, antena_id, inici, fi, n_lectures, rssi_max, rssi_mitja) "
+                "VALUES (?, ?, ?, ?, 10, -40, -45)",
+                (epc, antena, (ara - timedelta(seconds=20)).isoformat(timespec="seconds"), ara.isoformat(timespec="seconds")))
+    con.commit()

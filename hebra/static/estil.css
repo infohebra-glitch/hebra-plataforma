@@ -127,6 +127,10 @@ body:has(main.fitxa) { background: #F9F9F9; }
 .fx-fets li { padding: 0; }
 .fx-full .descripcio { margin: 16px 0 0; font-size: 15.5px; line-height: 1.6; max-width: 60ch; }
 
+/* v0.8: dins del provador. Una línia amb el color de la marca a dalt de la fitxa. */
+.fx-provador { margin: 0 0 14px; padding: 10px 12px 10px 14px; border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface)); font-size: 14px; line-height: 1.45; }
+
 /* Seccions: separades per una línia, sense targetes */
 .fitxa .panell { background: var(--surface); border-radius: 0; padding: 18px 20px; margin: 0 -16px; border: 0;
   border-top: 1px solid var(--line); box-shadow: none; }
