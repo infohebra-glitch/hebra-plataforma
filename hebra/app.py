@@ -26,7 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import __version__, api, auth, db, fitxa, fitxa_config, informes, passarella, proves, retencio, temps, textos, vendes
-from . import imatges, informes_programats, provadors, siluetes
+from . import autenticitat, imatges, informes_programats, provadors, siluetes
 from .integracions import motor as integracions_motor
 from .config import carrega
 
@@ -420,7 +420,7 @@ def imatge_silueta(familia: str, c: str = "B7B3B2"):
 
 @app.get("/p/{token}", response_class=HTMLResponse, dependencies=[Depends(limit_fitxa_get)])
 def fitxa_peca(request: Request, token: str, b: str | None = None, lang: str | None = None,
-               s: str | None = None, ok: str | None = None):
+               s: str | None = None, ok: str | None = None, picc: str | None = None, cmac: str | None = None):
     """Pàgina que obre el mòbil en tocar l'etiqueta NFC.
 
     La URL gravada a l'NFC és /p/{token}?b={botiga}. `s` és la sessió tècnica
@@ -431,15 +431,31 @@ def fitxa_peca(request: Request, token: str, b: str | None = None, lang: str | N
     cfg_fitxa = fitxa_config.efectiva(con, b)  # v0.3: configuració de la marca (general + botiga)
     idioma = fitxa.tria_idioma(lang, request.headers.get("accept-language"), cfg_fitxa["idiomes"])
     on = fitxa.on_es_peca(con, peca["epc"], b)  # v0.8: dins o fora del provador
-    if not fitxa.sessio_valida(s):
+    robot = bool(_ROBOTS.search(request.headers.get("user-agent", "")))
+    nou_toc = not fitxa.sessio_valida(s)
+    if nou_toc:
         s = fitxa.nova_sessio()
         # Les previsualitzacions d'enllaços (WhatsApp, cercadors...) no són tocs de clients: no es compten.
-        if not _ROBOTS.search(request.headers.get("user-agent", "")):
+        if not robot:
             fitxa.registra(con, s, b, peca["gtin"], "obre_fitxa", idioma, on["mode"])
+    # v0.8: peça original o imitació (xip NTAG 424 DNA). El toc porta la signatura; la verifiquem un sol cop
+    # i redirigim a l'enllaç net, així recarregar o canviar d'idioma no torna a gastar el comptador.
+    if nou_toc or picc or cmac:
+        autentic = autenticitat.verifica(con, cfg.secret, peca, picc, cmac, desa=not robot)
+        if autentic and not robot:
+            fitxa.registra(con, s, b, peca["gtin"], "verificacio", idioma, autentic)
+        if picc or cmac:
+            from urllib.parse import urlencode
+            return RedirectResponse(f"/p/{token}?{urlencode({'b': b or '', 'lang': idioma, 's': s})}", status_code=303)
+    else:
+        autentic = autenticitat.estat_de_la_visita(con, s, peca["gtin"], temps.ara()) if peca["nfc_uid"] else None
+        if peca["nfc_uid"] and autentic is None and not peca["nfc_simulat"]:
+            autentic = "sense_signatura"
     if ok not in ("talla", "assistencia", "motiu", "origen", "limit"):
         ok = None
     return plantilles.TemplateResponse(request, "fitxa.html",
-                                       fitxa.context_pagina(con, peca, b, idioma, cfg_fitxa, s, ok, on=on))
+                                       fitxa.context_pagina(con, peca, b, idioma, cfg_fitxa, s, ok, on=on,
+                                                            autenticitat=autentic))
 
 
 def _accio_activa(b: str | None, accio: str) -> None:

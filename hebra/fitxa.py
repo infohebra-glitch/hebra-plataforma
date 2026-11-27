@@ -30,7 +30,8 @@ IDIOMES = ("ca", "es", "fr", "en")
 # Si el contingut d'origen no té l'idioma, provem aquests en ordre.
 RESERVA = {"ca": ["ca", "es"], "es": ["es", "ca"], "fr": ["fr", "es", "ca"], "en": ["en", "es", "ca"]}
 
-TIPUS = {"obre_fitxa", "veu_origen", "demana_talla", "demana_assistencia", "motiu_no_compra", "veu_seccio"}
+TIPUS = {"obre_fitxa", "veu_origen", "demana_talla", "demana_assistencia", "motiu_no_compra", "veu_seccio",
+         "verificacio"}  # v0.8: resultat de la verificació del xip (hebra/autenticitat.py)
 MOTIUS_VALIDS = set(fitxa_config.MOTIUS)
 SECCIONS = {"talles", "cura", "preguntes"}
 TITOL_COMBINA = {"ca": "Combina amb", "es": "Combina con", "fr": "À associer avec", "en": "Goes well with"}
@@ -142,8 +143,8 @@ def tr(valor, idioma: str):
 
 def peca_per_token(con: sqlite3.Connection, token: str) -> sqlite3.Row | None:
     return con.execute(
-        """SELECT e.epc, e.nfc_token, k.* FROM etiqueta e JOIN catalog_sku k ON k.gtin = e.gtin
-           WHERE e.nfc_token = ?""", (token,)).fetchone()
+        """SELECT e.epc, e.nfc_token, e.nfc_uid, e.nfc_ctr, e.nfc_simulat, k.* FROM etiqueta e
+           JOIN catalog_sku k ON k.gtin = e.gtin WHERE e.nfc_token = ?""", (token,)).fetchone()
 
 
 # v0.8: la fitxa canvia segons on és la peça. «dins»: el lector la té ara mateix dins d'una cabina
@@ -396,7 +397,7 @@ def demana_assistencia(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str,
 
 def context_pagina(con: sqlite3.Connection, peca: sqlite3.Row, botiga_id: str | None, idioma: str,
                    cfg: dict, s: str, ok: str | None, previsualitza: dict | None = None,
-                   on: dict | None = None) -> dict:
+                   on: dict | None = None, autenticitat: str | None = None) -> dict:
     """Context de la plantilla `fitxa.html` (la fitxa real i la previsualització del tauler).
 
     `previsualitza` (només el tauler): {"model", "botiga"}; la pàgina no porta l'script ni
@@ -410,6 +411,7 @@ def context_pagina(con: sqlite3.Connection, peca: sqlite3.Row, botiga_id: str | 
     if on["mode"] == "fora":
         accions.update(demana_talla=False, demana_assistencia=False, per_que_no=False)
     return {"p": dades_fitxa(con, peca, botiga_id, idioma, cfg), "t": t, "lang": idioma, "on": on,
+            "autenticitat": autenticitat,
             "idiomes": cfg["idiomes"], "b": botiga_id or "", "s": s, "ok": ok, "script": SCRIPT_SECCIONS,
             "cfg": cfg, "seccions": [x for x in cfg["seccions"]["ordre"] if cfg["seccions"]["visibles"].get(x, True)],
             "accions": accions, "ap": cfg["aparença"],

@@ -131,6 +131,12 @@ body:has(main.fitxa) { background: #F9F9F9; }
 .fx-provador { margin: 0 0 14px; padding: 10px 12px 10px 14px; border-left: 3px solid var(--accent);
   background: color-mix(in srgb, var(--accent) 8%, var(--surface)); font-size: 14px; line-height: 1.45; }
 
+/* v0.8: peça original (xip NFC verificat) o avís */
+.fx-autentica { display: inline-flex; align-items: center; gap: 6px; margin: 10px 0 0; font-size: 14px; font-weight: 600; color: #1F6B45; }
+.fx-no-autentica { margin: 12px 0 0; padding: 10px 12px 10px 14px; border-left: 3px solid #8C304B; font-size: 14px; line-height: 1.45;
+  background: color-mix(in srgb, #8C304B 8%, var(--surface)); }
+@media (prefers-color-scheme: dark) { .fx-autentica { color: #6FCF97; } }
+
 /* Seccions: separades per una línia, sense targetes */
 .fitxa .panell { background: var(--surface); border-radius: 0; padding: 18px 20px; margin: 0 -16px; border: 0;
   border-top: 1px solid var(--line); box-shadow: none; }

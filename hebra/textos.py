@@ -19,7 +19,7 @@ TEXTOS = {
         "Aquesta pàgina no fa servir galetes ni guarda cap dada teva.",
         "etapes": {"cultiu": "Cultiu", "filatura": "Filatura", "teixit": "Teixit", "tintura": "Tintura",
                    "confeccio": "Confecció", "acabat": "Acabat", "fibra": "Fibra", "fusta": "Fusta", "tricotat": "Tricotat"},
-        "dins": "Ets al provador ({cabina}). Demana el que necessitis i t'ho portem.", "veure_origen": "Mostra el recorregut", "fet_a": "Fet a", "altra_talla": "Una altra talla", "llisca": "Llisca per veure més fotos", "foto": "Foto",
+        "dins": "Ets al provador ({cabina}). Demana el que necessitis i t'ho portem.", "original": "Peça original verificada", "no_original": "No hem pogut verificar que aquesta peça sigui original. Torna a tocar l'etiqueta; si torna a sortir aquest avís, pregunta a la botiga.", "veure_origen": "Mostra el recorregut", "fet_a": "Fet a", "altra_talla": "Una altra talla", "llisca": "Llisca per veure més fotos", "foto": "Foto",
     },
     "es": {
         "composicio": "Composición", "cura": "Cuidados", "origen": "De dónde viene", "talles": "Tallas",
@@ -35,7 +35,7 @@ TEXTOS = {
         "Esta página no usa cookies ni guarda ningún dato tuyo.",
         "etapes": {"cultiu": "Cultivo", "filatura": "Hilatura", "teixit": "Tejido", "tintura": "Tintura",
                    "confeccio": "Confección", "acabat": "Acabado", "fibra": "Fibra", "fusta": "Madera", "tricotat": "Tricotado"},
-        "dins": "Estás en el probador ({cabina}). Pide lo que necesites y te lo llevamos.", "veure_origen": "Ver el recorrido", "fet_a": "Hecho en", "altra_talla": "Otra talla", "llisca": "Desliza para ver más fotos", "foto": "Foto",
+        "dins": "Estás en el probador ({cabina}). Pide lo que necesites y te lo llevamos.", "original": "Prenda original verificada", "no_original": "No hemos podido verificar que esta prenda sea original. Vuelve a tocar la etiqueta; si vuelve a salir este aviso, pregunta en la tienda.", "veure_origen": "Ver el recorrido", "fet_a": "Hecho en", "altra_talla": "Otra talla", "llisca": "Desliza para ver más fotos", "foto": "Foto",
     },
     "fr": {
         "composicio": "Composition", "cura": "Entretien", "origen": "D'où il vient", "talles": "Tailles",
@@ -51,7 +51,7 @@ TEXTOS = {
         "Cette page n'utilise pas de cookies et n'enregistre aucune donnée vous concernant.",
         "etapes": {"cultiu": "Culture", "filatura": "Filature", "teixit": "Tissage", "tintura": "Teinture",
                    "confeccio": "Confection", "acabat": "Finition", "fibra": "Fibre", "fusta": "Bois", "tricotat": "Tricotage"},
-        "dins": "Vous êtes en cabine ({cabina}). Demandez ce qu'il vous faut, on vous l'apporte.", "veure_origen": "Voir le parcours", "fet_a": "Fabriqué en", "altra_talla": "Autre taille", "llisca": "Faites glisser pour voir plus de photos", "foto": "Photo",
+        "dins": "Vous êtes en cabine ({cabina}). Demandez ce qu'il vous faut, on vous l'apporte.", "original": "Pièce originale vérifiée", "no_original": "Nous n'avons pas pu vérifier que cette pièce est originale. Touchez de nouveau l'étiquette ; si cet avis réapparaît, demandez en magasin.", "veure_origen": "Voir le parcours", "fet_a": "Fabriqué en", "altra_talla": "Autre taille", "llisca": "Faites glisser pour voir plus de photos", "foto": "Photo",
     },
     "en": {
         "composicio": "Composition", "cura": "Care", "origen": "Where it comes from", "talles": "Sizes",
@@ -67,7 +67,7 @@ TEXTOS = {
         "This page uses no cookies and stores no data about you.",
         "etapes": {"cultiu": "Growing", "filatura": "Spinning", "teixit": "Weaving", "tintura": "Dyeing",
                    "confeccio": "Making", "acabat": "Finishing", "fibra": "Fibre", "fusta": "Wood", "tricotat": "Knitting"},
-        "dins": "You're in the fitting room ({cabina}). Ask for anything and we'll bring it.", "veure_origen": "Show the journey", "fet_a": "Made in", "altra_talla": "Another size", "llisca": "Swipe to see more photos", "foto": "Photo",
+        "dins": "You're in the fitting room ({cabina}). Ask for anything and we'll bring it.", "original": "Verified original", "no_original": "We couldn't verify that this piece is original. Tap the tag again; if you see this message again, ask in store.", "veure_origen": "Show the journey", "fet_a": "Made in", "altra_talla": "Another size", "llisca": "Swipe to see more photos", "foto": "Photo",
     },
 }
 

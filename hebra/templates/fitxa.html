@@ -65,6 +65,9 @@
     <h1>{{ p.nom }}</h1>
     {% if p.preu %}<p class="fx-preu">{{ '%.0f'|format(p.preu) }}&nbsp;€</p>{% endif %}
   </div>
+  {# v0.8: xip NTAG 424 DNA. Sense xip protegit no es diu res. #}
+  {% if autenticitat == 'original' %}<p class="fx-autentica" role="status"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 1 2.5 3.2v4.1c0 3.4 2.3 6.3 5.5 7.2 3.2-.9 5.5-3.8 5.5-7.2V3.2z" fill="currentColor"/><path d="m5.4 8.1 1.8 1.8 3.5-3.6" fill="none" stroke="var(--surface)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ t.original }}</p>
+  {% elif autenticitat %}<p class="fx-no-autentica" role="alert">{{ t.no_original }}</p>{% endif %}
   {% if benvinguda %}<p class="benvinguda">{{ benvinguda }}</p>{% endif %}
   {% if p.color %}<p class="fx-color">{% if p.color_hex %}<span class="fx-mostra" style="background: {{ p.color_hex }}"></span>{% endif %}{{ p.color }}</p>{% endif %}
   {% if p.talles|length > 1 %}
