@@ -3,6 +3,8 @@ title: 'L''origen no és un relat, és una dada'
 description: 'Explicar d''on ve una peça no va de fotos boniques del taller. Va de saber què se sap de cada etapa, qui ho diu i si als teus clients els importa. Com convertir l''origen en una cosa que es mesura.'
 date: 2026-11-27
 metaDescription: 'Explicar d’on ve una peça no va de fotos boniques. Què se sap de cada etapa, qui ho diu i com mesurar si als teus clients els importa.'
+image: '/img/blog/patrones-taller.webp'
+imageAlt: 'Patrons de paper sobre tela en una taula de taller'
 kicker: 'Origen'
 minutes: 6
 ---

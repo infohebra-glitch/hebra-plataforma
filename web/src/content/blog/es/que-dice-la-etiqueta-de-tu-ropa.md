@@ -3,6 +3,8 @@ title: 'Lo que la etiqueta de tu ropa dice (y lo que calla)'
 description: 'En Europa, la etiqueta de una prenda solo está obligada a decir de qué fibras está hecha. El país de fabricación es voluntario y, cuando aparece, solo cuenta la última etapa. Cómo leer una etiqueta y qué preguntas hacer.'
 date: 2026-11-27
 metaDescription: 'En Europa la etiqueta solo obliga a decir las fibras. El país de fabricación es voluntario y solo cuenta la última etapa. Cómo leerla.'
+image: '/img/blog/etiqueta-made-in.webp'
+imageAlt: 'Etiqueta interior de una chaqueta: hecho en Portugal, talla S/M'
 kicker: 'Origen'
 minutes: 5
 ---

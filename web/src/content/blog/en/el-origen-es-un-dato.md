@@ -3,6 +3,8 @@ title: 'Origin isn''t a story, it''s data'
 description: 'Telling where a garment comes from isn''t about pretty workshop photos. It''s about knowing what is known at each stage, who says so, and whether your customers care. How to turn origin into something you can measure.'
 date: 2026-11-27
 metaDescription: 'Telling where a garment comes from isn’t about pretty photos. What is known at each stage, who says so, and how to measure if customers care.'
+image: '/img/blog/patrones-taller.webp'
+imageAlt: 'Paper patterns laid on fabric on a workshop table'
 kicker: 'Origin'
 minutes: 6
 ---

@@ -2,6 +2,8 @@
 title: 'Tried on, not sold: the number the till can’t see'
 description: 'The till counts what sells. Nobody counts what gets tried on and goes back on the rail, and that is half of every garment’s story.'
 date: 2026-11-12
+image: '/img/blog/vaqueros-probador.webp'
+imageAlt: 'Jeans tried on and left on a fitting-room bench'
 kicker: 'Fitting room'
 minutes: 4
 ---

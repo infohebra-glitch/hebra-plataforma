@@ -2,6 +2,8 @@
 title: 'Why your customers leave the garment in the fitting room'
 description: 'Size, fit, price, colour or quality. Asking why at the right moment, with no personal data, changes what you decide on the next order.'
 date: 2026-11-10
+image: '/img/blog/probador-camisetas.webp'
+imageAlt: 'T-shirts hanging on a fitting-room wall'
 kicker: 'The why'
 minutes: 4
 ---

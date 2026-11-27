@@ -3,6 +3,8 @@ title: '19 quilos l''any: el que Europa compra i el que llença'
 description: 'Cada europeu va comprar 19 quilos de tèxtils el 2022 i va generar 16 quilos de residu tèxtil. Només un de cada set quilos es recull per separat. Les dades de l''Agència Europea de Medi Ambient, explicades.'
 date: 2026-11-27
 metaDescription: 'Cada europeu va comprar 19 quilos de tèxtils el 2022 i en va llençar 16. Les dades de l’Agència Europea de Medi Ambient, explicades.'
+image: '/img/blog/perchas-probador.webp'
+imageAlt: 'Texans i peces de lli en penjadors de fusta'
 kicker: 'Dades'
 minutes: 4
 ---

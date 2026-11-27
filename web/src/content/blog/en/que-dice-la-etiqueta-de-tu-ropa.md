@@ -3,6 +3,8 @@ title: 'What your clothing label says (and what it leaves out)'
 description: 'In Europe, a garment label only has to state which fibres it is made of. Country of manufacture is optional and, when it appears, only covers the last stage. How to read a label and what to ask.'
 date: 2026-11-27
 metaDescription: 'In Europe a clothing label only has to state the fibres. Country of manufacture is optional and covers the last stage only. How to read it.'
+image: '/img/blog/etiqueta-made-in.webp'
+imageAlt: 'Inside label of a jacket: made in Portugal, size S/M'
 kicker: 'Origin'
 minutes: 5
 ---

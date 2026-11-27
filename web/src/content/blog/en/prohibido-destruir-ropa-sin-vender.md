@@ -3,6 +3,8 @@ title: 'You can no longer burn the clothes that don''t sell'
 description: 'Since 19 July 2026, large companies may not destroy unsold clothing or footwear in the European Union. Why the rule ends up reaching every shop, and how to prevent surplus before it exists.'
 date: 2026-11-27
 metaDescription: 'Since 19 July 2026, large companies may not destroy unsold clothing in the EU. Why the rule reaches every shop and how to avoid surplus.'
+image: '/img/blog/burra-colores.webp'
+imageAlt: 'Garments hanging on a shop rail'
 kicker: 'Regulation'
 minutes: 5
 ---

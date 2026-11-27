@@ -2,6 +2,8 @@
 title: 'Lo probado y no vendido: el dato que la caja no ve'
 description: 'La caja cuenta lo que se vende. Nadie cuenta lo que se prueba y vuelve a la percha, y ahí está la mitad de la historia de cada prenda.'
 date: 2026-11-12
+image: '/img/blog/vaqueros-probador.webp'
+imageAlt: 'Vaqueros probados y dejados en el banco de un probador'
 kicker: 'Probador'
 minutes: 4
 ---

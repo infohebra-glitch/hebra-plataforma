@@ -3,6 +3,8 @@ title: 'El que diu l''etiqueta de la teva roba (i el que calla)'
 description: 'A Europa, l''etiqueta d''una peça només està obligada a dir de quines fibres està feta. El país de fabricació és voluntari i, quan hi surt, només compta l''última etapa. Com llegir una etiqueta i quines preguntes fer.'
 date: 2026-11-27
 metaDescription: 'A Europa l’etiqueta només obliga a dir les fibres. El país de fabricació és voluntari i només compta l’última etapa. Com llegir-la.'
+image: '/img/blog/etiqueta-made-in.webp'
+imageAlt: 'Etiqueta interior d’una jaqueta: fet a Portugal, talla S/M'
 kicker: 'Origen'
 minutes: 5
 ---

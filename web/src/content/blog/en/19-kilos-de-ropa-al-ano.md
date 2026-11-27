@@ -3,6 +3,8 @@ title: '19 kilos a year: what Europe buys and what it throws away'
 description: 'Each European bought 19 kilos of textiles in 2022 and generated 16 kilos of textile waste. Only about one kilo in seven is collected separately. The European Environment Agency figures, explained.'
 date: 2026-11-27
 metaDescription: 'Each European bought 19 kilos of textiles in 2022 and threw away 16. The European Environment Agency figures, explained.'
+image: '/img/blog/perchas-probador.webp'
+imageAlt: 'Jeans and linen garments on wooden hangers'
 kicker: 'Data'
 minutes: 4
 ---

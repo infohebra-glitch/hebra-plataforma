@@ -3,6 +3,8 @@ title: 'El origen no es un relato, es un dato'
 description: 'Contar de dónde viene una prenda no va de fotos bonitas del taller. Va de saber qué se sabe de cada etapa, quién lo dice y si a tus clientes les importa. Cómo convertir el origen en algo que se mide.'
 date: 2026-11-27
 metaDescription: 'Contar de dónde viene una prenda no va de fotos bonitas. Qué se sabe de cada etapa, quién lo dice y cómo medir si a tus clientes les importa.'
+image: '/img/blog/patrones-taller.webp'
+imageAlt: 'Patrones de papel sobre tela en una mesa de taller'
 kicker: 'Origen'
 minutes: 6
 ---

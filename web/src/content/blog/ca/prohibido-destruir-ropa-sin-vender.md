@@ -3,6 +3,8 @@ title: 'Ja no es pot cremar la roba que no es ven'
 description: 'Des del 19 de juliol de 2026, les grans empreses no poden destruir roba ni calçat sense vendre a la Unió Europea. Per què la norma acaba arribant a totes les botigues i com evitar l''excedent abans que existeixi.'
 date: 2026-11-27
 metaDescription: 'Des del 19 de juliol de 2026 les grans empreses no poden destruir roba sense vendre a la UE. Per què arriba a totes les botigues i com evitar-ho.'
+image: '/img/blog/burra-colores.webp'
+imageAlt: 'Peces penjades a una barra de botiga'
 kicker: 'Normativa'
 minutes: 5
 ---

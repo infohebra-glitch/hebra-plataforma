@@ -13,7 +13,7 @@ interface Props {
   bare?: boolean; // ficha NFC: sin cabecera ni pie de la web
   dark?: boolean; // la página empieza sobre fondo azul
   noindex?: boolean; // 404 y páginas sin valor de búsqueda
-  article?: { published: Date; modified?: Date; section?: string }; // artículos del blog
+  article?: { published: Date; modified?: Date; section?: string; image?: string }; // artículos del blog
 }
 const { title, description: descProp, lang = 'es', route = '/', current = route, bare = false, dark = false, article } = Astro.props;
 const t = ui[lang];
@@ -27,7 +27,7 @@ const noindex = Astro.props.noindex || entry?.noindex || false;
 const canonical = new URL(path(lang, route), Astro.site);
 const locale = { es: 'es_ES', ca: 'ca_ES', en: 'en_GB' }[lang];
 const site = Astro.site!.href.replace(/\/$/, '');
-const ogImage = `${site}/img/og-${lang}.jpg`;
+const ogImage = article?.image ? `${site}${article.image}` : `${site}/img/og-${lang}.jpg`;
 // Datos estructurados (Schema.org): la organización y la web en todas las páginas; la página y, en el blog, el artículo.
 const org = {
   '@type': 'Organization', '@id': `${site}/#organization`, name: 'Hebra', url: `${site}/`,

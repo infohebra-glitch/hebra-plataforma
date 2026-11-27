@@ -2,6 +2,8 @@
 title: 'Por qué tus clientes dejan la prenda en el probador'
 description: 'Talla, corte, precio, color o calidad. Preguntar el motivo en el momento justo, sin datos personales, cambia lo que decides en el próximo pedido.'
 date: 2026-11-10
+image: '/img/blog/probador-camisetas.webp'
+imageAlt: 'Camisetas colgadas en la pared de un probador'
 kicker: 'El porqué'
 minutes: 4
 ---

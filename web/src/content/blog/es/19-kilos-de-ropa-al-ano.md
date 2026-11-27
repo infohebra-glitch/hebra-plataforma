@@ -3,6 +3,8 @@ title: '19 kilos al año: lo que Europa compra y lo que tira'
 description: 'Cada europeo compró 19 kilos de textiles en 2022 y generó 16 kilos de residuo textil. Solo uno de cada siete kilos se recoge por separado. Los datos de la Agencia Europea de Medio Ambiente, explicados.'
 date: 2026-11-27
 metaDescription: 'Cada europeo compró 19 kilos de textiles en 2022 y generó 16 kilos de residuo. Los datos de la Agencia Europea de Medio Ambiente, explicados.'
+image: '/img/blog/perchas-probador.webp'
+imageAlt: 'Vaqueros y prendas de lino en perchas de madera'
 kicker: 'Datos'
 minutes: 4
 ---

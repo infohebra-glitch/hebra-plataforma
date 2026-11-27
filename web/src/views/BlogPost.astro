@@ -19,7 +19,7 @@ const all = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`) && e
 const same = all.filter((e) => topicOf(e.data.kicker) === topicOf(entry.data.kicker));
 const others = [...same, ...all.filter((e) => !same.includes(e))].slice(0, 3);
 ---
-<Base title={entry.data.seoTitle ?? entry.data.title} lang={lang} route={`/blog/${slug}/`} description={entry.data.metaDescription ?? entry.data.description} article={{ published: entry.data.date, section: entry.data.kicker }}>
+<Base title={entry.data.seoTitle ?? entry.data.title} lang={lang} route={`/blog/${slug}/`} description={entry.data.metaDescription ?? entry.data.description} article={{ published: entry.data.date, section: entry.data.kicker, image: entry.data.image?.replace('/img/blog/', '/img/blog/og/').replace('.webp', '.jpg') }}>
   <header class="page-head art-head">
     <div class="wrap">
       <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / <a href={path(lang, '/blog/')}>{T.blog}</a></p>

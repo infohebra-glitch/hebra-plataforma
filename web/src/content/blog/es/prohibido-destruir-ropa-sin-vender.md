@@ -3,6 +3,8 @@ title: 'Ya no se puede quemar la ropa que no se vende'
 description: 'Desde el 19 de julio de 2026, las grandes empresas no pueden destruir ropa ni calzado sin vender en la Unión Europea. Por qué la norma acaba llegando a todas las tiendas y cómo evitar el excedente antes de que exista.'
 date: 2026-11-27
 metaDescription: 'Desde el 19 de julio de 2026 las grandes empresas no pueden destruir ropa sin vender en la UE. Por qué llega a todas las tiendas y cómo evitarlo.'
+image: '/img/blog/burra-colores.webp'
+imageAlt: 'Prendas colgadas en una barra de tienda'
 kicker: 'Normativa'
 minutes: 5
 ---

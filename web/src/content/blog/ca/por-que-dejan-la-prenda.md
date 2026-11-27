@@ -2,6 +2,8 @@
 title: 'Per què els teus clients deixen la peça a l’emprovador'
 description: 'Talla, tall, preu, color o qualitat. Preguntar el motiu al moment just, sense demanar dades personals, canvia el que decideixes a la pròxima comanda.'
 date: 2026-11-10
+image: '/img/blog/probador-camisetas.webp'
+imageAlt: 'Samarretes penjades a la paret d’un emprovador'
 kicker: 'El perquè'
 minutes: 4
 ---

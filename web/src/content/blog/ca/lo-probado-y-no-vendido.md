@@ -2,6 +2,8 @@
 title: 'El que s’emprova i no es ven: la dada que la caixa no veu'
 description: 'La caixa compta el que es ven. Ningú no compta el que s’emprova i torna a la perxa, i aquí hi ha la meitat de la història de cada peça.'
 date: 2026-11-12
+image: '/img/blog/vaqueros-probador.webp'
+imageAlt: 'Texans emprovats i deixats al banc d’un emprovador'
 kicker: 'Emprovador'
 minutes: 4
 ---
