@@ -1,10 +1,10 @@
 ---
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import Base from '../layouts/Base.astro';
-import BlogCover from '../components/BlogCover.astro';
 import Cta from '../components/Cta.astro';
 import Newsletter from '../components/Newsletter.astro';
 import { ui, path, type Lang } from '../i18n';
+import { topicOf } from '../blog';
 interface Props { lang: Lang; entry: CollectionEntry<'blog'> }
 const { lang, entry } = Astro.props;
 const { Content } = await render(entry);
@@ -15,19 +15,21 @@ const T = {
   en: { blog: 'Hebra blog', read: 'min read', more: 'Keep reading', back: 'All articles', by: 'The Hebra team' },
 }[lang];
 const fmt = new Intl.DateTimeFormat({ es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }[lang], { day: 'numeric', month: 'long', year: 'numeric' });
-const others = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`) && e.id !== entry.id)).slice(0, 2);
+const all = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`) && e.id !== entry.id)).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const same = all.filter((e) => topicOf(e.data.kicker) === topicOf(entry.data.kicker));
+const others = [...same, ...all.filter((e) => !same.includes(e))].slice(0, 3);
 ---
-<Base title={entry.data.title} lang={lang} route={`/blog/${slug}/`} description={entry.data.description} article={{ published: entry.data.date, section: entry.data.kicker }}>
+<Base title={entry.data.seoTitle ?? entry.data.title} lang={lang} route={`/blog/${slug}/`} description={entry.data.metaDescription ?? entry.data.description} article={{ published: entry.data.date, section: entry.data.kicker }}>
   <header class="page-head art-head">
     <div class="wrap">
       <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / <a href={path(lang, '/blog/')}>{T.blog}</a></p>
       <p class="kick">{entry.data.kicker}</p>
-      <h1 data-split>{entry.data.title}</h1>
+      <h1>{entry.data.title}</h1>
       <p class="lead">{entry.data.description}</p>
       <p class="meta">{T.by} · {fmt.format(entry.data.date)} · {entry.data.minutes} {T.read}</p>
     </div>
   </header>
-  <div class="wrap"><BlogCover slug={slug} big /></div>
+  {entry.data.image && <figure class="wrap art-photo"><img src={entry.data.image} alt={entry.data.imageAlt ?? ''} width="1600" height="900" loading="eager" /></figure>}
   <article class="band tight">
     <div class="wrap prose"><Content /></div>
   </article>
@@ -50,6 +52,8 @@ const others = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`) &
 
 <style>
   .art-head h1 { max-width: 22ch; }
+  .art-photo { margin: 0 auto; }
+  .art-photo img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius); }
   .meta { font-size: var(--step--1); color: var(--tinta-2); margin: 1.5rem 0 0; }
   .prose { max-width: 42rem; font-size: 1.12rem; line-height: 1.7; }
   .prose :global(h2) { font-size: var(--step-2); margin: 2.6rem 0 .8rem; }

@@ -1,55 +1,64 @@
 ---
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
-import BlogCover from '../components/BlogCover.astro';
 import Cta from '../components/Cta.astro';
 import Newsletter from '../components/Newsletter.astro';
 import { ui, path, type Lang } from '../i18n';
+import { topicOf, TOPICS } from '../blog';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const T = {
-  es: { title: 'Blog', desc: 'Lo que aprendemos sobre probadores, tallas, origen y tiendas de moda.', h1: 'Lo que pasa dentro del probador, y fuera.', lead: 'Notas cortas sobre lo que la caja no ve: pruebas, tallas, motivos y origen. Para quien decide qué pedir la próxima temporada.', read: 'min de lectura', more: 'Leer' },
-  ca: { title: 'Blog', desc: 'El que aprenem sobre emprovadors, talles, origen i botigues de moda.', h1: 'El que passa dins l’emprovador, i fora.', lead: 'Notes curtes sobre el que la caixa no veu: proves, talles, motius i origen. Per a qui decideix què demanar la pròxima temporada.', read: 'min de lectura', more: 'Llegir' },
-  en: { title: 'Blog', desc: 'What we learn about fitting rooms, sizes, origin and fashion stores.', h1: 'What happens inside the fitting room, and outside.', lead: 'Short notes on what the till can’t see: try-ons, sizes, reasons and origin. For whoever decides what to order next season.', read: 'min read', more: 'Read' },
+  es: { title: 'Blog', desc: 'Lo que aprendemos sobre probadores, tallas, origen y tiendas de moda.', h1: 'Lo que pasa dentro del probador, y fuera.', lead: 'Artículos sobre lo que la caja no ve, el origen de la ropa y las normas que llegan a la moda. Con datos y fuentes.', read: 'min', all: 'Todos', latest: 'Lo último', n: 'artículos' },
+  ca: { title: 'Blog', desc: 'El que aprenem sobre emprovadors, talles, origen i botigues de moda.', h1: 'El que passa dins l’emprovador, i fora.', lead: 'Articles sobre el que la caixa no veu, l’origen de la roba i les normes que arriben a la moda. Amb dades i fonts.', read: 'min', all: 'Tots', latest: 'El més nou', n: 'articles' },
+  en: { title: 'Blog', desc: 'What we learn about fitting rooms, sizes, origin and fashion stores.', h1: 'What happens inside the fitting room, and outside.', lead: 'Articles on what the till can’t see, where clothes come from and the rules coming to fashion. With data and sources.', read: 'min', all: 'All', latest: 'Latest', n: 'articles' },
 }[lang];
-const posts = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`))).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const posts = (await getCollection('blog', (e) => e.id.startsWith(`${lang}/`)))
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime() || a.data.title.localeCompare(b.data.title));
 const slug = (id: string) => id.split('/').slice(1).join('/');
-const fmt = new Intl.DateTimeFormat({ es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }[lang], { day: 'numeric', month: 'long', year: 'numeric' });
-const [first, ...rest] = posts;
+const fmt = new Intl.DateTimeFormat({ es: 'es-ES', ca: 'ca-ES', en: 'en-GB' }[lang], { day: 'numeric', month: 'short', year: 'numeric' });
+const feat = posts.slice(0, 2);
+const used = TOPICS.filter((t) => posts.some((p) => topicOf(p.data.kicker) === t.id));
 ---
 <Base title={T.title} lang={lang} route="/blog/" description={T.desc}>
   <header class="page-head">
     <div class="wrap">
       <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / {T.title}</p>
-      <h1 data-split>{T.h1}</h1>
+      <h1>{T.h1}</h1>
       <p class="lead">{T.lead}</p>
     </div>
   </header>
 
-  <section class="band tight" style="padding-top:0">
+  <section class="band tight">
     <div class="wrap">
-      {first && (
-        <a class="post feat" href={path(lang, `/blog/${slug(first.id)}/`)} data-reveal>
-          <BlogCover slug={slug(first.id)} />
-          <div>
-            <p class="kick">{first.data.kicker}</p>
-            <h2>{first.data.title}</h2>
-            <p class="quiet">{first.data.description}</p>
-            <p class="meta">{fmt.format(first.data.date)} · {first.data.minutes} {T.read}</p>
-          </div>
-        </a>
-      )}
-      <div class="grid">
-        {rest.map((p) => (
-          <a class="post" href={path(lang, `/blog/${slug(p.id)}/`)} data-reveal>
-            <BlogCover slug={slug(p.id)} />
-            <p class="kick">{p.data.kicker}</p>
-            <h2>{p.data.title}</h2>
-            <p class="quiet">{p.data.description}</p>
-            <p class="meta">{fmt.format(p.data.date)} · {p.data.minutes} {T.read}</p>
+      <div class="feat">
+        {feat.map((p) => (
+          <a class:list={['fcard', { photo: !!p.data.image }]} href={path(lang, `/blog/${slug(p.id)}/`)}>
+            {p.data.image && <img src={p.data.image} alt={p.data.imageAlt ?? ''} loading="eager" width="1200" height="750" />}
+            <span class="fk">{p.data.kicker}</span>
+            <span class="ft">{p.data.title}</span>
+            <span class="fd">{p.data.description}</span>
+            <span class="fm">{fmt.format(p.data.date)} · {p.data.minutes} {T.read}</span>
           </a>
         ))}
       </div>
+
+      <div class="filters" role="group" aria-label={T.title} data-blog-filters hidden>
+        <button type="button" aria-pressed="true" data-topic="all">{T.all} <small>{posts.length}</small></button>
+        {used.map((t) => <button type="button" aria-pressed="false" data-topic={t.id}>{t[lang]} <small>{posts.filter((p) => topicOf(p.data.kicker) === t.id).length}</small></button>)}
+      </div>
+
+      <ol class="list" data-blog-list>
+        {posts.map((p) => (
+          <li data-topic={topicOf(p.data.kicker)}>
+            <a href={path(lang, `/blog/${slug(p.id)}/`)}>
+              <span class="lk">{p.data.kicker}</span>
+              <span class="lt">{p.data.title}</span>
+              <span class="ld">{p.data.description}</span>
+              <span class="lm">{fmt.format(p.data.date)} · {p.data.minutes} {T.read}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
     </div>
   </section>
 
@@ -57,16 +66,46 @@ const [first, ...rest] = posts;
   <Cta lang={lang} />
 </Base>
 
+<script>
+  const box = document.querySelector<HTMLElement>('[data-blog-filters]');
+  const items = document.querySelectorAll<HTMLElement>('[data-blog-list] li');
+  if (box) {
+    box.hidden = false;
+    box.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('button');
+      if (!b) return;
+      const t = b.dataset.topic;
+      box.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      items.forEach((li) => { li.hidden = t !== 'all' && li.dataset.topic !== t; });
+    });
+  }
+</script>
+
 <style>
-  .post { display: block; color: inherit; text-decoration: none; }
-  .post h2 { font-size: var(--step-2); margin: 0 0 .6rem; transition: color .2s; }
-  .post:hover h2 { color: var(--deep); }
-  .post :global(.cover) { transition: transform .5s cubic-bezier(.2,.7,.2,1); }
-  .post:hover :global(.cover) { transform: translateY(-4px); }
-  .post .kick { margin: 1.2rem 0 .5rem; }
-  .meta { font-size: var(--step--1); color: var(--tinta-2); margin: 0; }
-  .feat { display: grid; gap: 1rem 3rem; align-items: center; padding-bottom: 3rem; border-bottom: 1px solid var(--linea); margin-bottom: 3rem; }
-  @media (min-width: 900px) { .feat { grid-template-columns: 7fr 5fr; } .feat h2 { font-size: var(--step-3); } }
-  .grid { display: grid; gap: 3rem 2.5rem; }
-  @media (min-width: 760px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .feat { display: grid; gap: 1.5rem; margin-bottom: clamp(3rem, 7vw, 5rem); }
+  @media (min-width: 900px) { .feat { grid-template-columns: 1fr 1fr; } }
+  .fcard { position: relative; display: flex; flex-direction: column; gap: .7rem; min-height: 22rem; padding: clamp(1.6rem, 3vw, 2.4rem); border-radius: var(--radius); background: var(--ink); color: var(--on-dark); text-decoration: none; overflow: hidden; isolation: isolate; justify-content: flex-end; }
+  .fcard:first-child { background: var(--deep); color: #fff; }
+  .fcard img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+  .fcard.photo::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, rgba(7,18,31,.88), rgba(7,18,31,.15) 70%); }
+  .fk { font-size: var(--step--1); opacity: .75; margin-bottom: auto; }
+  .ft { font-size: var(--step-2); line-height: 1.08; letter-spacing: -0.035em; font-weight: 450; max-width: 22ch; text-wrap: balance; }
+  .fd { opacity: .8; max-width: 46ch; }
+  .fm { font-size: var(--step--1); opacity: .65; }
+  .fcard:hover .ft { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.5rem; }
+  .filters button { font: 500 var(--step--1)/1 var(--sans); padding: .65rem 1rem; border-radius: 999px; border: 1px solid var(--rule-light); background: transparent; color: var(--on-light); cursor: pointer; }
+  .filters button small { opacity: .55; margin-left: .2rem; }
+  .filters button[aria-pressed='true'] { background: var(--on-light); color: var(--paper); border-color: var(--on-light); }
+
+  .list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule-light); }
+  .list li { border-bottom: 1px solid var(--rule-light); }
+  .list a { display: grid; gap: .35rem 2rem; padding: 1.6rem 0; color: inherit; text-decoration: none; }
+  @media (min-width: 900px) { .list a { grid-template-columns: 10rem 1fr 9rem; align-items: baseline; } .ld { grid-column: 2; } .lm { grid-column: 3; grid-row: 1; text-align: right; } }
+  .lk { font-size: var(--step--1); color: var(--deep); font-weight: 500; }
+  .lt { font-size: var(--step-1); line-height: 1.25; letter-spacing: -0.02em; font-weight: 500; }
+  .ld { color: var(--on-light-2); max-width: 60ch; }
+  .lm { font-size: var(--step--1); color: var(--on-light-2); }
+  .list a:hover .lt { color: var(--deep); }
 </style>

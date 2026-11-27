@@ -10,6 +10,11 @@ const blog = defineCollection({
     date: z.coerce.date(),
     kicker: z.string(),
     minutes: z.number(),
+    // Foto real de portada (opcional): ruta dentro de public/, p. ej. /img/blog/probador.webp. Sin foto, la tarjeta es solo tipográfica.
+    seoTitle: z.string().optional(),        // título para Google si el de la página pasa de 60 caracteres
+    metaDescription: z.string().optional(), // descripción para Google (≤155) si la de la página es más larga
+    image: z.string().optional(),
+    imageAlt: z.string().optional(),
   }),
 });
 
