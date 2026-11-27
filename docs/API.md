@@ -80,6 +80,26 @@ Regla «molt provat, poc venut» (insight 3): proves ≥ `N` al període (paràm
 }
 ```
 
+`provador_online` (v0.9): `null` si la marca no ha pujat cap devolució online; si no, el bloc de `GET /provador-online` d'aquest model (`categories`, `coincidencia`, `talla_sentit`, `talles`, `lectura`...).
+
+### `GET /provador-online?model=` → `analitica.provador_online` (v0.9, marca o admin)
+Motiu de no compra al provador (fitxa NFC) comparat amb el motiu de devolució online. Sempre agregat per model i talla, mai per persona. El filtre de botiga només s'aplica al provador (online és de tota la marca).
+```json
+{"respostes_provador": 159, "devolucions_online": 49, "nomes_online": 16, "pct_nomes_online": 0.33,
+ "coincidencia": 0.5,
+ "categories": [{"motiu": "talla", "nom": "Talla", "provador": 39, "pct_provador": 0.25, "online": 21, "pct_online": 0.64}],
+ "nomes_online_detall": [{"motiu": "diferent_foto", "nom": "No era com a la foto o la descripció", "online": 7, "pct": 0.14}],
+ "talla_sentit": {"online": {"petita": 13, "gran": 8}, "provador": {"petita": 37, "gran": 39}},
+ "models": [{"model", "nom", "respostes_provador", "devolucions_online", "motiu_provador", "motiu_online",
+             "provador": {"preu": 4}, "online": {"talla": 6}, "nomes_online", "coincidencia", "divergent",
+             "talla_online": {"petita", "gran"}, "talla_provador": {"petita", "gran"}, "lectura"}],
+ "talles": [{"model", "nom", "talla", "petita", "gran", "sense"}],
+ "etiquetes": {"talla": "Talla"}, "minim": 5, "text": "...", "importat": {"linies", "unitats", "des", "fins"}}
+```
+Coincidència = Σ min(% provador, % online) sobre les categories que existeixen als dos llocs («només mirava» fora). `null` amb menys de 5 respostes a cada costat. `divergent` = coincidència < 50 %. Talla al provador: peticions de talla des de la fitxa cap a una de més gran («petita») o més petita («gran»).
+
+Relacionades: `POST /importa/devolucions` (CSV `data,gtin,quantitat,motiu,comentari,comanda`; respon `{importades, repetides, errors, avisos}`), `GET /devolucions/mapa`, `PUT /devolucions/mapa` (`{codi, motiu, sentit}`), `DELETE /devolucions`.
+
 ### `GET /talles` → `analitica.talles`
 ```json
 {
@@ -197,6 +217,31 @@ Blocs per tipus (secció 5.2 de la Proposta): **diari** (resum d'ahir); **setman
 ```json
 {"actiu": true, "per_zona_hora": [{"cabina","hora","n"}], "total": 3}
 ```
+
+### v0.5 · Panorama del Resum: `GET /panorama` → `analitica.panorama`
+Gràfics a la manera de les eines de provador del sector (Sensormatic Fitting Room 360, Crave, Nedap): de la peça tocada a la peça venuda.
+```json
+{"periode": {...}, "dies": ["2026-11-16", ...],
+ "embut": [{"clau": "tocs|proves|peticions|compres", "nom", "n"}],
+ "mapa_calor": {"hores": [9..21], "dies_setmana": ["dl",...], "proves": [[13 valors] x 7]},
+ "per_categoria": [{"categoria", "proves", "compres", "conversio"}],
+ "temps_cabina": {"trams": [{"des": 0, "fins": 3, "sessions"}, ...], "mediana_minuts": 7.4},
+ "peces_per_sessio": [{"peces": 1, "sessions"}, ..., {"peces": "5+", "sessions"}],
+ "peces": [{"model", "nom", "categoria", "color", "preu", "imatge", "proves", "compres", "conversio",
+            "unitats_venudes", "ingressos", "estoc", "cobertura_setmanes", "serie": [proves per dia]}],
+ "motius": [{"motiu", "nom", "n", "pct"}]}
+```
+`/models` i `/models/{model}` també porten `color` i `imatge` (i `imatge` a cada `provat_amb`).
+
+## v0.5 · Imatges de les peces (`/api/v2/imatges`, marca o admin)
+
+| Ruta | Resposta |
+|---|---|
+| `GET /imatges` | `{"imatges": [{"model", "nom", "color", "categoria", "imatge", "silueta", "font", "actualitzada"}]}` (cada model i color del catàleg) |
+| `PUT /imatges/{model}?color=` | cos `{"data_url": "data:image/jpeg;base64,..."}` o `{"url": "https://..."}` → `{"model", "color", "url", "bytes", "font"}`; 400 si no és JPEG/PNG/WebP o passa de 6 MB; 404 si el model no és al catàleg |
+| `DELETE /imatges/{model}?color=` | `{"esborrada": bool}`: la fitxa torna a la silueta |
+
+`color` buit = la foto serveix per a tots els colors del model. Les imatges es redimensionen (1.200 px), es passen a JPEG o PNG i se'ls treuen les metadades (EXIF, GPS). Es serveixen públiques i des del propi domini (`GET /imatges/peca/{clau}?v=`, memòria cau d'un any); si no n'hi ha, `GET /imatges/silueta/{familia}.svg?c=<hex>` pinta la silueta de la categoria amb el color de la peça. També entren soles amb la columna `imatge_url` del catàleg CSV i en sincronitzar Shopify (imatge de la variant o del producte). La fitxa NFC ensenya la foto a dalt i, a «Combina amb», les peces triades per la marca o, si no n'hi ha, les que més es proven juntes a la cabina (com a mínim 3 sessions als darrers 90 dies).
 
 ## Operació
 
@@ -402,3 +447,27 @@ Tots els informes (`GET /informes/{tipus}` i els lliurats) porten, a més dels b
 - El bucle de fons mira cada minut què toca: genera l'ocurrència més recent que encara no s'ha fet (posterior a la creació i a `darrera_execucio`), la desa i, si hi ha SMTP i destinataris, l'envia. Si el servidor ha estat aturat, en tornar no recupera tots els buits, només la darrera.
 - Si el PDF no es pot fer (falta WeasyPrint o Pango al servidor): les rutes `.pdf` i `/envia` responen **400** «No s'ha pogut generar el PDF: …»; al bucle de fons, el lliurat queda amb `estat_enviament` `error` i el motiu a `error`, i els altres informes que toquen es fan igualment.
 - PDF: WeasyPrint amb `hebra/templates/informe_pdf.html` i gràfics SVG fets al servidor (`hebra/grafics_svg.py`). El nom de la marca de la capçalera és el paràmetre `nom_marca`, o el de la configuració de la fitxa, o «Hebra».
+
+## Entrada de la passarel·la (`POST /api/v1/lots`), revisió 0.4
+
+- Cada element de `lectures` i `sensors` pot portar `ref` (text únic per element; la passarel·la fa servir `<id d'instal·lació>-<número de la cua>`). Un `ref` ja vist s'ignora i es compta a `repetits`: reenviar un lot és segur.
+- El lot pot portar `passarella: {id, pendents, versio, ara}`. S'anota quan s'ha vist i quin desfasament de rellotge té. Un lot buit amb aquest camp és un senyal de vida.
+- Màxim 5.000 elements per lot (413 si se supera). Un lot invàlid dona 400 i no es desa res (tot o res); els errors d'element no fatals surten a `errors`.
+- `GET /api/v2/analitica/estat-sistema` inclou `passarelles`: id, última vegada vista, pendents, elements rebutjats i alertes (silenci de més de 10 min o rellotge desfasat més de 30 s).
+- `POST /api/v2/jo/contrasenya {actual, nova}` canvia la contrasenya pròpia i tanca les altres sessions d'aquest usuari.
+- Fitxa pública `/p/{token}`: `s` (sessió) i `b` (botiga) es validen; màxim 3 peticions obertes per visita i 20 per botiga cada 10 minuts (superat: redirecció amb `ok=limit`); les respostes porten `no-store` i `noindex`.
+
+### Lot de prova (`/api/v2/lot-prova`, marca o admin)
+
+Dades inventades per veure el tauler ple abans de tenir dades reals. Van a una botiga pròpia,
+`PROVA-01` («Botiga de prova», 3 cabines, antenes `PROVA-R700:n`), sense cap paràmetre general,
+cap programació d'informes de tota la marca ni cap destinatari de correu.
+
+| Mètode | Què fa | Errors |
+|---|---|---|
+| `GET` | `{carregat, botiga_id, nom, creat?, des?, fins?, resum?}` | 401, 403 |
+| `POST` | Crea 2 setmanes de pilot simulat que acaben ahir | 409 si ja n'hi ha, o si ja existeix una botiga `PROVA-01` real |
+| `DELETE` | Esborra la botiga de prova i el catàleg i les etiquetes que va crear. Res més | 409 si no n'hi ha |
+
+La prova `tests/test_lot_prova.py` comprova que, després de carregar i esborrar el lot, totes les
+taules queden exactament igual que abans.

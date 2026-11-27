@@ -326,7 +326,7 @@ def test_importa_vendes_estoc_i_cataleg(entorn):
     cb = _client(app_mod, "bcn@hebra.cat")
     vendes = f"data_hora,botiga,gtin,quantitat,import,tiquet\n2026-11-16T12:00:00+01:00,BCN-01,{gtin},1,69,T1\n"
     r = cb.post("/api/v2/importa/vendes", files={"fitxer": ("v.csv", vendes.encode())})
-    assert r.json() == {"importades": 1, "errors": []}
+    assert r.json() == {"importades": 1, "repetides": 0, "errors": []}
     alienes = vendes + f"2026-11-16,GIR-01,{gtin},1,69,T2\n"
     assert cb.post("/api/v2/importa/vendes", files={"fitxer": ("v.csv", alienes.encode())}).status_code == 403
 
@@ -355,11 +355,11 @@ def test_fitxa_seccio_balisa_i_csp(entorn):
     assert 'data-seccio="talles"' in r.text and 'id="seccions"' in r.text
     assert r.headers["x-content-type-options"] == "nosniff" and r.headers["referrer-policy"] == "no-referrer"
 
-    r = c.post(f"/p/{token}/seccio", data={"seccio": "cura", "s": "sess", "b": "BCN-01", "lang": "es"})
+    r = c.post(f"/p/{token}/seccio", data={"seccio": "cura", "s": "sessio-prova", "b": "BCN-01", "lang": "es"})
     assert r.status_code == 204 and "set-cookie" not in r.headers
     fila = con.execute("SELECT * FROM esdeveniment_nfc WHERE tipus = 'veu_seccio'").fetchone()
     assert fila["valor"] == "cura" and fila["idioma"] == "es" and fila["botiga_id"] == "BCN-01"
-    assert c.post(f"/p/{token}/seccio", data={"seccio": "<x>", "s": "sess"}).status_code == 400
+    assert c.post(f"/p/{token}/seccio", data={"seccio": "<x>", "s": "sessio-prova"}).status_code == 400
 
 
 def test_fitxa_estoc_real_i_combina(entorn):
@@ -377,7 +377,9 @@ def test_fitxa_estoc_real_i_combina(entorn):
     peca = fitxa.peca_per_token(con, fila["nfc_token"])
     d = fitxa.dades_fitxa(con, peca, "BCN-01", "ca")
     assert all(t["estoc"] == 0 for t in d["talles"])
-    assert d["combina"][1] == "MODEL-INEXISTENT" and d["combina"][0] != altres[0][0]  # nom, no codi
+    noms = [c["nom"] for c in d["combina"]]
+    assert noms[1] == "MODEL-INEXISTENT" and noms[0] != altres[0][0]  # nom, no codi
+    assert all(c["imatge"]["url"].startswith("/imatges/") for c in d["combina"])  # cada peça amb la seva imatge
     # Sense botiga (o sense files d'estoc), l'estoc del fitxer d'origen.
     d2 = fitxa.dades_fitxa(con, peca, None, "ca")
     assert [t["estoc"] for t in d2["talles"]] == [origen["estoc"].get(t["talla"]) for t in d2["talles"]]
@@ -390,7 +392,7 @@ def test_limit_formularis_fitxa(entorn):
     app_mod.app.state.limit_fitxa = auth.CubellTestimonis(capacitat=3, ritme=0.001)
     c = TestClient(app_mod.app)
     token = con.execute("SELECT nfc_token FROM etiqueta LIMIT 1").fetchone()[0]
-    codis = [c.post(f"/p/{token}/seccio", data={"seccio": "cura", "s": "x"}).status_code for _ in range(5)]
+    codis = [c.post(f"/p/{token}/seccio", data={"seccio": "cura", "s": "sessio-prova"}).status_code for _ in range(5)]
     assert codis == [204, 204, 204, 429, 429]
 
 

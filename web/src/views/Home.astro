@@ -1,0 +1,290 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import Calculator from '../components/Calculator.astro';
+import Process from '../components/Process.astro';
+import Film from '../components/Film.astro';
+import Fan from '../components/Fan.astro';
+import VideoDemo from '../components/VideoDemo.astro';
+import Report from '../components/Report.astro';
+import Cta from '../components/Cta.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: {
+    desc: 'Hebra mide lo que pasa dentro del probador de tu tienda de moda: qué se prueba y no se vende, por qué, y si lo que cambias hace vender. Con una etiqueta inteligente en cada prenda.',
+    pH: 'El probador es donde tu cliente decide. Y tú no ves nada.',
+    evH: 'Lo que dicen los datos',
+    ev: [['67 %', 'de quien entra al probador acaba comprando. Sin pasar por él, el 10 %.', 'Alert Technologies', 'https://alerttech.net/increase-retail-apparel-sales-turning-shoppers-customers/'], ['1 de 3', 'sale del probador sin comprar. La tienda no sabe qué prenda ni por qué.', 'A partir del mismo dato', ''], ['2 %', 'de las veces funciona llamar a la puerta para ofrecer otra talla.', 'Marge Laney, Alert Technologies', 'https://www.retaildoc.com/blog/apparel-stores-use-fitting-room-to-fight-online-retailers'], ['7 %', 'de los compradores dice que disfruta del probador.', 'Estudio de Indyme', 'https://boutique-magazine.co.uk/how-your-fitting-room-experience-could-be-affecting-your-bottom-line/']],
+    pL: 'La caja registra lo que se vende. La web sabe lo que se mira y no se compra. En la tienda física, el momento en que alguien se prueba una prenda y la deja no queda en ningún sitio.',
+    loss: [['Margen que se va en rebajas', 'Una prenda muy probada y poco vendida se descubre cuando ya está rebajada.'], ['Pedidos a ciegas por talla', 'Se compra la curva de tallas de siempre, no la que la gente se prueba.'], ['Tallas que faltan', 'Piden la L, no está, y se van. Nadie lo apunta.'], ['Un origen sin resultado', 'Pagas por conocer tu cadena, pero no sabes si contarlo hace vender.']],
+    cH: '¿Cuánto te cuesta tu probador?', cL: 'Nuestra métrica principal: lo probado y no vendido, en euros por semana y tienda. Mueve las cifras y pon las de tu tienda.',
+    dK: 'Los datos', dH: 'Lo que tu tienda física por fin te cuenta.', dL: 'Nueve datos que hoy no tienes y la decisión que te permite cada uno.',
+    sK: 'Pruébalo tú', sH: 'Lleva una prenda al probador y mira qué ve la marca.', sB: 'Abrir el simulador',
+    piecesH: 'Un sistema, dos piezas. De la fábrica al probador.',
+    p1k: 'En la tienda', p1: 'Cuenta qué prendas entran en cada cabina, las cruza con las ventas y recoge por qué no se las llevan.', p1l: ['Pruebas y conversión por modelo y talla', 'Demanda perdida y peticiones de talla', 'Motivo de no compra', 'Avisos al móvil de la tienda'], p1b: 'Ver Probador',
+    p2k: 'En la cadena', p2: 'La trazabilidad en versión sencilla: las cuatro etapas de cada modelo, sus certificados y el coste ambiental oficial francés.', p2l: ['Porcentaje de cadena conocida por modelo', 'Certificados con aviso de caducidad', 'Coste ambiental con Ecobalyse', 'La ficha de la prenda en el móvil'], p2b: 'Ver Origen',
+    note: 'Juntas responden lo que nadie más responde: qué parte de tu cadena te hace vender y cuál te hace perder ventas.',
+    rH: 'No te damos datos. Te damos una acción cada lunes.', rL: 'Una página por tienda, siempre con los mismos bloques en el mismo sitio. Acaba con una acción, una persona responsable y una fecha.',
+    rl: [['En tiempo real', 'Avisos al móvil de la tienda: tallas pedidas, prendas olvidadas en la cabina.'], ['Cada mañana', 'Cinco líneas para la encargada.'], ['Cada mes y temporada', 'Curva de tallas, stock parado, riesgo de rebaja y qué repetir en la próxima colección.']],
+    tH: 'Lo que medimos, y lo que no mediremos nunca.',
+    tr: [['Sin cámaras', 'Nada graba imagen ni sonido, ni reconoce personas. Medimos prendas, no a quien las lleva.'], ['Ningún dato personal', 'Los toques de la ficha no se ligan a ninguna compra ni a ninguna persona. Tampoco medimos al personal.'], ['Se instala en una visita', 'Sin obras, sin tocar tu wifi ni tu caja. Hardware con marcado CE.'], ['Datos de la tienda en la UE', 'Los datos de tu tienda se alojan en la UE, con contratos conformes al RGPD. Preparamos contigo la evaluación de privacidad y el cartel informativo.']],
+    privacy: 'Cómo tratamos los datos',
+  },
+  ca: {
+    desc: 'Hebra mesura el que passa dins l’emprovador de la teva botiga de moda: què s’emprova i no es ven, per què, i si el que canvies fa vendre. Amb una etiqueta intel·ligent a cada peça.',
+    pH: 'L’emprovador és on el teu client decideix. I tu no hi veus res.',
+    evH: 'El que diuen les dades',
+    ev: [['67 %', 'de qui entra a l’emprovador acaba comprant. Sense passar-hi, el 10 %.', 'Alert Technologies', 'https://alerttech.net/increase-retail-apparel-sales-turning-shoppers-customers/'], ['1 de 3', 'surt de l’emprovador sense comprar. La botiga no sap quina peça ni per què.', 'A partir de la mateixa dada', ''], ['2 %', 'de les vegades funciona trucar a la porta per oferir una altra talla.', 'Marge Laney, Alert Technologies', 'https://www.retaildoc.com/blog/apparel-stores-use-fitting-room-to-fight-online-retailers'], ['7 %', 'dels compradors diu que gaudeix de l’emprovador.', 'Estudi d’Indyme', 'https://boutique-magazine.co.uk/how-your-fitting-room-experience-could-be-affecting-your-bottom-line/']],
+    pL: 'La caixa registra el que es ven. La web sap el que es mira i no es compra. A la botiga física, el moment en què algú s’emprova una peça i la deixa no queda enlloc.',
+    loss: [['Marge que se’n va en rebaixes', 'Una peça molt emprovada i poc venuda es descobreix quan ja està rebaixada.'], ['Comandes a cegues per talla', 'Es compra la corba de talles de sempre, no la que la gent s’emprova.'], ['Talles que falten', 'Demanen la L, no hi és, i se’n van. Ningú ho apunta.'], ['Un origen sense resultat', 'Pagues per conèixer la teva cadena, però no saps si explicar-ho fa vendre.']],
+    cH: 'Quant et costa el teu emprovador?', cL: 'La nostra mètrica principal: el que s’emprova i no es ven, en euros per setmana i botiga. Mou les xifres i posa-hi les de la teva botiga.',
+    dK: 'Les dades', dH: 'El que la teva botiga física per fi t’explica.', dL: 'Nou dades que avui no tens i la decisió que et permet cadascuna.',
+    sK: 'Prova-ho tu', sH: 'Porta una peça a l’emprovador i mira què veu la marca.', sB: 'Obrir el simulador',
+    piecesH: 'Un sistema, dues peces. De la fàbrica a l’emprovador.',
+    p1k: 'A la botiga', p1: 'Compta quines peces entren a cada cabina, les creua amb les vendes i recull per què no se les enduen.', p1l: ['Proves i conversió per model i talla', 'Demanda perduda i peticions de talla', 'Motiu de no compra', 'Avisos al mòbil de la botiga'], p1b: 'Veure Emprovador',
+    p2k: 'A la cadena', p2: 'La traçabilitat en versió senzilla: les quatre etapes de cada model, els seus certificats i el cost ambiental oficial francès.', p2l: ['Percentatge de cadena coneguda per model', 'Certificats amb avís de caducitat', 'Cost ambiental amb Ecobalyse', 'La fitxa de la peça al mòbil'], p2b: 'Veure Origen',
+    note: 'Juntes responen el que ningú més respon: quina part de la teva cadena et fa vendre i quina et fa perdre vendes.',
+    rH: 'No et donem dades. Et donem una acció cada dilluns.', rL: 'Una pàgina per botiga, sempre amb els mateixos blocs al mateix lloc. Acaba amb una acció, una persona responsable i una data.',
+    rl: [['En temps real', 'Avisos al mòbil de la botiga: talles demanades, peces oblidades a la cabina.'], ['Cada matí', 'Cinc línies per a l’encarregada.'], ['Cada mes i temporada', 'Corba de talles, estoc aturat, risc de rebaixa i què repetir a la propera col·lecció.']],
+    tH: 'El que mesurem, i el que no mesurarem mai.',
+    tr: [['Sense càmeres', 'Res no grava imatge ni so, ni reconeix persones. Mesurem peces, no qui les porta.'], ['Cap dada personal', 'Els tocs de la fitxa no es lliguen a cap compra ni a cap persona. Tampoc mesurem el personal.'], ['S’instal·la en una visita', 'Sense obres, sense tocar el teu wifi ni la teva caixa. Maquinari amb marcatge CE.'], ['Dades de la botiga a la UE', 'Les dades de la teva botiga s’allotgen a la UE, amb contractes conformes al RGPD. Preparem amb tu l’avaluació de privacitat i el cartell informatiu.']],
+    privacy: 'Com tractem les dades',
+  },
+  en: {
+    desc: 'Hebra measures what happens inside your fashion store’s fitting room: what gets tried on and not sold, why, and whether what you change actually sells. With a smart tag in every garment.',
+    pH: 'The fitting room is where your customer decides. And you see nothing.',
+    evH: 'What the data says',
+    ev: [['67%', 'of shoppers who enter the fitting room end up buying. Without it, 10%.', 'Alert Technologies', 'https://alerttech.net/increase-retail-apparel-sales-turning-shoppers-customers/'], ['1 in 3', 'leaves the fitting room without buying. The store doesn’t know which garment or why.', 'Derived from the same figure', ''], ['2%', 'of the time, knocking on the door to offer another size works.', 'Marge Laney, Alert Technologies', 'https://www.retaildoc.com/blog/apparel-stores-use-fitting-room-to-fight-online-retailers'], ['7%', 'of shoppers say they enjoy the fitting room.', 'Indyme study', 'https://boutique-magazine.co.uk/how-your-fitting-room-experience-could-be-affecting-your-bottom-line/']],
+    pL: 'The till records what sells. Your website knows what gets viewed and not bought. In a physical store, the moment someone tries on a garment and leaves it behind is recorded nowhere.',
+    loss: [['Margin lost to markdowns', 'A garment tried on a lot and sold little is only discovered once it’s already on sale.'], ['Ordering sizes blind', 'You buy the usual size curve, not the one people actually try on.'], ['Missing sizes', 'They ask for an L, it isn’t there, and they leave. Nobody writes it down.'], ['Origin with no payoff', 'You pay to know your supply chain, but you don’t know whether telling it sells.']],
+    cH: 'What is your fitting room costing you?', cL: 'Our core metric: tried on and not sold, in euros per week and per store. Move the figures and use your store’s numbers.',
+    dK: 'The data', dH: 'What your physical store finally tells you.', dL: 'Nine data points you don’t have today, and the decision each one lets you make.',
+    sK: 'Try it yourself', sH: 'Take a garment to the fitting room and see what the brand sees.', sB: 'Open the simulator',
+    piecesH: 'One system, two parts. From the factory to the fitting room.',
+    p1k: 'In the store', p1: 'Counts which garments go into each room, matches them with sales and collects why people don’t buy them.', p1l: ['Try-ons and conversion by style and size', 'Lost demand and size requests', 'Reasons for not buying', 'Alerts to the store’s phone'], p1b: 'See Fitting room',
+    p2k: 'In the supply chain', p2: 'Traceability made simple: the four stages of each style, their certificates and the official French environmental cost.', p2l: ['Share of supply chain known per style', 'Certificates with expiry alerts', 'Environmental cost with Ecobalyse', 'The garment page on the phone'], p2b: 'See Origin',
+    note: 'Together they answer what nobody else does: which part of your supply chain makes you sell, and which part loses you sales.',
+    rH: 'We don’t give you data. We give you an action every Monday.', rL: 'One page per store, always with the same blocks in the same place. It ends with an action, an owner and a date.',
+    rl: [['In real time', 'Alerts to the store’s phone: sizes requested, garments left behind in a room.'], ['Every morning', 'Five lines for the store manager.'], ['Every month and season', 'Size curve, stuck stock, markdown risk and what to repeat in the next collection.']],
+    tH: 'What we measure, and what we will never measure.',
+    tr: [['No cameras', 'Nothing records images or sound, or recognises people. We measure garments, not who wears them.'], ['No personal data', 'Taps on the garment page are never linked to a purchase or a person. We don’t measure staff either.'], ['Installed in one visit', 'No building work, no touching your wifi or your till. CE-marked hardware.'], ['Store data in the EU', 'Your store’s data is hosted in the EU, under GDPR-compliant contracts. We prepare the privacy assessment and the in-store notice with you.']],
+    privacy: 'How we handle data',
+  },
+}[lang];
+// Textos nuevos de la v4
+const N = {
+  es: {
+    man: 'Cada día, miles de prendas entran en un probador. Se [prueban], se [comparan] y se quedan en la [percha]. La caja solo ve lo que se [vende]. Hebra sabe todo lo demás: las [pruebas], las [tallas] que faltan, los [motivos] y el [tiempo].',
+    vid: 'Medimos prendas. <em>Nunca personas.</em>',
+    vidL: 'Sin cámaras, sin micrófonos, sin datos personales.',
+    pH: 'El probador es donde tu cliente decide. <em>Y tú no ves nada.</em>',
+    dH: 'Lo que tu tienda física <em>por fin</em> te cuenta.',
+    words: ['Pruebas por prenda', 'Del probador a la caja', 'Tiempo en cabina', 'Tallas pedidas', 'Motivos de no compra', 'Prendas que entran juntas', 'Horas punta', 'Interés por el origen', 'Efecto de cada cambio'],
+    xK: 'Explora Hebra',
+    x: [['/probador/', 'Probador', 'Lo que pasa en la cabina', 'cortinas'], ['/origen/', 'Origen', 'La cadena de cada modelo', 'percha'], ['/ficha/', 'La ficha', 'Lo que ve tu cliente en el móvil', 'espejo'], ['/como-funciona/', 'Cómo funciona', 'Simulador y los nueve datos', 'cabinas']],
+    rH: 'No te damos datos. Te damos <em>una acción</em> cada lunes.',
+    tH: 'Lo que medimos, y lo que <em>no mediremos nunca.</em>',
+  },
+  ca: {
+    man: 'Cada dia, milers de peces entren en un emprovador. S’[emproven], es [comparen] i es queden a la [perxa]. La caixa només veu el que es [ven]. Hebra sap tota la resta: les [proves], les [talles] que falten, els [motius] i el [temps].',
+    vid: 'Mesurem peces. <em>Mai persones.</em>',
+    vidL: 'Sense càmeres, sense micròfons, sense dades personals.',
+    pH: 'L’emprovador és on el teu client decideix. <em>I tu no hi veus res.</em>',
+    dH: 'El que la teva botiga física <em>per fi</em> t’explica.',
+    words: ['Proves per peça', 'De l’emprovador a la caixa', 'Temps a la cabina', 'Talles demanades', 'Motius de no compra', 'Peces que entren juntes', 'Hores punta', 'Interès per l’origen', 'Efecte de cada canvi'],
+    xK: 'Explora Hebra',
+    x: [['/probador/', 'Emprovador', 'El que passa a la cabina', 'cortinas'], ['/origen/', 'Origen', 'La cadena de cada model', 'percha'], ['/ficha/', 'La fitxa', 'El que veu el teu client al mòbil', 'espejo'], ['/como-funciona/', 'Com funciona', 'Simulador i les nou dades', 'cabinas']],
+    rH: 'No et donem dades. Et donem <em>una acció</em> cada dilluns.',
+    tH: 'El que mesurem, i el que <em>no mesurarem mai.</em>',
+  },
+  en: {
+    man: 'Every day, thousands of garments go into a fitting room. They get [tried], [compared] and left on the [rail]. The till only sees what [sells]. Hebra knows everything else: the [try-ons], the missing [sizes], the [reasons] and the [time].',
+    vid: 'We measure garments. <em>Never people.</em>',
+    vidL: 'No cameras, no microphones, no personal data.',
+    pH: 'The fitting room is where your customer decides. <em>And you see nothing.</em>',
+    dH: 'What your physical store <em>finally</em> tells you.',
+    words: ['Try-ons per garment', 'Fitting room to till', 'Time in the room', 'Sizes requested', 'Reasons for not buying', 'Garments tried together', 'Peak hours', 'Interest in origin', 'Effect of each change'],
+    xK: 'Explore Hebra',
+    x: [['/probador/', 'Fitting room', 'What happens in the room', 'cortinas'], ['/origen/', 'Origin', 'The supply chain of every style', 'percha'], ['/ficha/', 'The garment page', 'What your customer sees on their phone', 'espejo'], ['/como-funciona/', 'How it works', 'Simulator and the nine data points', 'cabinas']],
+    rH: 'We don’t give you data. We give you <em>an action</em> every Monday.',
+    tH: 'What we measure, and what we <em>will never measure.</em>',
+  },
+}[lang];
+const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
+  part.startsWith('[') ? [{ w: part.slice(1, -1), hot: true }] : part.split(/(\s+)/).filter(Boolean).map((w) => ({ w, hot: false }))
+);
+---
+<Base title="Hebra" lang={lang} route="/" description={T.desc}>
+  <Hero lang={lang} />
+
+  <section class="man" aria-label={T.pH.replace(/<[^>]+>/g, '')}>
+    <div class="wrap">
+      <p class="man-text" data-words>
+        {man.map((m) => m.hot ? <span class="mw" data-w>{m.w}</span> : /\s/.test(m.w) ? ' ' : <span class="mw-plain">{m.w}</span>)}
+      </p>
+    </div>
+  </section>
+
+  <Film src="/video/etiquetas.mp4" poster="/video/etiquetas.jpg" title={N.vid} text={N.vidL} />
+
+  <section class="band" id="problema">
+    <div class="wrap">
+      <h2 class="big" data-lines set:html={N.pH} />
+      <div class="split prob">
+        <p class="lead" data-reveal>{T.pL}</p>
+        <ul class="rows loss" data-reveal>
+          {T.loss.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}
+        </ul>
+      </div>
+      <div class="ev" data-reveal>
+        <h3 class="ev-h">{T.evH}</h3>
+        <ul class="ev-grid">
+          {T.ev.map(([n, d, src, url]) => (
+            <li>
+              <p class="ev-n">{n}</p>
+              <p class="ev-d">{d}</p>
+              <p class="ev-s">{url ? <a href={url} rel="noopener" target="_blank">{src}</a> : src}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="band perla" id="calculadora">
+    <div class="wrap">
+      <div class="split head-split">
+        <h2 data-lines>{T.cH}</h2>
+        <p class="lead" data-reveal>{T.cL}</p>
+      </div>
+      <div data-reveal><Calculator lang={lang} /></div>
+    </div>
+  </section>
+
+  <div class="wipe" data-wipe aria-hidden="true"><i></i></div>
+  <Process lang={lang} />
+
+  <section class="band deep" id="datos">
+    <div class="wrap">
+      <div class="split head-split">
+        <div><p class="kick">{T.dK}</p><h2 data-lines set:html={N.dH} /></div>
+        <p class="lead" data-reveal>{T.dL}</p>
+      </div>
+      <Fan lang={lang} />
+    </div>
+  </section>
+
+  <div class="marquee" data-marquee aria-hidden="true">
+    <div class="marquee-track" data-marquee-track>
+      {[0, 1].map(() => (
+        <div class="marquee-set">
+          {N.words.map((w) => <span>{w}<i></i></span>)}
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <VideoDemo lang={lang} />
+
+  <section class="band" id="explora">
+    <div class="wrap">
+      <p class="kick">{N.xK}</p>
+      <ul class="xlist" data-xlist>
+        {N.x.map(([href, h, p, img]) => (
+          <li>
+            <a href={path(lang, href)} data-ximg={`/img/foto/${img}.webp`}>
+              <span class="x-h">{h}</span>
+              <span class="x-p">{p}</span>
+              <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p class="note" data-reveal>{T.note}</p>
+    </div>
+    <div class="xfloat" data-xfloat aria-hidden="true"></div>
+  </section>
+
+  <section class="band perla" id="lunes">
+    <div class="wrap split rev">
+      <div data-reveal><Report lang={lang} /></div>
+      <div>
+        <h2 data-lines set:html={N.rH} />
+        <p class="lead" data-reveal>{T.rL}</p>
+        <ul class="rows stack" data-reveal>
+          {T.rl.map(([h, p]) => <li><h3>{h}</h3><p>{p}</p></li>)}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="band dark" id="confianza">
+    <div class="wrap">
+      <h2 class="big" data-lines set:html={N.tH} />
+      <div class="trust">
+        {T.tr.map(([h, p], i) => <div data-reveal><h3>{h}</h3><p class="quiet">{p}{i === 3 && <> <a class="textlink" href={path(lang, '/privacidad/')}>{T.privacy}</a></>}</p></div>)}
+      </div>
+    </div>
+  </section>
+
+  <Newsletter lang={lang} />
+  <Cta lang={lang} />
+</Base>
+
+<style>
+  h2.big { font-size: clamp(2.4rem, 1.3rem + 4.4vw, 6.2rem); line-height: .96; letter-spacing: -0.055em; max-width: 16ch; margin-bottom: clamp(2.5rem, 6vw, 5rem); }
+  .head-split { align-items: end; margin-bottom: clamp(2.5rem, 5vw, 4rem); }
+  .head-split h2 { margin: 0; }
+  .head-split .lead { margin: 0; }
+  .prob { align-items: start; }
+  .ev { margin-top: clamp(4rem, 9vw, 7rem); }
+  .ev-h { margin: 0 0 1.4rem; font-size: var(--step--1); font-weight: 500; color: var(--on-light-2); }
+  .ev-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 2.4rem 2rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); border-top: 1px solid var(--rule-light); padding-top: 2rem; }
+  .ev-n { margin: 0 0 .8rem; font: 300 clamp(3.4rem, 2.4rem + 3vw, 5.4rem)/.9 var(--serif); letter-spacing: -0.05em; color: var(--deep); font-variant-numeric: tabular-nums; }
+  .ev-d { margin: 0 0 .9rem; max-width: 26ch; line-height: 1.45; }
+  .ev-s { margin: 0; font-size: .78rem; color: var(--on-light-2); }
+  .ev-s a { color: inherit; text-underline-offset: .2em; }
+  .loss h3 { color: var(--deep); }
+
+  /* Manifiesto: párrafo grande; una palabra se ilumina cada vez */
+  .man { background: var(--ink); color: var(--on-dark); padding: clamp(5rem, 12vw, 10rem) 0; }
+  .man-text { max-width: 30ch; margin: 0; font: 400 clamp(1.9rem, 1rem + 3.4vw, 4.6rem)/1.08 var(--sans); letter-spacing: -0.05em; color: color-mix(in srgb, var(--on-dark) 38%, transparent); text-wrap: pretty; }
+  .mw { color: var(--on-dark); transition: color .6s var(--ease); }
+  .mw.on { font-family: var(--serif); font-style: italic; font-weight: 300; color: var(--tint); letter-spacing: -0.04em; }
+
+  /* La tinta sube y cubre la sección clara */
+  .wipe { position: relative; height: 22vh; background: var(--paper-2); overflow: hidden; }
+  .wipe i { position: absolute; left: 50%; top: 0; width: 160vmax; aspect-ratio: 1; translate: -50% 0; border-radius: 50%; background: var(--ink); transform: translateY(100%) scale(.3); }
+
+  /* Cinta infinita con los nueve datos */
+  .marquee { background: var(--deep); color: #fff; overflow: hidden; padding: 1.6rem 0; border-top: 1px solid rgba(255,255,255,.18); cursor: grab; touch-action: pan-y; user-select: none; }
+  .marquee-track { display: flex; width: max-content; will-change: transform; }
+  .marquee-set { display: flex; }
+  .marquee span { display: inline-flex; align-items: center; gap: 2.2rem; padding-right: 2.2rem; font: 300 italic clamp(2rem, 1.2rem + 3vw, 4rem)/1 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 100; letter-spacing: -0.04em; white-space: nowrap; }
+  .marquee i { width: .32em; height: .32em; border-radius: 50%; border: 1.5px solid currentColor; opacity: .6; }
+
+  /* Lista para explorar: la foto sigue al ratón */
+  .xlist { list-style: none; margin: 0 0 3rem; padding: 0; border-top: 1px solid var(--rule-light); }
+  .xlist a { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .3rem 2rem; padding: clamp(1.4rem, 3vw, 2.2rem) 0; border-bottom: 1px solid var(--rule-light); text-decoration: none; }
+  @media (min-width: 860px) { .xlist a { grid-template-columns: 1.1fr 1fr auto; } }
+  .x-h { font: 420 clamp(2rem, 1.2rem + 3vw, 4.2rem)/1 var(--sans); letter-spacing: -0.05em; transition: transform .6s var(--ease), color .4s; }
+  .x-p { color: var(--on-light-2); grid-row: 2; }
+  @media (min-width: 860px) { .x-p { grid-row: auto; } }
+  .x-arrow { grid-row: 1 / span 2; width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--rule-light); display: grid; place-items: center; transition: background .5s var(--ease), color .5s, transform .6s var(--ease); }
+  @media (min-width: 860px) { .x-arrow { grid-row: auto; } }
+  .xlist a:hover .x-h { transform: translateX(.6rem); color: var(--deep); font-family: var(--serif); font-style: italic; font-weight: 300; }
+  .xlist a:hover .x-arrow { background: var(--deep); color: #fff; border-color: var(--deep); transform: rotate(-45deg); }
+  .xfloat { position: fixed; left: 0; top: 0; z-index: 40; width: 300px; aspect-ratio: 4 / 5; pointer-events: none; border-radius: 16px; overflow: hidden; opacity: 0; scale: .6; transition: opacity .4s, scale .6s var(--ease); }
+  .xfloat.on { opacity: 1; scale: 1; }
+  .xfloat img { width: 100%; height: 100%; object-fit: cover; }
+  @media (hover: none), (max-width: 860px) { .xfloat { display: none; } }
+
+  .trust { display: grid; gap: 2.5rem; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .trust { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1100px) { .trust { grid-template-columns: repeat(4, 1fr); } }
+  .trust > div { border-top: 1px solid var(--rule-dark); padding-top: 1.2rem; }
+  .trust h3 { margin-bottom: .5rem; }
+</style>

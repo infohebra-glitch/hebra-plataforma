@@ -9,6 +9,7 @@ import { properaExecucio } from '../lib/programacio';
 import { NOMS_TIPUS_TASCA } from '../lib/tasques';
 import { BOTIGUES, MODELS, ORIGENS, arr, avui, conv, cub, defModel, dies, estat, sumaCompres, sumaProves, type FiltreMock } from './dades';
 import { atzar } from './estadistica';
+import { foto } from './fotos';
 
 const ara = () => new Date();
 const fa = (min: number) => new Date(Date.now() - min * 60000).toISOString();
@@ -353,9 +354,16 @@ export const CONFIG_GENERAL: T.ConfigFitxa = {
     benvinguda: { ca: 'Gràcies per provar-te una peça Hebra. Aquí tens tot el que cal saber.', es: 'Gracias por probarte una prenda Hebra. Aquí tienes todo lo que necesitas saber.' },
     peu: { ca: 'Fet amb cura a la Mediterrània.', es: 'Hecho con cuidado en el Mediterráneo.' },
   },
-  'aparença': { color_principal: '#214F46', logo_data_url: null, nom_marca: 'Hebra' },
-  motius: ['talla', 'preu', 'tall', 'qualitat', 'color', 'nomes_mirava'],
+  'aparença': { color_principal: '#14457D', logo_data_url: null, nom_marca: 'Hebra' },
+  motius: ['talla', 'preu', 'tall', 'qualitat', 'color', 'p-massa-llarg'],
+  seccions_propies: [
+    { id: 'p-arranjaments', titol: { ca: 'Arranjaments gratuïts', es: 'Arreglos gratuitos' }, text: { ca: 'Fem la vora dels pantalons i les mànigues sense cost.\nEstà llest en 48 hores a la mateixa botiga.', es: 'Cogemos el bajo y las mangas sin coste.\nEstá listo en 48 horas en la misma tienda.' }, plegable: false },
+  ],
+  motius_propis: [{ id: 'p-massa-llarg', text: { ca: 'És massa llarg per a mi', es: 'Es demasiado largo para mí' } }],
+  textos_motius: {},
 };
+CONFIG_GENERAL.seccions.ordre.push('p-arranjaments');
+CONFIG_GENERAL.seccions.visibles['p-arranjaments'] = true;
 export const configBotigues: Record<string, T.ConfigFitxaParcial> = {
   'MAD-01': { idiomes: ['es', 'en', 'ca'], accions: { mostra_estoc: 'unitats' } },
 };
@@ -387,7 +395,7 @@ export const ORIGEN_FITXA = (model: string): Record<string, unknown> | null => {
   return { nom: m.nom, descripcio: `${m.nom} de la col·lecció d’hivern.`, cura: ['Rentar a 30 °C'], etapes: o?.etapes ?? [], composicio: o?.composicio ?? [] };
 };
 export function modelsFitxa(): T.ModelFitxa[] {
-  return MODELS.map((m) => ({ model: m.model, nom: m.nom, categoria: m.categoria, idiomes_amb_contingut: Object.keys(continguts[m.model] ?? {}), te_origen: !!ORIGENS[m.model] }));
+  return MODELS.map((m) => ({ model: m.model, nom: m.nom, categoria: m.categoria, idiomes_amb_contingut: Object.keys(continguts[m.model] ?? {}), te_origen: !!ORIGENS[m.model], imatge: foto(m.model) }));
 }
 
 const COLOR = /^#[0-9A-Fa-f]{6}$/;
@@ -400,8 +408,14 @@ export function validaConfig(c: T.ConfigFitxaParcial): string | null {
     if (!/^data:image\/(png|svg\+xml);base64,/.test(ap.logo_data_url)) return 'El logo ha de ser una imatge PNG o SVG.';
     if (ap.logo_data_url.length * 0.75 > 100 * 1024) return 'El logo no pot passar de 100 KB.';
   }
-  if (c.seccions?.ordre && c.seccions.ordre.some((s) => !SECCIONS.includes(s))) return 'Hi ha una secció desconeguda.';
-  if (c.motius && c.motius.some((m) => !MOTIUS.includes(m))) return 'Hi ha un motiu desconegut.';
+  const propi = (x: string) => /^p-[a-z0-9-]{1,30}$/.test(x);
+  if (c.seccions?.ordre && c.seccions.ordre.some((s) => !SECCIONS.includes(s) && !propi(s))) return 'Hi ha una secció desconeguda.';
+  if (c.motius && c.motius.some((m) => !MOTIUS.includes(m) && !propi(m))) return 'Hi ha un motiu desconegut.';
+  for (const x of c.seccions_propies ?? []) {
+    if (!propi(x.id)) return 'L’identificador d’una secció pròpia no és vàlid.';
+    if (!Object.values(x.titol).some((t) => t.trim())) return 'Cada secció pròpia necessita un títol.';
+  }
+  for (const x of c.motius_propis ?? []) if (!Object.values(x.text).some((t) => t.trim())) return 'Cada motiu propi necessita un text.';
   if (c.idiomes && !c.idiomes.length) return 'La fitxa ha d’oferir com a mínim un idioma.';
   return null;
 }

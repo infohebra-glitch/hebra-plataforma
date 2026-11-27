@@ -11,6 +11,7 @@ import { NOMS_PERIODE, type TipusPeriode } from '../lib/periode';
 import { esMock } from '../lib/mode';
 import { aplicaTema, desaTema, llegeixTema, type Tema } from '../lib/tema';
 import { Icona, LogoHebra } from './Icones';
+import { FranjaLotProva, ProveidorLotProva } from './LotProva';
 
 interface Enllac { a: string; nom: string; icona: string; rols?: Rol[]; grup: string }
 const MARCA: Rol[] = ['admin', 'marca'];
@@ -21,6 +22,7 @@ export const ENLLACOS: Enllac[] = [
   { a: '/talles', nom: 'Talles', icona: 'talles', grup: 'Tauler' },
   { a: '/sessions', nom: 'Sessions', icona: 'sessions', grup: 'Tauler' },
   { a: '/per-que', nom: 'Per què no compren', icona: 'perque', grup: 'Tauler' },
+  { a: '/provador-online', nom: 'Provador i online', icona: 'online', grup: 'Tauler', rols: MARCA },
   { a: '/origen', nom: 'Origen i proves', icona: 'origen', grup: 'Tauler', rols: MARCA },
   { a: '/provadors', nom: 'Provadors en directe', icona: 'provadors', grup: 'Botiga' },
   { a: '/servei', nom: 'Servei', icona: 'servei', grup: 'Botiga' },
@@ -144,11 +146,13 @@ export function Shell() {
   }, [loc.pathname]);
 
   return (
+    <ProveidorLotProva>
     <div className="shell">
       <a href="#principal" className="salta">Salta al contingut</a>
       <aside className="barra-lateral">
         <NavLink to="/" className="marca-hebra" aria-label="Hebra, inici"><LogoHebra />Hebra</NavLink>
         <Navegacio />
+        <div className="peu-lateral"><b>{usuari.nom}</b><span>{ROLS[usuari.rol]}{esMock() ? ' · demostració' : ''}</span></div>
       </aside>
       <div style={{ minWidth: 0 }}>
         <header className="capcalera">
@@ -156,6 +160,7 @@ export function Shell() {
           <SelectorFiltres />
           <MenuUsuari />
         </header>
+        <FranjaLotProva />
         <main id="principal" className="contingut"><Outlet /></main>
       </div>
       <nav className="nav-inferior" aria-label="Navegació principal">
@@ -174,5 +179,6 @@ export function Shell() {
         </>
       )}
     </div>
+    </ProveidorLotProva>
   );
 }

@@ -6,6 +6,7 @@ quantes lectures hi ha hagut i amb quina intensitat (RSSI). Això és la
 `lectura_agregada` de la plataforma.
 """
 
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -25,23 +26,29 @@ class Agregador:
     finestra_s: float = 10.0
     prefixos_epc: tuple[str, ...] = ()   # filtre opcional (hex en majúscules)
     _obertes: dict[tuple[str, int], _Finestra] = field(default_factory=dict)
+    _lock: threading.Lock = field(default_factory=threading.Lock)
 
     def afegeix(self, epc_hex: str, port: int, rssi_dbm: float, ts: datetime) -> None:
         epc_hex = epc_hex.upper()
         if self.prefixos_epc and not epc_hex.startswith(self.prefixos_epc):
             return  # etiqueta d'una altra marca o d'un altre sistema
         clau = (epc_hex, port)
-        f = self._obertes.get(clau)
-        if f is None:
-            f = self._obertes[clau] = _Finestra(inici=ts, fi=ts)
-        f.fi = max(f.fi, ts)
-        f.n += 1
-        f.rssi_max = max(f.rssi_max, rssi_dbm)
-        f.suma_rssi += rssi_dbm
+        with self._lock:
+            f = self._obertes.get(clau)
+            if f is None:
+                f = self._obertes[clau] = _Finestra(inici=ts, fi=ts)
+            f.fi = max(f.fi, ts)
+            f.n += 1
+            f.rssi_max = max(f.rssi_max, rssi_dbm)
+            f.suma_rssi += rssi_dbm
 
     def tanca(self, ara: datetime, tot: bool = False) -> list[dict]:
         """Retorna les finestres que ja han durat `finestra_s` (o totes si `tot`)."""
         sortida = []
+        with self._lock:
+            return self._tanca(ara, tot, sortida)
+
+    def _tanca(self, ara: datetime, tot: bool, sortida: list[dict]) -> list[dict]:
         for clau, f in list(self._obertes.items()):
             if tot or ara - f.inici >= timedelta(seconds=self.finestra_s):
                 epc_hex, port = clau

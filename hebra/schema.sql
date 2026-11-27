@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS sensor_event (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     cabina_id   TEXT NOT NULL REFERENCES cabina(id),
     ts          TEXT NOT NULL,              -- ISO 8601 amb zona
-    tipus       TEXT NOT NULL CHECK (tipus IN ('porta_tancada', 'porta_oberta', 'presencia_si', 'presencia_no'))
+    tipus       TEXT NOT NULL CHECK (tipus IN ('porta_tancada', 'porta_oberta', 'presencia_si', 'presencia_no')),
+    ref         TEXT                        -- referència única que posa la passarel·la (evita duplicats si reenvia)
 );
 
 -- La passarel·la (Raspberry Pi) agrega les lectures crues en finestres curtes
@@ -65,9 +66,12 @@ CREATE TABLE IF NOT EXISTS lectura_agregada (
     fi          TEXT NOT NULL,
     n_lectures  INTEGER NOT NULL,
     rssi_max    REAL NOT NULL,
-    rssi_mitja  REAL NOT NULL
+    rssi_mitja  REAL NOT NULL,
+    ref         TEXT                        -- referència única que posa la passarel·la (evita duplicats si reenvia)
 );
 CREATE INDEX IF NOT EXISTS ix_lectura_antena_temps ON lectura_agregada(antena_id, inici);
+CREATE INDEX IF NOT EXISTS ix_lectura_epc_temps ON lectura_agregada(epc, inici);
+-- Els índexs únics de `ref` es creen a db.inicialitza (la columna s'afegeix a les bases de dades antigues).
 
 -- ---------------------------------------------------------------- Proves
 CREATE TABLE IF NOT EXISTS sessio (
@@ -77,6 +81,7 @@ CREATE TABLE IF NOT EXISTS sessio (
     fi          TEXT NOT NULL,
     grup        TEXT                        -- grup de control del dia ('amb' / 'sense')
 );
+CREATE INDEX IF NOT EXISTS ix_sessio_cabina_inici ON sessio(cabina_id, inici);
 
 CREATE TABLE IF NOT EXISTS prova (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,6 +92,29 @@ CREATE TABLE IF NOT EXISTS prova (
     n_lectures  INTEGER NOT NULL,
     rssi_mitja  REAL NOT NULL,
     confianca   TEXT NOT NULL CHECK (confianca IN ('alta', 'mitjana', 'ambigua'))
+);
+CREATE INDEX IF NOT EXISTS ix_prova_sessio ON prova(sessio_id);
+
+-- Fins on ha arribat el càlcul de proves de cada cabina (hebra/proves.py): només es recalcula
+-- el tros afectat per les dades noves. `signatura` canvia si canvia la regla o les antenes.
+CREATE TABLE IF NOT EXISTS estat_calcul (
+    cabina_id   TEXT PRIMARY KEY REFERENCES cabina(id),
+    darrera_lectura_id INTEGER NOT NULL DEFAULT 0,
+    darrer_sensor_id   INTEGER NOT NULL DEFAULT 0,
+    signatura   TEXT NOT NULL DEFAULT ''
+);
+
+-- Darrer senyal de vida de cada passarel·la (hebra/passarella.py): quan ha enviat l'últim lot,
+-- quants elements té pendents i quants n'ha rebutjat la plataforma (p. ex. una antena mal configurada).
+CREATE TABLE IF NOT EXISTS passarella_estat (
+    id          TEXT PRIMARY KEY,           -- nom de la passarel·la ('' si no en diu cap)
+    vista       TEXT NOT NULL,
+    pendents    INTEGER,
+    versio      TEXT,
+    desfasament_s INTEGER,              -- rellotge de la passarel·la menys el del servidor
+    rebutjats   INTEGER NOT NULL DEFAULT 0,
+    darrer_error TEXT,
+    darrer_error_ts TEXT
 );
 
 -- ---------------------------------------------------------------- Vendes
@@ -147,6 +175,9 @@ CREATE TABLE IF NOT EXISTS peticio_talla (
     hora_resolta TEXT,
     disponible  INTEGER                     -- 1/0 segons l'estoc conegut en el moment
 );
+CREATE INDEX IF NOT EXISTS ix_peticio_botiga_estat ON peticio_talla(botiga_id, estat);
+CREATE INDEX IF NOT EXISTS ix_nfc_botiga_ts ON esdeveniment_nfc(botiga_id, ts);
+CREATE INDEX IF NOT EXISTS ix_venda_botiga_data ON venda_linia(botiga_id, data);
 
 -- ================================================================ v0.2: plataforma completa
 -- (Taules afegides per al tauler de la marca, alertes, estoc, experiments i registre de decisions.)
@@ -363,3 +394,96 @@ CREATE TABLE IF NOT EXISTS sync_registre (
     error       TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_sync_registre ON sync_registre(integracio_id, inici);
+
+-- ================================================================ v0.5: imatges de les peces
+-- Foto de cada model (i, si cal, de cada color) que veu el client a la fitxa NFC i la marca al tauler
+-- (hebra/imatges.py). color = '' vol dir «per a tots els colors del model». La plataforma la serveix
+-- des del seu domini a /imatges/peca/<clau>; sense imatge es mostra una silueta (hebra/siluetes.py).
+CREATE TABLE IF NOT EXISTS imatge_peca (
+    clau        TEXT NOT NULL UNIQUE,       -- identificador públic (hash de model + color)
+    model       TEXT NOT NULL,
+    color       TEXT NOT NULL DEFAULT '',
+    mime        TEXT NOT NULL,
+    dades       BLOB NOT NULL,
+    font        TEXT NOT NULL DEFAULT 'pujada',   -- 'pujada' | 'url' | 'shopify' | 'cataleg'
+    url_origen  TEXT,
+    versio      TEXT NOT NULL,
+    actualitzada TEXT NOT NULL,
+    PRIMARY KEY (model, color)
+);
+
+-- v0.6: més fotos del mateix model (detall, posada...). La foto principal continua a `imatge_peca`;
+-- aquestes surten després, a la galeria de la fitxa NFC. `fons`: color de les vores si la foto té
+-- un fons llis (es mostra sencera sobre aquest color); '' si és una foto ambientada (s'omple el marc).
+CREATE TABLE IF NOT EXISTS imatge_galeria (
+    clau        TEXT PRIMARY KEY,           -- identificador públic aleatori
+    model       TEXT NOT NULL,
+    ordre       INTEGER NOT NULL DEFAULT 0,
+    mime        TEXT NOT NULL,
+    dades       BLOB NOT NULL,
+    fons        TEXT,
+    versio      TEXT NOT NULL,
+    actualitzada TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_imatge_galeria_model ON imatge_galeria(model, ordre);
+
+-- v0.7: quins gràfics vol la marca a cada tipus d'informe, i en quin ordre. Sense fila: tots.
+CREATE TABLE IF NOT EXISTS config_informe (
+    tipus        TEXT PRIMARY KEY,
+    grafics_json TEXT NOT NULL,                 -- ["proves_compres_dia", "mapa_peces", ...]
+    actualitzat  TEXT NOT NULL
+);
+
+-- v0.7: col·leccions (temporades) de la marca, per comparar-les entre elles.
+CREATE TABLE IF NOT EXISTS colleccio (
+    id     INTEGER PRIMARY KEY,
+    nom    TEXT NOT NULL,
+    des    TEXT NOT NULL,                       -- AAAA-MM-DD
+    fins   TEXT NOT NULL,
+    lot_prova INTEGER NOT NULL DEFAULT 0        -- 1 = creada pel lot de prova (s'esborra amb ell)
+);
+
+-- v0.7: condicions d'un dia a una botiga (pluja, calor, festiu, rebaixes...), per filtrar i comparar.
+-- Ara les marca la botiga o la marca; més endavant es podran omplir soles (meteorologia).
+CREATE TABLE IF NOT EXISTS condicio_dia (
+    botiga_id  TEXT NOT NULL,
+    data       TEXT NOT NULL,                   -- AAAA-MM-DD
+    condicio   TEXT NOT NULL,
+    PRIMARY KEY (botiga_id, data, condicio)
+);
+
+-- ================================================================ v0.9: devolucions online
+-- El que diu el client de la botiga en línia quan torna una peça, per comparar-ho amb el que diu
+-- (o fa) al provador. Mai dades de cap persona: data, GTIN, unitats i el motiu (hebra/devolucions.py).
+-- Una instal·lació per marca: les devolucions són de tota la marca, no d'una botiga física.
+CREATE TABLE IF NOT EXISTS devolucio_online (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ref         TEXT UNIQUE NOT NULL,           -- empremta SHA-256 de la línia: tornar a pujar el fitxer no duplica
+    data        TEXT NOT NULL,                  -- AAAA-MM-DD de la devolució
+    gtin        TEXT NOT NULL,
+    quantitat   INTEGER NOT NULL DEFAULT 1,
+    codi        TEXT NOT NULL DEFAULT '',       -- motiu tal com el dona la marca (codi o text curt, net)
+    motiu_comentari TEXT,                       -- categoria deduïda del comentari (el comentari no es desa mai)
+    sentit_comentari TEXT,                      -- 'petita' | 'gran' deduït del comentari
+    lot_prova   INTEGER NOT NULL DEFAULT 0      -- 1 = dades del lot de prova (s'esborren amb ell)
+);
+CREATE INDEX IF NOT EXISTS ix_devolucio_data ON devolucio_online(data);
+
+-- Com es tradueix cada motiu de la marca a les categories del provador. `manual` = 1 si l'ha triat la marca.
+CREATE TABLE IF NOT EXISTS devolucio_mapa (
+    codi        TEXT PRIMARY KEY,
+    motiu       TEXT NOT NULL,
+    sentit      TEXT,                           -- 'petita' | 'gran' | NULL
+    manual      INTEGER NOT NULL DEFAULT 0
+);
+
+-- v0.9: peces de demo fetes amb `hebra-admin demo-peca` (p. ex. el polo). Es recorden perquè recarregar
+-- el lot de prova les torni a crear soles, amb les mateixes fotos i el mateix enllaç NFC (l'adhesiu no canvia).
+CREATE TABLE IF NOT EXISTS demo_peca_desada (
+    nou_model      TEXT PRIMARY KEY,
+    model_antic    TEXT NOT NULL,
+    peca_json      TEXT NOT NULL,
+    fet_a          TEXT,
+    botiga_id      TEXT NOT NULL DEFAULT 'PROVA-01',
+    etiquetes_json TEXT NOT NULL DEFAULT '[]'   -- [{talla, nfc_token, nfc_uid, nfc_ctr, nfc_ctr_simulat, nfc_simulat}]
+);

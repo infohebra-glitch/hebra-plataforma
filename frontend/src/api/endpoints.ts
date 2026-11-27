@@ -11,8 +11,15 @@ export const sessio = {
   jo: () => api.get<T.RespostaJo>('/jo'),
 };
 
+export const lotProva = {
+  estat: (s?: AbortSignal) => api.get<T.EstatLotProva>('/lot-prova', undefined, s),
+  carrega: () => api.post<T.EstatLotProva>('/lot-prova', {}),
+  esborra: () => api.del<{ esborrat: boolean; files: number }>('/lot-prova'),
+};
+
 export const analitica = {
   resum: (x: T.Filtre, s?: AbortSignal) => api.get<T.Resum>('/resum', f(x), s),
+  panorama: (x: T.Filtre, s?: AbortSignal) => api.get<T.Panorama>('/panorama', f(x), s),
   models: (x: T.Filtre, s?: AbortSignal) => api.get<T.RespostaModels>('/models', f(x), s),
   model: (x: T.Filtre, model: string, s?: AbortSignal) => api.get<T.ModelDetall>(`/models/${enc(model)}`, f(x), s),
   talles: (x: T.Filtre, s?: AbortSignal) => api.get<T.Talles>('/talles', f(x), s),
@@ -26,6 +33,18 @@ export const analitica = {
   valor: (x: T.Filtre, s?: AbortSignal) => api.get<T.Valor>('/valor', f(x), s),
   estatSistema: (x: T.Filtre, s?: AbortSignal) => api.get<T.EstatSistema>('/estat-sistema', f(x), s),
   informe: (x: T.Filtre, tipus: T.TipusInforme, s?: AbortSignal) => api.get<T.Informe>(`/informes/${tipus}`, f(x), s),
+  triaGrafics: (x: T.Filtre, tipus: T.TipusInforme, grafics: string[] | null) =>
+    api.put<{ tipus: string; grafics_triats: string[] | null }>(`/informes/${tipus}/grafics`, { grafics }, f(x)),
+  comparativa: (x: T.Filtre, o: { compara?: string; colleccio?: number; franja?: string; condicio?: string }, s?: AbortSignal) =>
+    api.get<T.Comparativa>('/comparativa', { ...f(x), ...o }, s),
+  provadorOnline: (x: T.Filtre, s?: AbortSignal, model?: string) => api.get<T.ProvadorOnline>('/provador-online', { ...f(x), model }, s),
+  colleccions: (s?: AbortSignal) => api.get<T.Colleccio[]>('/colleccions', undefined, s),
+  novaColleccio: (c: { nom: string; des: string; fins: string }) => api.post<T.Colleccio>('/colleccions', c),
+  esborraColleccio: (id: number) => api.del<{ ok: boolean }>(`/colleccions/${id}`),
+  condicions: (botiga?: string | null, s?: AbortSignal) => api.get<T.CondicioDia[]>('/condicions', { botiga: botiga ?? undefined }, s),
+  novaCondicio: (c: { botiga_id?: string | null; data: string; condicio: string }) => api.post<{ ok: boolean }>('/condicions', c),
+  esborraCondicio: (data: string, condicio: string, botiga?: string | null) =>
+    api.del<{ ok: boolean }>('/condicions', { data, condicio, botiga: botiga ?? undefined }),
   historial: (epc: string) => api.get<T.HistorialPeca>(`/peces/${enc(epc)}/historial`),
   perdues: (x: T.Filtre) => api.get<T.Perdues>('/perdues', f(x)),
   sessions: (x: T.Filtre, s?: AbortSignal) => api.get<T.Sessions>('/sessions', f(x), s),
@@ -45,6 +64,17 @@ export const tasques = {
 };
 
 /** Fitxa NFC configurable (A.3). */
+/** v0.5: la foto de cada model (i color) que veu el client a la fitxa NFC. */
+export const imatges = {
+  llista: (s?: AbortSignal) => api.get<{ imatges: T.ImatgePeca[] }>('/imatges', undefined, s),
+  puja: (model: string, color: string, cos: { data_url: string } | { url: string }) =>
+    api.put<T.ImatgeDesada>(`/imatges/${enc(model)}`, cos, color ? { color } : undefined),
+  esborra: (model: string, color: string) => api.del<{ esborrada: boolean }>(`/imatges/${enc(model)}${color ? `?color=${enc(color)}` : ''}`),
+  afegeixGaleria: (model: string, cos: { data_url: string } | { url: string }) =>
+    api.post<{ model: string; clau: string; url: string }>(`/imatges/${enc(model)}/galeria`, cos),
+  esborraGaleria: (model: string, clau: string) => api.del<{ esborrada: boolean }>(`/imatges/${enc(model)}/galeria/${enc(clau)}`),
+};
+
 export const fitxa = {
   config: (botiga?: string, s?: AbortSignal) => api.get<T.RespostaConfigFitxa>('/fitxa/config', { botiga }, s),
   desaConfig: (c: T.ConfigFitxa | T.ConfigFitxaParcial, botiga?: string) => api.put<T.RespostaConfigFitxa>('/fitxa/config', c, { botiga }),
@@ -81,6 +111,13 @@ export const integracions = {
   registre: (id: number, s?: AbortSignal) => api.get<{ registre: T.RegistreSync[] }>(`/integracions/${id}/registre`, undefined, s),
 };
 
+export const devolucions = {
+  mapa: (s?: AbortSignal) => api.get<T.MapaDevolucions>('/devolucions/mapa', undefined, s),
+  desaMapa: (codi: string, motiu: string, sentit: 'petita' | 'gran' | null) =>
+    api.put<T.CodiDevolucio>('/devolucions/mapa', { codi, motiu, sentit }),
+  esborra: () => api.del<{ esborrades: number }>('/devolucions'),
+};
+
 export const operacio = {
   peticions: (botiga?: string, estat?: T.EstatPeticio) => api.get<T.RespostaPeticions>('/peticions', { botiga, estat }),
   canviaPeticio: (id: number, estat: Exclude<T.EstatPeticio, 'pendent'>) => api.patch<T.Peticio>(`/peticions/${id}`, { estat }),
@@ -90,7 +127,7 @@ export const operacio = {
   creaDecisio: (d: T.NovaDecisio) => api.post<T.Decisio>('/decisions', d),
   canviaDecisio: (id: number, canvis: Partial<T.NovaDecisio>) => api.patch<T.Decisio>(`/decisions/${id}`, canvis),
   creaExperiment: (e: T.NouExperiment) => api.post<T.Experiment>('/experiments', e),
-  importa: (tipus: 'vendes' | 'estoc' | 'cataleg', fitxer: File) => api.puja<T.ResultatImport>(`/importa/${tipus}`, fitxer),
+  importa: (tipus: 'vendes' | 'estoc' | 'cataleg' | 'devolucions', fitxer: File) => api.puja<T.ResultatImport>(`/importa/${tipus}`, fitxer),
   parametres: (botiga?: string) => api.get<T.Parametres>('/parametres', { botiga }),
   desaParametres: (p: T.Parametres) => api.put<T.Parametres>('/parametres', p),
   sincronitzaShopify: (botiga?: string) => api.post<T.ResultatShopify>('/shopify/sincronitza', undefined, { botiga }),

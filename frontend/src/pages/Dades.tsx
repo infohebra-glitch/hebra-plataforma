@@ -1,15 +1,19 @@
 import { useState, type FormEvent } from 'react';
-import { operacio } from '../api/endpoints';
+import { Link } from 'react-router-dom';
+import { devolucions, operacio } from '../api/endpoints';
 import type { ResultatImport } from '../api/types';
+import { Colleccions, CondicionsDia } from '../components/CondicionsColleccions';
 import { Connexions } from '../components/Connexions';
+import { TargetaLotProva } from '../components/LotProva';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
 import { useSessio } from '../context/Sessio';
 import { enter, plural } from '../lib/format';
 
-type Tipus = 'vendes' | 'estoc' | 'cataleg';
-const TIPUS: { tipus: Tipus; nom: string; descripcio: string; columnes: string; nomesAdmin?: boolean }[] = [
+type Tipus = 'vendes' | 'estoc' | 'cataleg' | 'devolucions';
+const TIPUS: { tipus: Tipus; nom: string; descripcio: string; columnes: string; nomesAdmin?: boolean; nomesMarca?: boolean }[] = [
   { tipus: 'vendes', nom: 'Vendes', descripcio: 'Les vendes del TPV, per atribuir compres a les proves.', columnes: 'data_hora, botiga, gtin, quantitat' },
   { tipus: 'estoc', nom: 'Estoc', descripcio: 'Les unitats que hi ha a cada botiga ara mateix.', columnes: 'botiga, gtin, unitats' },
+  { tipus: 'devolucions', nom: 'Devolucions online', descripcio: 'Les devolucions de la botiga en línia, amb el motiu, per comparar-les amb el provador. Sense noms, correus ni adreces.', columnes: 'data, gtin, quantitat, motiu (o comentari)', nomesMarca: true },
   { tipus: 'cataleg', nom: 'Catàleg', descripcio: 'Models, talles, colors i preus.', columnes: 'gtin, model, nom, categoria, color, talla, preu', nomesAdmin: true },
 ];
 
@@ -26,7 +30,7 @@ function Importador({ t }: { t: (typeof TIPUS)[number] }) {
   };
   const id = `fitxer-${t.tipus}`;
   return (
-    <form className="targeta" onSubmit={envia}>
+    <form className="targeta" onSubmit={envia} id={t.tipus}>
       <h3>{t.nom}</h3>
       <p className="muted" style={{ margin: 0 }}>{t.descripcio}</p>
       <p className="petit" style={{ margin: 0 }}>Columnes: <span className="codi">{t.columnes}</span></p>
@@ -37,6 +41,9 @@ function Importador({ t }: { t: (typeof TIPUS)[number] }) {
         {resultat && (
           <div className={resultat.errors.length ? 'avis-estimacio' : 'avis'}>
             <b>{resultat.importades ? `${plural(resultat.importades, 'fila importada', 'files importades')}.` : 'No s’ha importat cap fila.'}</b>
+            {!!resultat.repetides && <p className="petit" style={{ margin: '4px 0' }}>{plural(resultat.repetides, 'fila ja hi era', 'files ja hi eren')}: no s’han duplicat.</p>}
+            {resultat.avisos?.map((a, i) => <p key={i} className="petit" style={{ margin: '4px 0' }}>{a}</p>)}
+            {t.tipus === 'devolucions' && resultat.importades > 0 && <p className="petit" style={{ margin: '4px 0' }}><Link to="/provador-online">Mira la comparativa amb el provador</Link>.</p>}
             {resultat.errors.length > 0 && (
               <>
                 <p className="petit" style={{ margin: '4px 0' }}>{plural(resultat.errors.length, 'fila amb error', 'files amb errors')} (no s’han importat):</p>
@@ -48,7 +55,22 @@ function Importador({ t }: { t: (typeof TIPUS)[number] }) {
         )}
         {error && <p className="missatge-error" role="alert">{error}</p>}
       </div>
+      {t.tipus === 'devolucions' && <EsborraDevolucions />}
     </form>
+  );
+}
+
+function EsborraDevolucions() {
+  const [fet, setFet] = useState<string | null>(null);
+  const esborra = async () => {
+    if (!window.confirm('Vols esborrar totes les devolucions online que has pujat? Les podràs tornar a pujar.')) return;
+    try { const r = await devolucions.esborra(); setFet(`${plural(r.esborrades, 'devolució esborrada', 'devolucions esborrades')}.`); } catch (e) { setFet((e as Error).message); }
+  };
+  return (
+    <div>
+      <button type="button" className="boto-fantasma boto-petit" onClick={esborra}>Esborra les devolucions pujades</button>
+      {fet && <p className="petit" role="status">{fet}</p>}
+    </div>
   );
 }
 
@@ -62,9 +84,13 @@ export function Dades() {
         {marca ? 'D’on treu Hebra el catàleg, les vendes i l’estoc. Connecta la botiga en línia o el TPV i es sincronitza sol; si no, puja un CSV a mà.' : 'Puja aquí els fitxers CSV de vendes i d’estoc de la teva botiga.'}
       </TitolPagina>
       {marca && <Connexions />}
+      {marca && <div style={{ marginTop: 24 }}><TargetaLotProva /></div>}
+      <div id="condicions"><Seccio titol="Dies especials i col·leccions" subtitol="Per comparar i filtrar les proves i compres per dia del Resum.">
+        <div className="reixa-2"><CondicionsDia /><Colleccions /></div>
+      </Seccio></div>
       <Seccio titol="Pujada manual de CSV" subtitol="Separador coma o punt i coma, codificació UTF-8, amb capçalera a la primera fila. Serveix si el TPV no es pot connectar.">
         <div className="reixa-3">
-          {TIPUS.filter((t) => !t.nomesAdmin || admin).map((t) => <Importador key={t.tipus} t={t} />)}
+          {TIPUS.filter((t) => (!t.nomesAdmin || admin) && (!t.nomesMarca || marca)).map((t) => <Importador key={t.tipus} t={t} />)}
         </div>
       </Seccio>
     </>

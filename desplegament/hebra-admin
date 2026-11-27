@@ -1,0 +1,11 @@
+#!/bin/sh
+# Executa `python -m hebra.admin` amb la mateixa configuració i usuari que el servei web.
+# L'script d'instal·lació el copia a /usr/local/bin/hebra-admin. Exemples:
+#   sudo hebra-admin usuari --correu nom@hebraia.com --nom Nom --rol admin
+#   sudo hebra-admin copia
+#   sudo systemctl stop hebra-web && sudo hebra-admin restaura /var/lib/hebra/copies/hebra-....db.gz && sudo systemctl start hebra-web
+if [ -t 0 ] && [ -t 1 ]; then MODE=--pty; else MODE=--pipe; fi
+exec systemd-run --quiet "$MODE" --wait --collect --uid=hebra --gid=hebra \
+    -p EnvironmentFile=/etc/hebra/plataforma.env -p WorkingDirectory=/opt/hebra-plataforma \
+    -E RCLONE_CONFIG=/var/lib/hebra/rclone.conf \
+    /opt/hebra-plataforma/.venv/bin/python -m hebra.admin "$@"

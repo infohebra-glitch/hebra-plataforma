@@ -114,7 +114,7 @@ def llindars(con: sqlite3.Connection, f: Filtre) -> dict:
 
 
 def suggereix(unitats: int, dies_parat: int, altres: dict[str, list[int]], proves_hist: int, compres_hist: int,
-              motiu: str | None, ll: dict, noms: dict[str, str]) -> dict:
+              motiu: str | None, ll: dict, noms: dict[str, str], noms_motius: dict[str, str] | None = None) -> dict:
     """Suggeriment per a una variant parada en una botiga (funció pura; regles a l'inici del mòdul).
 
     `altres` = {botiga: [proves, unitats venudes]} de les ALTRES botigues dins de la finestra.
@@ -138,7 +138,7 @@ def suggereix(unitats: int, dies_parat: int, altres: dict[str, list[int]], prove
                 "text": f"Treure-la a la sala: n'hi ha {unitats} u. i no s'ha provat mai en aquesta botiga; "
                         "probablement no és visible."}
     conv = compres_hist / proves_hist
-    motiu_txt = base.MOTIUS.get(motiu, motiu).lower() if motiu else None
+    motiu_txt = (noms_motius or base.MOTIUS).get(motiu, motiu).lower() if motiu else None
     if proves_hist >= ll["parat_min_proves_conversio"] and conv < ll["parat_conversio_baixa"] and motiu != "preu":
         return {"accio": "revisar", "botiga_desti": None,
                 "text": f"Revisar la peça: s'ha provat {proves_hist} vegades i només s'ha comprat "
@@ -161,6 +161,7 @@ def estoc_parat(con: sqlite3.Connection, f: Filtre) -> list[dict]:
     activitat = _activitat_finestra(con, inici, f.fins)
     historic = _historic_botiga(con, f)
     motius = _motiu_principal(con, f)
+    noms_motius = base.noms_motius(con)
     noms = {r["id"]: r["nom"] for r in con.execute("SELECT id, nom FROM botiga")}
     pendents = tasques.pendents_per_gtin(con, f.botiga_id)
     primeres: dict[str, date | None] = {}
@@ -193,7 +194,7 @@ def estoc_parat(con: sqlite3.Connection, f: Filtre) -> list[dict]:
             "proves_altres_botigues": sum(n for n, _ in altres.values()),
             "vendes_altres_botigues": sum(v for _, v in altres.values()),
             "suggeriment": suggereix(e["unitats"], sense, altres, n_hist, c_hist,
-                                     motius.get((e["botiga_id"], e["model"])), ll, noms),
+                                     motius.get((e["botiga_id"], e["model"])), ll, noms, noms_motius),
             "tasca": pendents.get(clau),
         })
     return sorted(out, key=lambda r: (-r["dies_parat"], -r["unitats"], r["gtin"], r["botiga_id"]))

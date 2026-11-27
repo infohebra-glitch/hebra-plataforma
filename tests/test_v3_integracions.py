@@ -123,7 +123,7 @@ def test_shopify_cataleg_paginat_i_mapat(con, fals):
     v = {x["gtin"]: x for x in s.cataleg()}
     assert set(v) == {"08400000000017", "08400000000024", "08400000000031"}  # sense codi de barres: fora
     assert v["08400000000017"] == {"gtin": "08400000000017", "model": "7001", "color": "Blau", "talla": "M",
-                                   "categoria": "camisa", "preu_eur": 69.0, "id_extern": "11"}
+                                   "categoria": "camisa", "preu_eur": 69.0, "id_extern": "11", "imatge_url": None}
     assert v["08400000000031"]["talla"] == "Única" and v["08400000000031"]["categoria"] == "altres"
     assert len(fals.cridades(f"{SB}/products.json")) == 2  # dues pàgines (capçalera Link)
     assert fals.peticions[1]["q"] == {"limit": "250", "page_info": "abc"}

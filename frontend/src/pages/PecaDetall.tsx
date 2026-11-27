@@ -4,6 +4,7 @@ import type { ModelDetall } from '../api/types';
 import { Buit, Consulta, Esquelet } from '../components/Estat';
 import { TargetaExperiment } from '../components/Experiment';
 import { MostraPetita } from '../components/Insignies';
+import { FilaPeces, FotoPeca } from '../components/Peca';
 import { EXPLICACIO_DUBTE, TaulaParells, llegendaCompra } from '../components/DubteTalla';
 import { Rajola } from '../components/Rajola';
 import { Barres } from '../components/grafics/Barres';
@@ -14,6 +15,7 @@ import { useFiltre } from '../context/Filtre';
 import { motiu } from '../lib/etiquetes';
 import { deCada, diaCurt, enter, eur, pct } from '../lib/format';
 import { useApi } from '../lib/useApi';
+import { GraficProvadorOnline, InsigniaCoincidencia } from './ProvadorOnline';
 
 export function PecaDetall() {
   const { model = '' } = useParams();
@@ -50,16 +52,48 @@ function BlocDubte({ d }: { d: ModelDetall }) {
   );
 }
 
+function BlocProvadorOnline({ d }: { d: ModelDetall }) {
+  const x = d.provador_online!;
+  const talles = x.talles.filter((t) => t.petita + t.gran > 0);
+  return (
+    <Seccio titol="Al provador i online" subtitol={<>{enter(x.respostes_provador)} respostes a la fitxa i {enter(x.devolucions_online)} unitats tornades online. <Link to="/provador-online">Totes les peces</Link></>}>
+      <div className="reixa-2">
+        <div className="panell">
+          <p style={{ marginTop: 0 }}>{x.lectura} <InsigniaCoincidencia c={x.coincidencia} /></p>
+          {x.categories.length ? <GraficProvadorOnline categories={x.categories} titol={`Motius de ${d.nom} al provador i online`} /> : <p className="muted">Sense motius comparables.</p>}
+        </div>
+        <div className="panell">
+          {x.nomes_online_detall.length > 0 && (
+            <Barres titol="Motius només online" items={x.nomes_online_detall.map((m) => ({ clau: m.motiu, etiqueta: m.nom, n: m.online, pct: m.pct }))} />
+          )}
+          {talles.length ? (
+            <table style={{ marginTop: 12 }}>
+              <caption className="petit" style={{ textAlign: 'left' }}>Tornades per talla</caption>
+              <thead><tr><th scope="col">Talla</th><th scope="col" className="n">Massa petita</th><th scope="col" className="n">Massa gran</th></tr></thead>
+              <tbody>{talles.map((t) => <tr key={t.talla ?? '?'}><td><b>{t.talla}</b></td><td className="n">{enter(t.petita)}</td><td className="n">{enter(t.gran)}</td></tr>)}</tbody>
+            </table>
+          ) : !x.nomes_online_detall.length && <p className="muted">Cap devolució per talla ni per motius només online.</p>}
+        </div>
+      </div>
+    </Seccio>
+  );
+}
+
 function Detall({ d }: { d: ModelDetall }) {
   const k = d.kpi;
   return (
     <>
-      <TitolPagina titol={d.nom}>{d.model} · {d.categoria} · {d.color} · {eur(d.preu)}</TitolPagina>
-      <div className="rajoles">
+      <div className="capcalera-peca">
+        <FotoPeca src={d.imatge} nom={`${d.nom}, ${d.color}`} mida="gran" />
+        <div>
+          <TitolPagina titol={d.nom}>{d.model} · {d.categoria} · {d.color} · {eur(d.preu)}</TitolPagina>
+          <div className="rajoles">
         <Rajola etiqueta="Proves" valor={enter(k.proves)} />
         <Rajola etiqueta="Conversió" valor={pct(k.conversio)} nota={<>{deCada(k.compres, k.proves)} proves acaben en compra</>} insignia={<MostraPetita n={k.proves} />} />
         <Rajola etiqueta="Venut sense provar" valor={enter(k.venut_sense_provar)} nota="unitats venudes sense passar per la cabina" />
-        <Rajola etiqueta="Respostes de motiu" valor={enter(k.respostes_motiu)} nota={<>taxa de resposta del {pct(k.taxa_resposta_motiu)}</>} />
+            <Rajola etiqueta="Respostes de motiu" valor={enter(k.respostes_motiu)} nota={<>taxa de resposta del {pct(k.taxa_resposta_motiu)}</>} />
+          </div>
+        </div>
       </div>
 
       <Seccio titol="Talles: provat contra comprat" subtitol="Si una talla es prova molt més del que es compra, el patró d’aquesta talla pot no quadrar.">
@@ -117,18 +151,13 @@ function Detall({ d }: { d: ModelDetall }) {
         </Seccio>
       </div>
 
+      {d.provador_online && <BlocProvadorOnline d={d} />}
+
       <div className="reixa-2">
-        <Seccio titol="Es prova amb" subtitol="Peces que entren a la mateixa cabina, a la mateixa sessió.">
+        <Seccio titol="Es prova amb" subtitol="Peces que entren a la mateixa cabina, a la mateixa sessió. Si la marca no tria res, la fitxa NFC les proposa a «Combina amb».">
           <div className="panell">
             {d.provat_amb.length ? (
-              <ul className="barres">
-                {d.provat_amb.map((p) => (
-                  <li key={p.model} style={{ gridTemplateColumns: '1fr auto' }}>
-                    <Link to={`/peces/${encodeURIComponent(p.model)}`}>{p.nom}</Link>
-                    <span className="valor">{enter(p.sessions)} sessions</span>
-                  </li>
-                ))}
-              </ul>
+              <FilaPeces peces={d.provat_amb.map((p) => ({ model: p.model, nom: p.nom, imatge: p.imatge, nota: `${enter(p.sessions)} sessions` }))} />
             ) : <p className="muted">Encara no es prova amb cap altra peça.</p>}
           </div>
         </Seccio>

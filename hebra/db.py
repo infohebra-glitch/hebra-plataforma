@@ -21,6 +21,7 @@ def connecta(ruta: str) -> sqlite3.Connection:
     con.execute("PRAGMA foreign_keys = ON")
     # WAL: la web pot llegir mentre el càlcul periòdic de proves escriu.
     con.execute("PRAGMA journal_mode = WAL")
+    con.execute("PRAGMA synchronous = NORMAL")  # segur amb WAL i força més ràpid en escriure
     return con
 
 
@@ -50,7 +51,30 @@ def inicialitza(con: sqlite3.Connection) -> None:
     """Crea les taules si no existeixen (idempotent)."""
     con.executescript(ESQUEMA.read_text(encoding="utf-8"))
     _migra_v03_assistencia(con)
+    _migra_v04(con)
+    _afegeix_columna(con, "imatge_peca", "fons", "TEXT")  # v0.6: color del fons de la foto
+    _afegeix_columna(con, "colleccio", "lot_prova", "INTEGER NOT NULL DEFAULT 0")  # v0.7
+    # v0.8: xip NFC protegit (NTAG 424 DNA): UID, últim comptador verificat, xip simulat per a la demo.
+    _afegeix_columna(con, "etiqueta", "nfc_uid", "TEXT")
+    _afegeix_columna(con, "etiqueta", "nfc_ctr", "INTEGER NOT NULL DEFAULT -1")
+    _afegeix_columna(con, "etiqueta", "nfc_ctr_simulat", "INTEGER NOT NULL DEFAULT -1")
+    _afegeix_columna(con, "etiqueta", "nfc_simulat", "INTEGER NOT NULL DEFAULT 0")
     con.commit()
+
+
+def _afegeix_columna(con: sqlite3.Connection, taula: str, columna: str, definicio: str) -> None:
+    if columna not in {f[1] for f in con.execute(f"PRAGMA table_info({taula})")}:
+        con.execute(f"ALTER TABLE {taula} ADD COLUMN {columna} {definicio}")
+
+
+def _migra_v04(con: sqlite3.Connection) -> None:
+    """v0.4: referència única dels elements de la passarel·la (lots repetits no dupliquen res) i
+    versió de la contrasenya a l'usuari (canviar-la tanca les sessions obertes)."""
+    _afegeix_columna(con, "lectura_agregada", "ref", "TEXT")
+    _afegeix_columna(con, "sensor_event", "ref", "TEXT")
+    _afegeix_columna(con, "usuari", "versio_sessio", "INTEGER NOT NULL DEFAULT 0")
+    con.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_lectura_ref ON lectura_agregada(ref)")
+    con.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_sensor_ref ON sensor_event(ref)")
 
 
 def _migra_v03_assistencia(con: sqlite3.Connection) -> None:

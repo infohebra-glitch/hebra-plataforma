@@ -19,19 +19,27 @@ pot reescriure el contingut per model i idioma (taula `contingut_model`).
 import base64
 import hashlib
 import json
+import re
 import secrets
 import sqlite3
+from datetime import datetime, timedelta
 
-from . import alertes, cataleg, control, estoc, fitxa_config, temps
+from . import alertes, cataleg, control, estoc, fitxa_config, imatges, siluetes, temps
 
 IDIOMES = ("ca", "es", "fr", "en")
 # Si el contingut d'origen no té l'idioma, provem aquests en ordre.
 RESERVA = {"ca": ["ca", "es"], "es": ["es", "ca"], "fr": ["fr", "es", "ca"], "en": ["en", "es", "ca"]}
 
-TIPUS = {"obre_fitxa", "veu_origen", "demana_talla", "demana_assistencia", "motiu_no_compra", "veu_seccio"}
+TIPUS = {"obre_fitxa", "veu_origen", "demana_talla", "demana_assistencia", "motiu_no_compra", "veu_seccio",
+         "verificacio"}  # v0.8: resultat de la verificació del xip (hebra/autenticitat.py)
 MOTIUS_VALIDS = set(fitxa_config.MOTIUS)
 SECCIONS = {"talles", "cura", "preguntes"}
 TITOL_COMBINA = {"ca": "Combina amb", "es": "Combina con", "fr": "À associer avec", "en": "Goes well with"}
+# Subtítol quan la proposta surt del provador (no l'ha triada la marca).
+NOTA_COMBINA_PROVADOR = {"ca": "El que més es prova amb aquesta peça", "es": "Lo que más se prueba con esta prenda",
+                         "fr": "Ce qu'on essaie le plus avec cette pièce", "en": "What people try on most with this piece"}
+MAX_COMBINA = 4
+MIN_SESSIONS_COMBINA = 3   # sessions de cabina juntes perquè el provador proposi una peça
 
 # Estats de la petició de talla i transicions permeses (pendent -> en_cami -> lliurada | no_disponible).
 TRANSICIONS = {"pendent": {"en_cami", "lliurada", "no_disponible"}, "en_cami": {"lliurada", "no_disponible"}}
@@ -39,7 +47,22 @@ ESTATS_FINALS = {"lliurada", "no_disponible"}
 
 # Script de la fitxa: el text ha de ser exactament aquest perquè el hash de la CSP quadri.
 SCRIPT_SECCIONS = (
-    "(function(){var f=document.getElementById('seccions');if(!f||!navigator.sendBeacon)return;"
+    "(function(){"
+    # v0.6: galeria. Els punts i el comptador segueixen la foto visible; un toc a un punt hi llisca.
+    "var g=document.getElementById('galeria'),pt=document.querySelectorAll('.fx-punts a'),n=document.getElementById('fx-n');"
+    "if(g&&pt.length){var act=function(){var i=Math.round(g.scrollLeft/g.clientWidth);"
+    "pt.forEach(function(a,k){a.classList.toggle('actiu',k===i);});if(n)n.textContent=i+1;};"
+    "g.addEventListener('scroll',function(){requestAnimationFrame(act);},{passive:true});"
+    "pt.forEach(function(a,k){a.addEventListener('click',function(e){e.preventDefault();"
+    "g.scrollTo({left:k*g.clientWidth,behavior:'smooth'});});});"
+    "if(!matchMedia('(prefers-reduced-motion: reduce)').matches)setTimeout(function(){"
+    "if(g.scrollLeft<2){g.scrollBy({left:70,behavior:'smooth'});setTimeout(function(){"
+    "g.scrollTo({left:0,behavior:'smooth'});},420);}},1300);}"
+    # Botons fixos de baix: obren la secció plegable on porten.
+    "document.querySelectorAll('.fx-accions a').forEach(function(a){a.addEventListener('click',function(e){"
+    "var t=document.querySelector(a.getAttribute('href'));if(!t)return;e.preventDefault();"
+    "var d=t.closest('details');if(d)d.open=true;t.scrollIntoView({behavior:'smooth',block:'center'});});});"
+    "var f=document.getElementById('seccions');if(!f||!navigator.sendBeacon)return;"
     "var vist={};document.querySelectorAll('details[data-seccio]').forEach(function(d){"
     "var salta=d.open;d.addEventListener('toggle',function(){if(salta){salta=false;return;}"
     "var s=d.getAttribute('data-seccio');if(!d.open||vist[s])return;vist[s]=1;"
@@ -48,8 +71,64 @@ SCRIPT_SECCIONS = (
 HASH_SCRIPT = "sha256-" + base64.b64encode(hashlib.sha256(SCRIPT_SECCIONS.encode()).digest()).decode()
 
 
+_SESSIO = re.compile(r"^[A-Za-z0-9_-]{8,40}$")
+
+# Límits de les peticions que arriben al dependent des de la fitxa (pública): algú amb l'enllaç
+# d'una peça no ha de poder omplir de falses alarmes la pantalla de la botiga.
+MAX_OBERTES_PER_SESSIO = 3      # peticions pendents o en camí d'una mateixa visita
+MAX_PER_BOTIGA = 20             # peticions noves per botiga cada `FINESTRA_BOTIGA_MIN` minuts
+FINESTRA_BOTIGA_MIN = 10
+
+
+class MassaPeticions(Exception):
+    """S'ha arribat al límit de peticions (de la visita o de la botiga)."""
+
+
 def nova_sessio() -> str:
     return secrets.token_urlsafe(12)
+
+
+def sessio_valida(s: str | None) -> bool:
+    """La sessió tècnica és un text curt que genera el servidor; qualsevol altra cosa es rebutja."""
+    return bool(s) and _SESSIO.match(s) is not None
+
+
+def botiga_existent(con: sqlite3.Connection, botiga_id: str | None) -> str | None:
+    """L'id de la botiga si existeix; si no (enllaç manipulat o mal gravat), None."""
+    if not botiga_id or len(botiga_id) > 40:
+        return None
+    fila = con.execute("SELECT id FROM botiga WHERE id = ?", (botiga_id,)).fetchone()
+    return fila["id"] if fila else None
+
+
+def neteja_cabina(text: str | None) -> str | None:
+    """El que el client escriu al camp «cabina»: sense caràcters de control i 20 caràcters com a molt."""
+    net = "".join(c for c in (text or "") if c.isprintable()).strip()[:20]
+    return net or None
+
+
+def _peticio_oberta(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str, gtin_demanat: str,
+                    tipus: str) -> int | None:
+    fila = con.execute(
+        """SELECT id FROM peticio_talla WHERE sessio_nfc = ? AND botiga_id = ? AND gtin_demanat = ? AND tipus = ?
+           AND estat IN ('pendent', 'en_cami') ORDER BY id LIMIT 1""",
+        (sessio_nfc, botiga_id, gtin_demanat, tipus)).fetchone()
+    return fila["id"] if fila else None
+
+
+def _comprova_limits(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str, ts: str) -> None:
+    obertes = con.execute(
+        "SELECT COUNT(*) FROM peticio_talla WHERE sessio_nfc = ? AND estat IN ('pendent', 'en_cami')",
+        (sessio_nfc,)).fetchone()[0]
+    if obertes >= MAX_OBERTES_PER_SESSIO:
+        raise MassaPeticions("Ja tens peticions en marxa: de seguida t'atenen")
+    des = (datetime.fromisoformat(ts) - timedelta(minutes=FINESTRA_BOTIGA_MIN)).isoformat(timespec="seconds")
+    recents = con.execute(
+        "SELECT COUNT(*) FROM peticio_talla WHERE botiga_id = ? AND julianday(hora_peticio) >= julianday(?) "
+        "AND julianday(hora_peticio) <= julianday(?)",
+        (botiga_id, des, ts)).fetchone()[0]
+    if recents >= MAX_PER_BOTIGA:
+        raise MassaPeticions("Ara mateix hi ha moltes peticions: demana-ho a una persona de la botiga")
 
 
 def tr(valor, idioma: str):
@@ -64,8 +143,48 @@ def tr(valor, idioma: str):
 
 def peca_per_token(con: sqlite3.Connection, token: str) -> sqlite3.Row | None:
     return con.execute(
-        """SELECT e.epc, e.nfc_token, k.* FROM etiqueta e JOIN catalog_sku k ON k.gtin = e.gtin
-           WHERE e.nfc_token = ?""", (token,)).fetchone()
+        """SELECT e.epc, e.nfc_token, e.nfc_uid, e.nfc_ctr, e.nfc_simulat, k.* FROM etiqueta e
+           JOIN catalog_sku k ON k.gtin = e.gtin WHERE e.nfc_token = ?""", (token,)).fetchone()
+
+
+# v0.8: la fitxa canvia segons on és la peça. «dins»: el lector la té ara mateix dins d'una cabina
+# (demanar talla, avisar el dependent amb la cabina ja posada, motiu). «fora»: botiga, carrer o casa
+# (només informació). «sempre»: la botiga no té lectors de cabina (nivell bàsic) i es veu tot, com abans.
+# Només mirem on és la peça, mai qui la toca.
+FINESTRA_DINS_S = 90          # una lectura més antiga ja no compta com «dins»
+_MARGE_DINS = timedelta(hours=3)  # prefiltre de text per l'índex (canvi d'hora, offsets diferents)
+
+
+def on_es_peca(con: sqlite3.Connection, epc: str | None, botiga_id: str | None,
+               ara: str | None = None) -> dict:
+    """{"mode": "dins" | "fora" | "sempre", "cabina": nom de la cabina o None}."""
+    if not botiga_id:
+        return {"mode": "fora", "cabina": None}
+    te_cabines = con.execute("""SELECT 1 FROM antena a JOIN cabina c ON c.id = a.cabina_id
+                                WHERE c.botiga_id = ? LIMIT 1""", (botiga_id,)).fetchone()
+    if not te_cabines:
+        return {"mode": "sempre", "cabina": None}
+    if not epc:
+        return {"mode": "fora", "cabina": None}
+    ara_dt = datetime.fromisoformat(ara or temps.ara())
+    des = (ara_dt - timedelta(seconds=FINESTRA_DINS_S)).isoformat(timespec="seconds")
+    fila = con.execute(
+        """SELECT c.id, c.nom, l.fi FROM lectura_agregada l JOIN antena a ON a.id = l.antena_id
+           JOIN cabina c ON c.id = a.cabina_id
+           WHERE l.epc = ? AND c.botiga_id = ? AND l.inici >= ? AND julianday(l.fi) >= julianday(?)
+                 AND julianday(l.inici) <= julianday(?) AND l.n_lectures > 0 AND l.rssi_mitja >= a.llindar_rssi
+           ORDER BY l.rssi_mitja DESC LIMIT 1""",
+        (epc, botiga_id, (ara_dt - _MARGE_DINS - timedelta(seconds=FINESTRA_DINS_S)).isoformat(timespec="seconds"),
+         des, ara_dt.isoformat(timespec="seconds"))).fetchone()
+    if not fila:
+        return {"mode": "fora", "cabina": None}
+    # Si el sensor ja diu que la cabina s'ha buidat després de l'última lectura, la peça ha sortit.
+    buida = con.execute("""SELECT 1 FROM sensor_event WHERE cabina_id = ? AND tipus = 'presencia_no'
+                           AND julianday(ts) > julianday(?) AND julianday(ts) <= julianday(?) LIMIT 1""",
+                        (fila["id"], fila["fi"], ara_dt.isoformat(timespec="seconds"))).fetchone()
+    if buida:
+        return {"mode": "fora", "cabina": None}
+    return {"mode": "dins", "cabina": fila["nom"]}
 
 
 def tria_idioma(lang: str | None, accept_language: str | None, oferts: list[str]) -> str:
@@ -98,6 +217,8 @@ def dades_fitxa(con: sqlite3.Connection, fila: sqlite3.Row, botiga_id: str | Non
             return de_origen
         return next((r[clau] for r in reserva if r.get(clau)), de_origen)
     variants = cataleg.variants_del_model(con, fila["model"], fila["color"])
+    resolutor = imatges.Resolutor(con)
+    combina, font_combina = _combina(con, fila, camp("combina", origen.get("combina") or []), idioma, resolutor)
     estoc_origen = origen.get("estoc", {})
     avui = temps.ara()[:10]
 
@@ -130,34 +251,81 @@ def dades_fitxa(con: sqlite3.Connection, fila: sqlite3.Row, botiga_id: str | Non
                             for f in origen.get("faq", []) + origen.get("faq_general", [])]),
         "origen_amagat_per_control": not control.mostra_origen(con, botiga_id, avui),
         "mostra_origen": cfg["seccions"]["visibles"].get("origen", True) and control.mostra_origen(con, botiga_id, avui),
-        "combina": _combina(con, camp("combina", origen.get("combina") or []), idioma),
+        "imatge": resolutor.de(fila["model"], fila["color"], fila["categoria"],
+                               camp("nom", tr(origen.get("nom"), idioma)) or fila["model"]),
+        # v0.6: galeria (principal + fotos de més), marca, mostra de color i país de confecció.
+        "fotos": imatges.fotos(con, fila["model"], fila["color"], fila["categoria"],
+                               camp("nom", tr(origen.get("nom"), idioma)) or fila["model"]),
+        "marca": origen.get("marca") or "",
+        "color_hex": _hex((origen.get("color_detall") or {}).get("hex")),
+        "fet_a": next((e.get("pais") for e in reversed(origen.get("etapes", []))
+                       if e.get("etapa") == "confeccio" and e.get("pais")), None),
+        "combina": combina,
         "titol_combina": TITOL_COMBINA.get(idioma, TITOL_COMBINA["ca"]),
+        "nota_combina": NOTA_COMBINA_PROVADOR.get(idioma, NOTA_COMBINA_PROVADOR["ca"]) if font_combina == "provador" else "",
     }
 
 
-def _combina(con: sqlite3.Connection, models: list, idioma: str) -> list[str]:
-    """Noms dels models que el fitxer d'origen suggereix combinar (només es mostren, sense enllaç)."""
-    noms = []
-    for m in models[:6]:
-        if not isinstance(m, str):
+def _hex(v) -> str | None:
+    """Només colors #RRGGBB (van dins un atribut style)."""
+    return v if isinstance(v, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", v) else None
+
+
+def _nom_model(con: sqlite3.Connection, model: str, idioma: str) -> tuple[str | None, sqlite3.Row | None]:
+    propi, reserva = _contingut(con, model, idioma)
+    fila = con.execute("""SELECT model, color, categoria, preu_eur, origen_json FROM catalog_sku WHERE model = ?
+                          ORDER BY origen_json IS NULL, rowid LIMIT 1""", (model,)).fetchone()
+    nom = propi.get("nom") or next((r["nom"] for r in reserva if r.get("nom")), None)
+    if not nom and fila is not None and fila["origen_json"]:
+        nom = tr(json.loads(fila["origen_json"]).get("nom"), idioma)
+    return nom, fila
+
+
+def provat_amb(con: sqlite3.Connection, model: str, minim: int = MIN_SESSIONS_COMBINA, limit: int = MAX_COMBINA,
+               dies: int = 90) -> list[str]:
+    """Models d'una altra categoria que més sovint entren a la cabina amb aquest (sessions diferents)."""
+    des = (datetime.fromisoformat(temps.ara()) - timedelta(days=dies)).isoformat(timespec="seconds")
+    files = con.execute(
+        """SELECT k2.model, COUNT(DISTINCT p2.sessio_id) AS n
+           FROM prova p1 JOIN catalog_sku k1 ON k1.gtin = p1.gtin
+           JOIN sessio s ON s.id = p1.sessio_id
+           JOIN prova p2 ON p2.sessio_id = p1.sessio_id JOIN catalog_sku k2 ON k2.gtin = p2.gtin
+           WHERE k1.model = ? AND k2.model <> k1.model AND k2.categoria <> k1.categoria
+             AND p1.confianca <> 'ambigua' AND p2.confianca <> 'ambigua' AND s.inici >= ?
+           GROUP BY k2.model HAVING n >= ? ORDER BY n DESC, k2.model LIMIT ?""",
+        (model, des, minim, limit)).fetchall()
+    return [f["model"] for f in files]
+
+
+def _combina(con: sqlite3.Connection, fila: sqlite3.Row, models: list, idioma: str,
+             resolutor: "imatges.Resolutor") -> tuple[list[dict], str | None]:
+    """Peces per completar el look, amb foto: les que tria la marca (fitxer d'origen o contingut propi) o,
+    si no n'ha triat cap, les que més es proven juntes a la cabina. Torna (peces, font)."""
+    font = "marca"
+    triats = [m for m in models if isinstance(m, str)][:MAX_COMBINA]
+    if not triats:
+        triats, font = provat_amb(con, fila["model"]), "provador"
+    out = []
+    for m in triats:
+        nom, k = _nom_model(con, m, idioma)
+        if k is None:  # la marca en parla però no és al catàleg: només el nom, amb una silueta neutra
+            out.append({"model": m, "nom": nom or m, "preu": None, "color": "",
+                        "imatge": {"url": siluetes.url(None, None, nom or m), "silueta": True}})
             continue
-        propi, reserva = _contingut(con, m, idioma)
-        nom = propi.get("nom") or next((r["nom"] for r in reserva if r.get("nom")), None)
-        if not nom:
-            fila = con.execute("SELECT origen_json FROM catalog_sku WHERE model = ? AND origen_json IS NOT NULL LIMIT 1",
-                               (m,)).fetchone()
-            nom = tr(json.loads(fila["origen_json"]).get("nom"), idioma) if fila else None
-        noms.append(nom or m)
-    return noms
+        origen = json.loads(k["origen_json"] or "{}")
+        out.append({"model": m, "nom": nom or m, "preu": k["preu_eur"],
+                    "color": tr(origen.get("color", k["color"]), idioma) or "",
+                    "imatge": resolutor.de(m, k["color"], k["categoria"], nom)})
+    return out, (font if out else None)
 
 
 def registra(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str | None, gtin: str,
              tipus: str, idioma: str, valor: str | None = None, ts: str | None = None) -> None:
     if tipus not in TIPUS:
         raise ValueError(f"tipus d'esdeveniment desconegut: {tipus}")
-    if tipus == "motiu_no_compra" and valor not in MOTIUS_VALIDS:
+    if tipus == "motiu_no_compra" and valor not in MOTIUS_VALIDS and not fitxa_config.es_propi(valor):
         raise ValueError(f"motiu desconegut: {valor}")
-    if tipus == "veu_seccio" and valor not in SECCIONS:
+    if tipus == "veu_seccio" and valor not in SECCIONS and not fitxa_config.es_propi(valor):
         raise ValueError(f"secció desconeguda: {valor}")
     ts = ts or temps.ara()
     grup = control.grup_del_dia(con, botiga_id, "origen", ts[:10]) if botiga_id else None
@@ -168,15 +336,30 @@ def registra(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str | None, gt
     con.commit()
 
 
+def ja_ha_dit_motiu(con: sqlite3.Connection, sessio_nfc: str, gtin: str) -> bool:
+    return con.execute("""SELECT 1 FROM esdeveniment_nfc WHERE sessio_nfc = ? AND gtin = ?
+                          AND tipus = 'motiu_no_compra' LIMIT 1""", (sessio_nfc, gtin)).fetchone() is not None
+
+
 def demana_talla(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str, gtin_origen: str,
                  gtin_demanat: str, idioma: str, cabina: str | None = None, ts: str | None = None) -> int:
-    """Crea una petició de talla per al dependent. Retorna l'id de la petició."""
+    """Crea una petició de talla per al dependent. Retorna l'id de la petició.
+
+    La talla demanada ha de ser una altra variant del mateix model i color que la peça que el
+    client té a la mà (no es pot demanar qualsevol producte del catàleg des d'una fitxa).
+    """
     demanat = cataleg.sku(con, gtin_demanat)
-    if demanat is None:
+    origen_sku = cataleg.sku(con, gtin_origen)
+    if demanat is None or origen_sku is None or (demanat["model"], demanat["color"]) != (
+            origen_sku["model"], origen_sku["color"]):
         raise ValueError("talla desconeguda")
     origen = json.loads(demanat["origen_json"] or "{}")
     disponible = alertes.disponible(con, botiga_id, gtin_demanat, origen.get("estoc", {}).get(demanat["talla"]))
     ts = ts or temps.ara()
+    repetida = _peticio_oberta(con, sessio_nfc, botiga_id, gtin_demanat, "talla")
+    if repetida:  # doble toc al botó: la petició ja hi és
+        return repetida
+    _comprova_limits(con, sessio_nfc, botiga_id, ts)
     registra(con, sessio_nfc, botiga_id, gtin_origen, "demana_talla", idioma, demanat["talla"], ts)
     cur = con.execute(
         """INSERT INTO peticio_talla (sessio_nfc, botiga_id, gtin_origen, gtin_demanat, talla_demanada,
@@ -197,6 +380,10 @@ def demana_assistencia(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str,
     if cataleg.sku(con, gtin_origen) is None:
         raise ValueError("peça desconeguda")
     ts = ts or temps.ara()
+    repetida = _peticio_oberta(con, sessio_nfc, botiga_id, gtin_origen, "assistencia")
+    if repetida:
+        return repetida
+    _comprova_limits(con, sessio_nfc, botiga_id, ts)
     registra(con, sessio_nfc, botiga_id, gtin_origen, "demana_assistencia", idioma, None, ts)
     cur = con.execute(
         """INSERT INTO peticio_talla (sessio_nfc, botiga_id, gtin_origen, gtin_demanat, talla_demanada,
@@ -209,7 +396,8 @@ def demana_assistencia(con: sqlite3.Connection, sessio_nfc: str, botiga_id: str,
 
 
 def context_pagina(con: sqlite3.Connection, peca: sqlite3.Row, botiga_id: str | None, idioma: str,
-                   cfg: dict, s: str, ok: str | None, previsualitza: dict | None = None) -> dict:
+                   cfg: dict, s: str, ok: str | None, previsualitza: dict | None = None,
+                   on: dict | None = None, autenticitat: str | None = None) -> dict:
     """Context de la plantilla `fitxa.html` (la fitxa real i la previsualització del tauler).
 
     `previsualitza` (només el tauler): {"model", "botiga"}; la pàgina no porta l'script ni
@@ -217,14 +405,54 @@ def context_pagina(con: sqlite3.Connection, peca: sqlite3.Row, botiga_id: str | 
     """
     from . import textos
     t = textos.TEXTOS[idioma]
-    return {"p": dades_fitxa(con, peca, botiga_id, idioma, cfg), "t": t, "lang": idioma,
+    on = on or on_es_peca(con, peca["epc"], botiga_id)
+    # Fora del provador no té sentit demanar talla ni que t'atenguin a la cabina.
+    accions = dict(cfg["accions"])
+    if on["mode"] == "fora":
+        accions.update(demana_talla=False, demana_assistencia=False, per_que_no=False)
+    return {"p": dades_fitxa(con, peca, botiga_id, idioma, cfg), "t": t, "lang": idioma, "on": on,
+            "autenticitat": autenticitat,
             "idiomes": cfg["idiomes"], "b": botiga_id or "", "s": s, "ok": ok, "script": SCRIPT_SECCIONS,
             "cfg": cfg, "seccions": [x for x in cfg["seccions"]["ordre"] if cfg["seccions"]["visibles"].get(x, True)],
-            "accions": cfg["accions"], "ap": cfg["aparença"],
+            "accions": accions, "ap": cfg["aparença"],
             "benvinguda": tr(cfg["textos"].get("benvinguda") or None, idioma) or "",
             "peu": tr(cfg["textos"].get("peu") or None, idioma) or "",
-            "motius": [(m, t["motius"].get(m, m)) for m in cfg["motius"]],
+            "motius": motius_pagina(cfg, idioma),
+            "propies": {x["id"]: {"titol": fitxa_config.text_idioma(x.get("titol"), idioma),
+                                  "text": fitxa_config.text_idioma(x.get("text"), idioma),
+                                  "plegable": x.get("plegable", False)}
+                        for x in cfg.get("seccions_propies", [])},
+            "text_accent": text_sobre(cfg["aparença"].get("color_principal") or "#14457D"),
             "previsualitza": previsualitza}
+
+
+def text_sobre(color: str) -> str:
+    """Color del text sobre el color de la marca: blanc si hi ha prou contrast (WCAG 4,5:1), si no, fosc."""
+    try:
+        canals = [int(color[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    except (ValueError, IndexError):
+        return "#FFFFFF"
+    lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in canals]
+    lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+    return "#FFFFFF" if 1.05 / (lum + 0.05) >= 4.5 else "#0B1522"
+
+
+def motius_pagina(cfg: dict, idioma: str) -> list[tuple[str, str]]:
+    """[(clau, text)] dels motius que veu el client: els estàndard (amb la redacció de la marca, si en té)
+    i els propis, en l'ordre de la configuració."""
+    from . import textos
+    t = textos.TEXTOS[idioma]
+    propis = {x["id"]: x for x in cfg.get("motius_propis", [])}
+    redactats = cfg.get("textos_motius", {})
+    out = []
+    for m in cfg["motius"]:
+        if m in propis:
+            text = fitxa_config.text_idioma(propis[m].get("text"), idioma)
+        else:
+            text = (redactats.get(m) or {}).get(idioma) or t["motius"].get(m, m)
+        if text:
+            out.append((m, text))
+    return out
 
 
 def resol_peticio(con: sqlite3.Connection, peticio_id: int, estat: str, ts: str | None = None) -> bool:

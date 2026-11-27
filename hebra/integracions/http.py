@@ -8,10 +8,19 @@ tests/test_v3_integracions.py) i així no cal xarxa.
     fins a `INTENTS` vegades, per no carregar el servei de l'altra banda;
   * qualsevol altre estat >= 400 -> `ErrorHttp` amb l'estat i el cos (perquè el connector
     en tregui un missatge clar);
-  * error de xarxa o de DNS -> `ErrorXarxa`.
+  * error de xarxa o de DNS -> `ErrorXarxa`;
+  * només https, i només cap a adreces públiques (`comprova_desti`): una URL configurada des del
+    panell no pot fer servir el servidor per arribar a la seva xarxa interna ni al mateix servidor,
+    tampoc a través d'una redirecció;
+  * la resposta es llegeix fins a `MIDA_MAXIMA_RESPOSTA`; si és més gran, `ErrorXarxa`.
+
+Límit conegut: el nom es resol dues vegades (en comprovar i en connectar). Un DNS que canviï
+entre les dues resolucions podria saltar-se la comprovació; per al pilot és acceptable.
 """
 
+import ipaddress
 import json
+import os
 import socket
 import time
 import urllib.error
@@ -22,7 +31,9 @@ from dataclasses import dataclass, field
 TEMPS_ESPERA_S = 20
 INTENTS = 4
 ESPERA_MAXIMA_S = 30
-AGENT = "Hebra/0.3 (+https://hebra.cat)"
+AGENT = "Hebra/0.4"
+MIDA_MAXIMA_RESPOSTA = 25 * 1024 * 1024
+MAX_REDIRECCIONS = 3
 
 
 class ErrorHttp(Exception):
@@ -57,13 +68,58 @@ class Resposta:
         return self.cos.decode("utf-8-sig")
 
 
+def _resol(host: str) -> list[str]:  # les proves la substitueixen
+    return [i[4][0] for i in socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)]
+
+
+def comprova_desti(url: str) -> None:
+    """Llança `ErrorXarxa` si la URL no és https o apunta a una adreça que no és pública."""
+    parts = urllib.parse.urlsplit(url)
+    if os.environ.get("HEBRA_PERMET_XARXA_INTERNA") == "1":  # només per a proves en local
+        return
+    if parts.scheme != "https" or not parts.hostname:
+        raise ErrorXarxa("només s'admeten adreces https://")
+    try:
+        adreces = _resol(parts.hostname)
+    except socket.gaierror as e:
+        raise ErrorXarxa(str(e), dns=True) from e
+    for a in adreces:
+        ip = ipaddress.ip_address(a.split("%")[0])
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+            ip = ip.ipv4_mapped
+        if not ip.is_global:
+            raise ErrorXarxa("l'adreça apunta a una xarxa interna i no es pot fer servir")
+
+
+class _Redireccions(urllib.request.HTTPRedirectHandler):
+    """Segueix redireccions només cap a https i adreces públiques, i poques."""
+    max_redirections = MAX_REDIRECCIONS
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        comprova_desti(newurl)
+        nova = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if nova is not None and urllib.parse.urlsplit(newurl).hostname != urllib.parse.urlsplit(req.full_url).hostname:
+            # Les credencials no viatgen a un altre domini.
+            for c in list(nova.headers):
+                if c.lower() in ("authorization", "cookie") or c.lower().startswith("x-"):
+                    del nova.headers[c]
+        return nova
+
+
+_obridor = urllib.request.build_opener(_Redireccions)
+
+
 def _obre(req: urllib.request.Request, temps_espera: float) -> Resposta:
     """Fa la petició i torna la resposta, també si l'estat és d'error (no llança HTTPError)."""
+    comprova_desti(req.full_url)
     try:
-        with urllib.request.urlopen(req, timeout=temps_espera) as r:
-            return Resposta(r.status, {k.lower(): v for k, v in r.headers.items()}, r.read())
+        with _obridor.open(req, timeout=temps_espera) as r:
+            cos = r.read(MIDA_MAXIMA_RESPOSTA + 1)
+            if len(cos) > MIDA_MAXIMA_RESPOSTA:
+                raise ErrorXarxa("la resposta és massa gran")
+            return Resposta(r.status, {k.lower(): v for k, v in r.headers.items()}, cos)
     except urllib.error.HTTPError as e:
-        cos = e.read() if e.fp else b""
+        cos = e.read(1024 * 1024) if e.fp else b""
         return Resposta(e.code, {k.lower(): v for k, v in (e.headers or {}).items()}, cos)
     except urllib.error.URLError as e:
         dns = isinstance(e.reason, socket.gaierror)

@@ -30,6 +30,13 @@ export interface Botiga {
 export interface RespostaSessio { usuari: Usuari }
 export interface RespostaJo { usuari: Usuari; botigues: Botiga[] }
 
+/** GET/POST/DELETE /lot-prova: dades inventades en una botiga pròpia, que s'esborren d'un clic. */
+export interface EstatLotProva {
+  carregat: boolean; botiga_id: string; nom: string;
+  creat?: DataHora; des?: string; fins?: string;
+  resum?: { sessions: number; proves: number; vendes: number; peces: number };
+}
+
 /** Filtre comú de totes les rutes d'analítica. */
 export interface Filtre {
   botiga?: string;
@@ -112,7 +119,8 @@ export interface Resum {
 }
 
 // ── GET /models ──────────────────────────────────────────────────────────
-export type Motiu = 'talla' | 'tall' | 'preu' | 'color' | 'qualitat' | 'nomes_mirava' | 'altre';
+/** Motius estàndard i els propis de la marca («p-...»). */
+export type Motiu = 'talla' | 'tall' | 'preu' | 'color' | 'qualitat' | 'nomes_mirava' | 'altre' | `p-${string}`;
 
 export interface ModelResum {
   model: string;
@@ -129,6 +137,9 @@ export interface ModelResum {
   estoc: number;
   motiu_principal: Motiu | null;
   demanda_perduda: number;
+  /** v0.5: color i foto de la peça (o silueta de la categoria si la marca encara no n'ha posat). */
+  color?: string | null;
+  imatge?: string;
 }
 
 export interface RespostaModels { models: ModelResum[] }
@@ -151,7 +162,7 @@ export interface MotiuCompte { motiu: Motiu; n: number; pct: Fraccio }
 
 export interface PuntSetmanal { setmana: Data; proves: number; compres: number; conversio: Fraccio }
 
-export interface ProvatAmb { model: string; nom: string; sessions: number }
+export interface ProvatAmb { model: string; nom: string; sessions: number; imatge?: string }
 
 export interface EtapaOrigen { etapa: string; pais: string; regio: string }
 export interface Composicio { material: string; pct: number; pais: string }
@@ -163,6 +174,8 @@ export interface ModelDetall {
   categoria: string;
   color: string;
   preu: number;
+  /** v0.5: foto de la peça. */
+  imatge?: string;
   kpi: {
     proves: number;
     compres: number;
@@ -179,6 +192,8 @@ export interface ModelDetall {
   efecte_origen: Experiment | null;
   /** v0.3 (C): el mateix model en dues talles a la mateixa sessió. */
   dubte_talla?: DubteTallaModel | null;
+  /** v0.9: provador contra devolucions online d'aquest model (null si la marca no n'ha pujat cap). */
+  provador_online?: ProvadorOnlineModel | null;
 }
 
 export interface CompraParell { [talla: string]: number }
@@ -214,6 +229,8 @@ export interface Motius {
   taxa_resposta: Fraccio;
   per_motiu: MotiuCompte[];
   per_model: MotiusModel[];
+  /** Nom de cada motiu de les respostes (també els escrits per la marca). */
+  etiquetes?: Record<string, string>;
 }
 
 // ── GET /servei ──────────────────────────────────────────────────────────
@@ -311,6 +328,17 @@ export interface EstatSistema {
   hores_alerta: number;
   generat: DataHora;
   periode: { des: string; fins: string };
+  /** Darrera còpia de seguretat de la base de dades (hebra/copies.py). */
+  copia_seguretat?: EstatCopia;
+}
+export interface EstatCopia {
+  darrera: DataHora | null;
+  hores: number | null;
+  /** Destí remot on es va enviar (null = només local). */
+  remot: string | null;
+  error_remot: string | null;
+  alerta: boolean;
+  hores_alerta: number;
 }
 
 // ── GET /valor ───────────────────────────────────────────────────────────
@@ -338,10 +366,14 @@ export interface BlocInforme {
   dades: unknown;
 }
 export type UnitatGrafic = 'pct' | 'enter' | 'eur' | 'segons';
-export type TipusGrafic = 'linia' | 'barres' | 'barres_apilades' | 'donut';
+export type TipusGrafic = 'linia' | 'barres' | 'barres_apilades' | 'donut' | 'dispersio';
 export interface GraficInforme {
   id: string; titol: string; tipus: TipusGrafic; unitat: UnitatGrafic;
   eix_x: string[]; series: { nom: string; valors: (number | null)[] }[]; nota?: string | null;
+  /** v0.7: per a cada element de l'eix, si es remarca (p. ex. «molt provat, poc venut»). */
+  destaca?: boolean[] | null;
+  /** v0.7: què hi veiem i què en podem fer, amb les xifres del gràfic. */
+  lectura?: string | null;
 }
 export interface XifraInforme { etiqueta: string; valor: number | null; unitat: UnitatGrafic; variacio?: number | null; vs?: string | null; /** pilot */ objectiu?: number | null; compleix?: boolean | null }
 export interface Informe {
@@ -354,7 +386,20 @@ export interface Informe {
   /** v0.3 (E.2) */
   grafics?: GraficInforme[];
   xifres?: XifraInforme[];
+  /** v0.7: tots els gràfics que pot portar aquest informe i els que la marca ha triat (null = tots). */
+  grafics_disponibles?: { id: string; titol: string }[];
+  grafics_triats?: string[] | null;
 }
+
+// ── Comparativa de proves i compres per dia (v0.7) ───────────────────────
+export interface DiaComparat { data: Data; condicions: string[]; compleix: boolean; proves: number | null; compres: number | null; conversio: number | null }
+export interface TotalComparat { proves: number; compres: number; conversio: number | null; dies: number }
+export interface Comparativa {
+  dies: DiaComparat[]; total: TotalComparat; franja: string | null; condicio: string | null; condicions_disponibles: string[];
+  comparacio: { etiqueta: string; des: Data; fins: Data; dies: DiaComparat[]; total: TotalComparat } | null;
+}
+export interface Colleccio { id: number; nom: string; des: Data; fins: Data }
+export interface CondicioDia { botiga_id: string; data: Data; condicio: string }
 
 // ── Informes lliurats i programació (E.4) ────────────────────────────────
 export type EstatEnviament = 'no_enviat' | 'enviat' | 'error';
@@ -440,7 +485,36 @@ export interface Decisio {
 export interface RespostaDecisions { decisions: Decisio[] }
 export type NovaDecisio = Omit<Decisio, 'id' | 'creada'>;
 
-export interface ResultatImport { importades: number; errors: string[] }
+export interface ResultatImport { importades: number; errors: string[]; /** v0.9 devolucions */ repetides?: number; avisos?: string[] }
+
+/** v0.9: motius del provador comparats amb els motius de devolució online (sempre agregats, mai per persona). */
+export interface SentitTalla { petita: number; gran: number }
+export interface CategoriaProvadorOnline { motiu: string; nom: string; provador: number; pct_provador: Fraccio; online: number; pct_online: Fraccio }
+export interface ModelProvadorOnline {
+  model: string; nom: string; respostes_provador: number; devolucions_online: number;
+  motiu_provador: string | null; motiu_online: string | null;
+  provador: Record<string, number>; online: Record<string, number>; nomes_online: number;
+  coincidencia: Fraccio; divergent: boolean; talla_online: SentitTalla; talla_provador: SentitTalla; lectura: string;
+}
+export interface TallaOnline { model: string; nom: string; talla: string | null; petita: number; gran: number; sense: number }
+export interface ProvadorOnline {
+  periode?: Periode;
+  respostes_provador: number; devolucions_online: number; nomes_online: number; pct_nomes_online: Fraccio;
+  coincidencia: Fraccio;
+  categories: CategoriaProvadorOnline[];
+  nomes_online_detall: { motiu: string; nom: string; online: number; pct: Fraccio }[];
+  talla_sentit: { online: SentitTalla; provador: SentitTalla };
+  models: ModelProvadorOnline[]; talles: TallaOnline[];
+  etiquetes: Record<string, string>; minim: number; text: string;
+  importat: { linies: number; unitats: number; des: string | null; fins: string | null };
+}
+export type ProvadorOnlineModel = Pick<ProvadorOnline, 'respostes_provador' | 'devolucions_online' | 'nomes_online' | 'coincidencia' | 'categories' | 'nomes_online_detall' | 'talla_sentit' | 'minim' | 'talles'> & { lectura: string };
+export interface CodiDevolucio { codi: string; motiu: string; sentit: 'petita' | 'gran' | null; manual: boolean; unitats: number; suggeriment: string | null }
+export interface MapaDevolucions {
+  codis: CodiDevolucio[];
+  categories: { clau: string; nom: string; nomes_online: boolean }[];
+  importat: ProvadorOnline['importat'];
+}
 
 export interface Parametres { botiga_id: string; valors: Record<string, string> }
 
@@ -487,16 +561,29 @@ export interface Sessions {
 }
 
 // ── Fitxa NFC configurable (A) ───────────────────────────────────────────
-export type SeccioFitxa = 'talles' | 'composicio' | 'origen' | 'cura' | 'combina' | 'faq';
-export type MotiuFitxa = 'talla' | 'preu' | 'tall' | 'qualitat' | 'color' | 'nomes_mirava' | 'altre';
+export type SeccioEstandard = 'talles' | 'composicio' | 'origen' | 'cura' | 'combina' | 'faq';
+export type MotiuEstandard = 'talla' | 'preu' | 'tall' | 'qualitat' | 'color' | 'nomes_mirava' | 'altre';
+/** Identificador d'una secció o un motiu escrits per la marca: «p-...». */
+export type IdPropi = `p-${string}`;
+export type SeccioFitxa = SeccioEstandard | IdPropi;
+export type MotiuFitxa = MotiuEstandard | IdPropi;
+export type TextIdiomes = Record<string, string>;
+export interface SeccioPropia { id: IdPropi; titol: TextIdiomes; text: TextIdiomes; plegable: boolean }
+export interface MotiuPropi { id: IdPropi; text: TextIdiomes }
 export type MostraEstoc = 'no' | 'disponibilitat' | 'unitats';
 export interface ConfigFitxa {
-  seccions: { ordre: SeccioFitxa[]; visibles: Record<SeccioFitxa, boolean> };
+  seccions: { ordre: SeccioFitxa[]; visibles: Partial<Record<SeccioFitxa, boolean>> };
   accions: { demana_talla: boolean; demana_assistencia: boolean; per_que_no: boolean; mostra_estoc: MostraEstoc };
   idiomes: string[];
   textos: { benvinguda?: Record<string, string>; peu?: Record<string, string> };
   'aparença': { color_principal: string; logo_data_url: string | null; nom_marca: string };
   motius: MotiuFitxa[];
+  /** Seccions escrites a mà per la marca (només a la configuració general). */
+  seccions_propies: SeccioPropia[];
+  /** Motius de «per què no» escrits per la marca. */
+  motius_propis: MotiuPropi[];
+  /** Redacció pròpia dels motius estàndard, per idioma. */
+  textos_motius: Partial<Record<MotiuEstandard, TextIdiomes>>;
 }
 /** Configuració d'una botiga: només els camps que sobreescriu. */
 export interface ConfigFitxaParcial {
@@ -506,9 +593,41 @@ export interface ConfigFitxaParcial {
   textos?: ConfigFitxa['textos'];
   'aparença'?: Partial<ConfigFitxa['aparença']>;
   motius?: MotiuFitxa[];
+  seccions_propies?: SeccioPropia[];
+  motius_propis?: MotiuPropi[];
+  textos_motius?: ConfigFitxa['textos_motius'];
 }
 export interface RespostaConfigFitxa { general: ConfigFitxa; botiga: ConfigFitxaParcial | null; efectiva: ConfigFitxa }
-export interface ModelFitxa { model: string; nom: string; categoria: string; idiomes_amb_contingut: string[]; te_origen: boolean }
+export interface ModelFitxa { model: string; nom: string; categoria: string; idiomes_amb_contingut: string[]; te_origen: boolean; imatge?: string }
+
+// ── Imatges de les peces (v0.5) ──────────────────────────────────────────
+export interface ImatgePeca {
+  model: string; nom: string; color: string; categoria: string | null; imatge: string; silueta: boolean;
+  font: 'pujada' | 'url' | 'cataleg' | 'shopify' | 'prova' | null; actualitzada: DataHora | null;
+  /** v0.6: fotos de més del model (galeria de la fitxa NFC), després de la principal. */
+  galeria?: { clau: string; url: string }[];
+}
+export interface ImatgeDesada { model: string; color: string; url: string; bytes: number; font: string }
+
+// ── GET /panorama (v0.5) ─────────────────────────────────────────────────
+export interface EtapaEmbut { clau: 'tocs' | 'proves' | 'peticions' | 'compres'; nom: string; n: number }
+export interface CategoriaPanorama { categoria: string; proves: number; compres: number; conversio: Fraccio }
+export interface PecaPanorama {
+  model: string; nom: string; categoria: string | null; color: string | null; preu: number | null; imatge: string;
+  proves: number; compres: number; conversio: Fraccio; unitats_venudes: number; ingressos: number;
+  estoc: number | null; cobertura_setmanes: number | null; serie: number[];
+}
+export interface Panorama {
+  periode: { des: Data; fins: Data };
+  dies: Data[];
+  embut: EtapaEmbut[];
+  mapa_calor: { hores: number[]; dies_setmana: string[]; proves: number[][] };
+  per_categoria: CategoriaPanorama[];
+  temps_cabina: { trams: { des: number; fins: number | null; sessions: number }[]; mediana_minuts: number | null };
+  peces_per_sessio: { peces: number | string; sessions: number }[];
+  peces: PecaPanorama[];
+  motius: { motiu: Motiu; nom: string; n: number; pct: Fraccio }[];
+}
 export interface ContingutModel {
   nom?: string; descripcio?: string; ajust?: string; cura?: string[]; guia_talles?: string;
   faq?: { q: string; a: string }[]; combina?: string[];

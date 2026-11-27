@@ -1,0 +1,88 @@
+---
+// Portada: vídeo real a sangre, con el titular encima.
+import { path, type Lang } from '../i18n';
+interface Props { lang?: Lang }
+const { lang = 'es' } = Astro.props;
+const T = {
+  es: {
+    h1: 'Tu ropa sabe lo que pasa en el <em>probador.</em>',
+    lead: 'Cada prenda sabe cuántas veces pasa por el probador, en qué talla y por qué vuelve a la percha. Hebra pone una etiqueta inteligente en tu ropa y se lo cuenta a tu marca.',
+    demo: 'Quiero una demo', more: 'Ver cómo funciona',
+    meta: ['Barcelona', 'Para marcas de moda con tienda física'],
+    scroll: 'Desliza', pause: 'Pausar el vídeo', play: 'Reproducir el vídeo',
+  },
+  ca: {
+    h1: 'La teva roba sap què passa a l’<em>emprovador.</em>',
+    lead: 'Cada peça sap quantes vegades passa per l’emprovador, en quina talla i per què torna a la perxa. Hebra posa una etiqueta intel·ligent a la teva roba i ho explica a la teva marca.',
+    demo: 'Vull una demo', more: 'Veure com funciona',
+    meta: ['Barcelona', 'Per a marques de moda amb botiga física'],
+    scroll: 'Llisca', pause: 'Pausar el vídeo', play: 'Reproduir el vídeo',
+  },
+  en: {
+    h1: 'Your clothes know what happens in the <em>fitting room.</em>',
+    lead: 'Every garment knows how often it goes into the fitting room, in which size and why it ends up back on the rail. Hebra puts a smart tag in your clothes and tells your brand what happens.',
+    demo: 'Get a demo', more: 'See how it works',
+    meta: ['Barcelona', 'For fashion brands with physical stores'],
+    scroll: 'Scroll', pause: 'Pause the video', play: 'Play the video',
+  },
+}[lang];
+---
+<section class="hero" data-hero>
+  <div class="hero-media" aria-hidden="true">
+    <video data-hero-video autoplay muted loop playsinline preload="metadata" poster="/video/hero.jpg">
+      <source src="/video/hero.mp4" type="video/mp4" />
+    </video>
+  </div>
+  <div class="hero-shade" aria-hidden="true"></div>
+
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <h1 data-lines set:html={T.h1} />
+      <p class="lead hero-lead" data-hero-in>{T.lead}</p>
+      <div class="actions" data-hero-in>
+        <a class="btn" href={path(lang, '/contacto/#demo')} data-magnetic>{T.demo}</a>
+        <a class="btn ghost" href={path(lang, '/como-funciona/')}>{T.more}</a>
+      </div>
+    </div>
+    <div class="hero-meta" data-hero-in>
+      {T.meta.map((m) => <span>{m}</span>)}
+      <button type="button" class="hero-play" data-hero-play data-pause={T.pause} data-play={T.play} aria-label={T.pause}><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path class="i-pause" d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="2" /><path class="i-play" d="M7 5l12 7-12 7z" fill="currentColor" /></svg></button>
+      <span class="hero-scroll" aria-hidden="true">{T.scroll}<i></i></span>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero { position: relative; min-height: 100svh; background: var(--ink); color: #fff; overflow: hidden; isolation: isolate; }
+  .hero-media { position: absolute; inset: 0; z-index: -2; }
+  .hero-media video { width: 100%; height: 100%; object-fit: cover; object-position: 60% 30%; display: block; transform-origin: 60% 40%; }
+  .hero-shade { position: absolute; inset: 0; z-index: -1; background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ink) 75%, transparent) 0%, transparent 28%, transparent 45%, color-mix(in srgb, var(--ink) 88%, transparent) 100%),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 70%, transparent) 0%, transparent 60%); }
+  .hero-grid { position: relative; min-height: 100svh; display: grid; grid-template-rows: 1fr auto; padding-top: 7rem; padding-bottom: 6.5rem; }
+  .hero-copy { align-self: end; max-width: 44rem; }
+  .hero h1 { font-size: clamp(2.9rem, 1.4rem + 5.4vw, 7.4rem); line-height: .94; letter-spacing: -0.055em; margin: 0; max-width: 11ch; color: #fff; text-shadow: 0 2px 40px rgba(0,0,0,.25); }
+  .hero h1 :global(em) { color: color-mix(in srgb, var(--tint) 70%, #fff); }
+  .hero-lead { color: rgba(255,255,255,.86); margin: 1.6rem 0 0; max-width: 34ch; }
+  .hero .btn { background: #fff; color: var(--ink); border-color: #fff; }
+  .hero .btn::before { background: var(--tint); }
+  .hero .btn:hover { color: var(--ink); border-color: var(--tint); }
+  .hero .btn.ghost { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.4); backdrop-filter: blur(10px); }
+  .hero-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 2rem; margin-top: 2.6rem; padding-top: 1.1rem; border-top: 1px solid rgba(255,255,255,.25); font-size: var(--step--1); color: rgba(255,255,255,.78); }
+  .hero-play { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); background: none; color: #fff; display: grid; place-items: center; cursor: pointer; }
+  .hero-play:hover { background: #fff; color: var(--ink); }
+  .hero-play .i-play { display: none; }
+  .hero-play[aria-pressed='true'] .i-play { display: block; }
+  .hero-play[aria-pressed='true'] .i-pause { display: none; }
+  .hero-scroll { display: inline-flex; align-items: center; gap: .6rem; }
+  .hero-scroll i { width: 1px; height: 22px; background: rgba(255,255,255,.3); position: relative; overflow: hidden; }
+  .hero-scroll i::after { content: ''; position: absolute; inset: 0; background: #fff; animation: drip 1.8s var(--ease) infinite; }
+  @keyframes drip { from { transform: translateY(-100%); } to { transform: translateY(100%); } }
+  @media (max-width: 959px) {
+    .hero-media video { object-position: 62% 30%; }
+    .hero-grid { padding-bottom: 5.5rem; }
+    .hero h1 { font-size: clamp(2.5rem, 10.5vw, 3.6rem); }
+    .hero-shade { background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 50%, transparent) 0%, transparent 25%, color-mix(in srgb, var(--ink) 40%, transparent) 50%, color-mix(in srgb, var(--ink) 92%, transparent) 100%); }
+  }
+  @media (prefers-reduced-motion: reduce) { .hero-scroll i::after { animation: none; } }
+</style>

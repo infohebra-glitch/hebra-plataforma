@@ -1,13 +1,12 @@
 import { Link } from 'react-router-dom';
 import { analitica } from '../api/endpoints';
-import type { Motiu } from '../api/types';
 import { Buit, Consulta, Esquelet } from '../components/Estat';
 import { Rajola } from '../components/Rajola';
 import { Barres } from '../components/grafics/Barres';
 import { MapaCalor } from '../components/grafics/MapaCalor';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
 import { useFiltre } from '../context/Filtre';
-import { MOTIUS, motiu } from '../lib/etiquetes';
+import { motiu, registraNomsMotius } from '../lib/etiquetes';
 import { enter, pct } from '../lib/format';
 import { useApi } from '../lib/useApi';
 
@@ -19,7 +18,7 @@ export function PerQue() {
     <>
       <TitolPagina titol="Per què no compren">El que diuen els clients a la fitxa NFC quan no s’emporten la peça, i les talles que volien i no hi eren.</TitolPagina>
       <Consulta q={qm} esquelet={<Esquelet tipus="rajoles" />}>
-        {(m) => (
+        {(m) => { registraNomsMotius(m.etiquetes); const columnes = m.per_motiu.map((x) => x.motiu); return (
           <>
             <div className="rajoles">
               <Rajola etiqueta="Respostes" valor={enter(m.respostes)} nota={<>de {enter(m.sessions_fitxa)} sessions amb la fitxa oberta</>} />
@@ -40,11 +39,11 @@ export function PerQue() {
                       titol="Motius per model"
                       capFila="Model"
                       files={m.per_model.map((x) => ({ clau: x.model, nom: <Link to={`/peces/${encodeURIComponent(x.model)}`}>{x.nom}</Link> }))}
-                      columnes={(Object.keys(MOTIUS) as Motiu[]).map((k) => ({ clau: k, nom: MOTIUS[k].split(' ')[0] }))}
+                      columnes={columnes.map((k) => ({ clau: k, nom: motiu(k).replace(/ (o|i) .*$/, '') }))}
                       llegendaEscala={['menys', 'més respostes']}
                       cel={(mod, mot) => {
                         const fila = m.per_model.find((x) => x.model === mod)!;
-                        const n = fila.motius[mot as Motiu] ?? 0;
+                        const n = (fila.motius as Record<string, number>)[mot] ?? 0;
                         return { v: n, text: n ? enter(n) : '·', titol: `${fila.nom}: ${n} de ${fila.respostes} respostes diuen «${motiu(mot)}»` };
                       }}
                     />
@@ -53,7 +52,7 @@ export function PerQue() {
               </Seccio>
             </div>
           </>
-        )}
+        ); }}
       </Consulta>
       <Seccio titol="Demanda perduda" subtitol="Peticions de talla o color fetes des de la fitxa quan no n’hi havia a la botiga.">
         <Consulta q={qd} esquelet={<Esquelet tipus="taula" files={4} />}>

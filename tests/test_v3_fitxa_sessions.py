@@ -146,6 +146,7 @@ def test_fitxa_aplica_configuracio(entorn):
     fitxa_config.desa(con, "BCN-01", {"seccions": {"ordre": ["cura", "talles"], "visibles": {"faq": False}},
                                       "accions": {"mostra_estoc": "unitats", "demana_assistencia": False}})
     fitxa_config.desa_contingut(con, "CL-24-NAT", "es", {"nom": "Camisa Mar", "guia_talles": "Talla justa."})
+    _dins_del_provador(con, p["epc"])
     c = TestClient(app_mod.app)
     r = c.get(f"/p/{p['nfc_token']}?b=BCN-01", headers={"accept-language": "fr-FR"})
     assert r.status_code == 200 and "set-cookie" not in r.headers
@@ -230,7 +231,7 @@ def test_assistencia_des_de_la_fitxa(entorn):
     app_mod, con = entorn
     p = _peca(con)
     c = TestClient(app_mod.app)
-    r = c.post(f"/p/{p['nfc_token']}/assistencia", data={"cabina": "Cabina 2", "b": "BCN-01", "lang": "ca", "s": "s1"},
+    r = c.post(f"/p/{p['nfc_token']}/assistencia", data={"cabina": "Cabina 2", "b": "BCN-01", "lang": "ca", "s": "sessio-prova1"},
                follow_redirects=False)
     assert r.status_code == 303 and "ok=assistencia" in r.headers["location"]
     assert "Ara ve algú a la cabina." in c.get(r.headers["location"]).text
@@ -270,7 +271,7 @@ def test_altres_botigues(entorn):
     assert pet["altres_botigues"] == [{"botiga_id": "GIR-01", "nom": "Girona", "unitats": 3}]
     con.execute("UPDATE estoc SET unitats = 2 WHERE botiga_id = 'BCN-01'")
     con.commit()
-    pid2 = fitxa.demana_talla(con, "s", "BCN-01", p["gtin"], altra, "ca")
+    pid2 = fitxa.demana_talla(con, "s2", "BCN-01", p["gtin"], altra, "ca")
     assert alertes.peticio(con, pid2)["altres_botigues"] == []  # n'hi ha a la botiga
 
 
@@ -505,3 +506,16 @@ def test_simulador_genera_novetats(tmp_path):
     assert s["mateix_model_diferent_talla"]["sessions"] > 10
     assert {r["peces"]: r["sessions"] for r in s["per_nombre_peces"]}["4"] > 0
     assert analitica.servei(con, f)["peticions_assistencia"] > 0
+
+
+def _dins_del_provador(con, epc, botiga="BCN-01"):
+    """v0.8: la fitxa ensenya talla, assistència i motius només si el lector té la peça ara dins d'una cabina."""
+    from datetime import datetime, timedelta
+    from hebra import temps
+    ara = datetime.fromisoformat(temps.ara())
+    antena = con.execute("SELECT a.id FROM antena a JOIN cabina c ON c.id = a.cabina_id WHERE c.botiga_id = ? "
+                         "ORDER BY a.id LIMIT 1", (botiga,)).fetchone()["id"]
+    con.execute("INSERT INTO lectura_agregada (epc, antena_id, inici, fi, n_lectures, rssi_max, rssi_mitja) "
+                "VALUES (?, ?, ?, ?, 10, -40, -45)",
+                (epc, antena, (ara - timedelta(seconds=20)).isoformat(timespec="seconds"), ara.isoformat(timespec="seconds")))
+    con.commit()

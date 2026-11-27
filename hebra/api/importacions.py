@@ -1,12 +1,12 @@
-"""Importació de fitxers CSV: vendes, estoc (botiga o més) i catàleg (només admin)."""
+"""Importació de fitxers CSV: vendes, estoc (botiga o més), devolucions online (marca o més) i catàleg (només admin)."""
 
 import sqlite3
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
-from hebra import admin, estoc, vendes
+from hebra import admin, devolucions, estoc, vendes
 
-from .comu import BOTIGA_O_MES, NOMES_ADMIN, bd, rol
+from .comu import BOTIGA_O_MES, MARCA_O_MES, NOMES_ADMIN, bd, rol
 
 router = APIRouter(prefix="/importa", tags=["importació"])
 
@@ -38,11 +38,11 @@ async def importa_vendes(fitxer: UploadFile, con: sqlite3.Connection = Depends(b
                          u: dict = Depends(rol(*BOTIGA_O_MES))) -> dict:
     text = await _text(fitxer)
     _nomes_la_seva(u, text)
-    n, errors = vendes.importa_csv(con, text)
+    n, errors, repetides = vendes.importa_csv_sense_repetir(con, text)
     botigues = [u["botiga_id"]] if u["rol"] == "botiga" else [f["id"] for f in con.execute("SELECT id FROM botiga")]
     for b in botigues:
         vendes.atribueix(con, b)
-    return {"importades": n, "errors": errors[:200]}
+    return {"importades": n, "repetides": repetides, "errors": errors[:200]}
 
 
 @router.post("/estoc")
@@ -59,3 +59,11 @@ async def importa_cataleg(fitxer: UploadFile, con: sqlite3.Connection = Depends(
                           _u: dict = Depends(rol(*NOMES_ADMIN))) -> dict:
     n, errors = admin.importa_cataleg(con, await _text(fitxer))
     return {"importades": n, "errors": errors[:200]}
+
+
+@router.post("/devolucions")
+async def importa_devolucions(fitxer: UploadFile, con: sqlite3.Connection = Depends(bd),
+                              _u: dict = Depends(rol(*MARCA_O_MES))) -> dict:
+    """Devolucions de la botiga en línia (v0.9). Sense dades personals: vegeu hebra/devolucions.py."""
+    r = devolucions.importa_csv(con, await _text(fitxer))
+    return r | {"errors": r["errors"][:200]}

@@ -5,7 +5,7 @@ Rutes (marca+):
   GET     /fitxa/models                   models del catàleg i en quins idiomes tenen contingut propi
   GET     /fitxa/models/{model}           contingut propi per idioma i el fitxer d'origen
   PUT     /fitxa/models/{model}/{idioma}  desa el contingut propi (un objecte buit l'esborra)
-  GET     /fitxa/previsualitza?model=&botiga=&idioma=
+  GET     /fitxa/previsualitza?model=&botiga=&idioma=&mode=dins|fora
           HTML de la fitxa tal com la veuria el client, per a un iframe del tauler.
           No registra cap esdeveniment: no porta l'script ni formularis actius.
 """
@@ -27,6 +27,7 @@ router = APIRouter(prefix="/fitxa", tags=["fitxa NFC"])
 
 _plantilles = Jinja2Templates(directory=Path(fitxa_mod.__file__).with_name("templates"))
 _plantilles.env.globals["pais"] = textos.pais
+_plantilles.env.globals["bandera"] = textos.bandera
 
 
 def _err(e: fitxa_config.ErrorConfig):
@@ -66,14 +67,17 @@ def models(con: sqlite3.Connection = Depends(bd), _u: dict = Depends(rol(*MARCA_
     idiomes: dict[str, list[str]] = {}
     for f in con.execute("SELECT model, idioma FROM contingut_model ORDER BY model, idioma"):
         idiomes.setdefault(f["model"], []).append(f["idioma"])
+    from hebra import imatges
+    res = imatges.Resolutor(con)
     out = []
-    for f in con.execute("""SELECT model, MIN(categoria) AS categoria, MAX(origen_json IS NOT NULL) AS te_origen,
+    for f in con.execute("""SELECT model, MIN(categoria) AS categoria, MIN(color) AS color, MAX(origen_json IS NOT NULL) AS te_origen,
                                    MAX(origen_json) AS origen_json
                             FROM catalog_sku GROUP BY model ORDER BY model"""):
         propi = fitxa_config.contingut(con, f["model"]).get("ca", {})
         nom = propi.get("nom") or fitxa_mod.tr(json.loads(f["origen_json"] or "{}").get("nom"), "ca") or f["model"]
         out.append({"model": f["model"], "nom": nom, "categoria": f["categoria"],
-                    "idiomes_amb_contingut": idiomes.get(f["model"], []), "te_origen": bool(f["te_origen"])})
+                    "idiomes_amb_contingut": idiomes.get(f["model"], []), "te_origen": bool(f["te_origen"]),
+                    "imatge": res.de(f["model"], f["color"], f["categoria"], nom)["url"]})
     return {"models": out}
 
 
@@ -96,7 +100,7 @@ def desa_model(model: str, idioma: str, cos: dict = Body(...), con: sqlite3.Conn
 
 @router.get("/previsualitza", response_class=HTMLResponse)
 def previsualitza(request: Request, model: str, botiga: str | None = None, idioma: str | None = None,
-                  con: sqlite3.Connection = Depends(bd), u: dict = Depends(rol(*MARCA_O_MES))):
+                  mode: str = "dins", con: sqlite3.Connection = Depends(bd), u: dict = Depends(rol(*MARCA_O_MES))):
     """La fitxa d'una peça del model (la primera variant) amb la configuració efectiva de la botiga."""
     b = botiga_permesa(con, u, botiga)
     peca = con.execute("""SELECT NULL AS epc, 'previsualitzacio' AS nfc_token, k.* FROM catalog_sku k
@@ -105,6 +109,9 @@ def previsualitza(request: Request, model: str, botiga: str | None = None, idiom
         raise HTTPException(404, f"Model desconegut: {model}")
     cfg = fitxa_config.efectiva(con, b)
     lang = fitxa_mod.tria_idioma(idioma, None, cfg["idiomes"])
+    if mode not in ("dins", "fora"):
+        raise HTTPException(400, "mode ha de ser «dins» o «fora»")
+    on = {"mode": mode, "cabina": "Cabina 2" if mode == "dins" else None}  # v0.8: la marca veu els dos modes
     context = fitxa_mod.context_pagina(con, peca, b, lang, cfg, s="", ok=None,
-                                       previsualitza={"model": model, "botiga": b or ""})
+                                       previsualitza={"model": model, "botiga": b or "", "mode": mode}, on=on)
     return _plantilles.TemplateResponse(request, "fitxa.html", context, headers={"Cache-Control": "no-store"})

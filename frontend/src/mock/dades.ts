@@ -26,7 +26,7 @@ const NUMS = ['36', '38', '40', '42', '44'];
 
 export const MODELS: DefModel[] = [
   { model: 'CL-24-NAT', nom: 'Camisa de lli', categoria: 'part de dalt', color: 'Natural', preu: 69, pes: 0.22, conv: 0.42, talles: LLETRES, pesTalla: [0.08, 0.24, 0.33, 0.24, 0.11], estocTalla: [3, 4, 1, 0, 2], motius: { talla: 8, preu: 4, tall: 3, color: 2, qualitat: 2, altre: 1 }, provatAmb: ['TX-26-IND', 'PL-26-TER', 'FA-26-BLA'] },
-  { model: 'VV-26-VRD', nom: 'Vestit de viscosa', categoria: 'vestit', color: 'Verd', preu: 79, pes: 0.2, conv: 0.14, talles: LLETRES.slice(0, 4), pesTalla: [0.15, 0.32, 0.33, 0.2], estocTalla: [4, 5, 3, 2], motius: { tall: 9, preu: 6, talla: 4, qualitat: 3, color: 1 }, provatAmb: ['JM-24-GRF', 'FA-26-BLA'] },
+  { model: 'VV-26-VRD', nom: 'Vestit de viscosa', categoria: 'vestit', color: 'Verd', preu: 79, pes: 0.2, conv: 0.14, talles: LLETRES.slice(0, 4), pesTalla: [0.15, 0.32, 0.33, 0.2], estocTalla: [4, 5, 3, 2], motius: { tall: 9, preu: 6, talla: 4, qualitat: 3, 'p-massa-llarg': 3, color: 1 }, provatAmb: ['JM-24-GRF', 'FA-26-BLA'] },
   { model: 'TX-26-IND', nom: 'Texans rectes', categoria: 'part de baix', color: 'Índigo', preu: 59, pes: 0.17, conv: 0.3, talles: NUMS, pesTalla: [0.12, 0.27, 0.3, 0.2, 0.11], convTalla: { '38': 0.38 }, estocTalla: [2, 6, 4, 3, 1], motius: { talla: 7, tall: 4, preu: 2, altre: 1 }, provatAmb: ['CL-24-NAT', 'JM-24-GRF', 'SB-25-CRU'] },
   { model: 'JM-24-GRF', nom: 'Jersei de merino', categoria: 'part de dalt', color: 'Grafit', preu: 89, pes: 0.14, conv: 0.36, talles: LLETRES, pesTalla: [0.06, 0.2, 0.45, 0.21, 0.08], estocTalla: [2, 3, 3, 4, 3], motius: { preu: 5, talla: 2, color: 1 }, provatAmb: ['TX-26-IND', 'PL-26-TER'] },
   { model: 'SB-25-CRU', nom: 'Sobrecamisa de cotó', categoria: 'part de dalt', color: 'Cru', preu: 75, pes: 0.1, conv: 0.33, talles: LLETRES, pesTalla: [0.05, 0.2, 0.35, 0.28, 0.12], estocTalla: [1, 3, 4, 3, 2], motius: { tall: 2, preu: 2, talla: 1 }, provatAmb: ['TX-26-IND'] },
@@ -200,6 +200,7 @@ export const estat = {
   seguentPeticio: 42,
   seguentAbandonada: 8,
   seguentDecisio: 5,
+  lotProva: false,
 };
 
 /** Una petició nova, com si un client la fes des de la fitxa NFC. */

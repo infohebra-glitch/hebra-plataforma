@@ -10,7 +10,7 @@ Aquesta guia porta la plataforma de les dades simulades a una botiga de veritat.
 
 ## 1. Servidor
 
-Qualsevol servidor Linux petit serveix (previst: Hetzner CX23, Debian o Ubuntu). Cal un domini que apunti a la IP del servidor, p. ex. `plataforma.hebra.cat`.
+**Camí recomanat: [`docs/ALLOTJAMENT.md`](ALLOTJAMENT.md)** (gratuït: Raspberry Pi o ordinador propi + Cloudflare Tunnel a `plataforma.hebraia.com`, script d'instal·lació, còpies de seguretat a Google Drive i avís si cau). El que segueix és la instal·lació a mà, per a qualsevol servidor Linux petit (Debian o Ubuntu). Cal un domini que apunti a la IP del servidor.
 
 ```bash
 sudo apt install -y python3-venv git caddy
@@ -59,7 +59,7 @@ El servei arrenca **un sol procés** `uvicorn`: les alertes en directe (peticion
 
 La plataforma recalcula proves i atribucions cada 5 minuts (`HEBRA_PROCESSA_CADA_MIN`).
 
-**Còpia de seguretat**: la base de dades és un sol fitxer. Cada nit: `sqlite3 /opt/hebra-plataforma/hebra.db ".backup /opt/copies/hebra-$(date +%F).db"`.
+**Còpia de seguretat**: la base de dades és un sol fitxer. `python -m hebra.admin copia` en fa una còpia comprovada i comprimida (i l'envia fora si hi ha `HEBRA_COPIES_DESTI`); els serveis `desplegament/hebra-copia.service` i `.timer` la fan cada nit. Detall i restauració: [`docs/ALLOTJAMENT.md`](ALLOTJAMENT.md#4-còpies-de-seguretat).
 
 ## 2. Raspberry Pi de la botiga
 
@@ -83,6 +83,7 @@ El radar es configura una vegada (sensibilitat i distància màxima, que no "veg
 1. Entreu a la web del lector (`https://<ip-del-lector>`), canvieu la contrasenya per defecte.
 2. A la configuració, la interfície RFID ha de ser **Impinj IoT Device Interface** (per defecte des del firmware 8.2).
 3. Obriu la documentació de l'API que porta el lector i **comproveu els camins** de presets, inici, aturada i flux de dades. Si no són els de `passarella.example.toml`, poseu-hi els correctes.
+4. Proveu-ho amb `python3 -m hebra_passarella.diagnosi /etc/hebra/passarella.toml` (guia completa per a la primera prova: [`docs/PROVA-R700.md`](PROVA-R700.md)).
 
 ### 2.3 Programa
 
@@ -178,7 +179,7 @@ Si el TPV pot publicar o enviar cada hora un fitxer a una adreça HTTPS (o el se
 
 * vendes: `data_hora,gtin,quantitat,import,tiquet` (+ `botiga` si la connexió és de tota la marca; quantitat negativa = devolució);
 * estoc: `gtin,unitats` (+ `botiga`);
-* catàleg: `gtin,model,color,talla,categoria,preu`.
+* catàleg: `gtin,model,color,talla,categoria,preu` (+ `imatge_url` opcional: la foto de la peça, que la plataforma descarrega una vegada i serveix ella mateixa).
 
 Separador coma o punt i coma, UTF-8 o Windows-1252. El fitxer de vendes pot portar sempre els darrers dies: les línies que ja hi són no es tornen a importar.
 

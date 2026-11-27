@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import { ui, path, type Lang } from '../i18n';
+interface Props { title: string; description: string; lang?: Lang; route: string }
+const { title, description, lang = 'es', route } = Astro.props;
+---
+<Base title={title} description={description} lang={lang} route={route}>
+  <header class="page-head">
+    <div class="wrap">
+      <p class="crumb"><a href={path(lang, '/')}>{ui[lang].home}</a> / {title}</p>
+      <h1>{title}</h1>
+    </div>
+  </header>
+  <section class="band tight" style="padding-top:0">
+    <div class="wrap legal"><slot /></div>
+  </section>
+</Base>
+<style>
+  .legal { max-width: 46rem; }
+  .legal :global(h2) { font-size: var(--step-2); margin-top: 2.5rem; }
+  .legal :global(.pend) { background: #F3E6EA; color: var(--deep); padding: 0 .3em; border-radius: 2px; font-weight: 600; }
+  .legal :global(ul) { padding-left: 1.2rem; }
+  .legal :global(li) { margin: .4rem 0; }
+  .legal :global(.ltable) { overflow-x: auto; margin: 1.2rem 0; -webkit-overflow-scrolling: touch; }
+  .legal :global(table) { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .85rem; line-height: 1.45; }
+  .legal :global(th), .legal :global(td) { text-align: left; vertical-align: top; padding: .55rem .7rem; border-bottom: 1px solid rgba(20,69,125,.15); }
+  .legal :global(th) { font-weight: 600; color: var(--deep); background: rgba(20,69,125,.05); }
+  .legal :global(code) { font-size: .85em; }
+</style>

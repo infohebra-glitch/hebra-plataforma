@@ -81,7 +81,7 @@ def _motius(con, f) -> dict:
     if m["respostes"]:
         top = m["per_motiu"][0]
         text = (f"{m['respostes']} respostes ({base.pct_txt(m['taxa_resposta'])} de les sessions de fitxa). "
-                f"El motiu més citat: {base.MOTIUS.get(top['motiu'], top['motiu']).lower()} ({base.pct_txt(top['pct'])}).")
+                f"El motiu més citat: {base.nom_motiu(con, top['motiu']).lower()} ({base.pct_txt(top['pct'])}).")
     else:
         text = "Cap resposta al motiu de no compra al període."
     return _bloc("motius", "Per què no se l'emporten", text, m)

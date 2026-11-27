@@ -11,6 +11,15 @@
   python -m hebra.admin estoc estoc.csv              # botiga,gtin,unitats
   python -m hebra.admin shopify --botiga BCN-01      # sincronitza comandes i estoc (només lectura)
   python -m hebra.admin retencio                     # esborra lectures i sensors més antics que HEBRA_RETENCIO_DIES
+  python -m hebra.admin copia                        # còpia de seguretat comprovada (i enviada fora si HEBRA_COPIES_DESTI)
+  python -m hebra.admin copies                       # llista les còpies locals
+  python -m hebra.admin restaura FITXER.db.gz        # restaura una còpia (atureu abans hebra-web)
+  python -m hebra.admin demo-enllacos --botiga PROVA-01 --url https://plataforma.hebraia.com   # enllaços NFC per a la demo
+  python -m hebra.admin demo-directe --botiga PROVA-01 --cabina 1 --minuts 3   # cabina ocupada en directe, sense lector
+  python -m hebra.admin nfc-protegeix --model PH4012-166 --uid 04A1B2C3D4E5F6 --url https://plataforma.hebraia.com
+                                         # associa un xip NTAG 424 DNA a la peça i dona les claus per gravar-lo
+  python -m hebra.admin nfc-prova --model PH4012-166 --url https://plataforma.hebraia.com
+                                         # enllaç signat com el d'un toc real (demo de «Peça original verificada»)
 
 Formats CSV (capçalera obligatòria, separador coma o punt i coma):
   cataleg.csv:   gtin,model,color,talla,categoria,preu
@@ -28,7 +37,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import alertes, auth, cataleg, control, db, estoc, proves, retencio, shopify, vendes
+from . import alertes, auth, autenticitat, cataleg, control, copies, db, demo_directe, demo_peca, estoc, proves, retencio, shopify, vendes
 from .integracions import ErrorIntegracio
 from .integracions import motor as integracions_motor
 from . import epc as epc_mod
@@ -71,8 +80,11 @@ def cataleg_csv(con: sqlite3.Connection, ruta: str) -> str:
 
 
 def importa_cataleg(con: sqlite3.Connection, text: str) -> tuple[int, list[str]]:
-    """Importa variants del catàleg (gtin,model,color,talla,categoria,preu). Retorna (importades, errors)."""
-    n, errors = 0, []
+    """Importa variants del catàleg (gtin,model,color,talla,categoria,preu[,imatge_url]). Retorna (importades, errors).
+
+    `imatge_url` (opcional, v0.5): foto de la peça; es descarrega una vegada i la serveix la plataforma."""
+    from . import imatges
+    n, errors, fotos = 0, [], []
     for i, f in enumerate(_llegeix_text_csv(text), start=2):
         try:
             gtin = f["gtin"].zfill(14)
@@ -84,6 +96,8 @@ def importa_cataleg(con: sqlite3.Connection, text: str) -> tuple[int, list[str]]
                    categoria=excluded.categoria, preu_eur=excluded.preu_eur""",
                 (gtin, f["model"], f["color"], f["talla"], f.get("categoria") or "altres",
                  float(f["preu"].replace(",", ".")) if f.get("preu") else None))
+            if (f.get("imatge_url") or "").strip():
+                fotos.append((f["model"], f["color"], f["imatge_url"].strip()))
             n += 1
         except (KeyError, ValueError) as e:
             errors.append(f"Línia {i}: {e}")
@@ -134,6 +148,24 @@ def sincronitza_shopify(con: sqlite3.Connection, clau: str, botiga_id: str) -> d
     return shopify.sincronitza(con, botiga_id)
 
 
+def correu_prova(cfg, a: str | None) -> int:
+    """Envia un correu de prova. Retorna 0 si ha anat bé (per a configura-correu.sh)."""
+    from . import correu
+    if not correu.configurat(cfg):
+        print("El correu no està configurat (falta HEBRA_SMTP_HOST). Executeu desplegament/configura-correu.sh.")
+        return 1
+    desti = a or cfg.correu_redirigeix or cfg.smtp_usuari
+    try:
+        enviats = correu.envia(cfg, [desti], "Correu de prova de Hebra",
+                               "Si llegeixes això, la plataforma ja pot enviar informes per correu.")
+    except correu.ErrorCorreu as e:
+        print(e)
+        return 1
+    print(f"Correu de prova enviat a {', '.join(enviats)}"
+          + (f" (mode de proves: tot va a {cfg.correu_redirigeix})" if cfg.correu_redirigeix else ""))
+    return 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Administració de Hebra")
     sub = ap.add_subparsers(dest="ordre", required=True)
@@ -156,12 +188,55 @@ def main() -> None:
     u.add_argument("--rol", required=True, choices=auth.ROLS)
     u.add_argument("--botiga", help="obligatori per al rol botiga")
     u.add_argument("--contrasenya", help="si no s'indica, es demana (no queda a l'historial)")
+    cc = sub.add_parser("contrasenya", help="posa una contrasenya nova a un usuari que ja existeix")
+    cc.add_argument("--correu", required=True)
+    cp = sub.add_parser("correu", help="envia un correu de prova amb la configuració SMTP actual")
+    cp.add_argument("--a", dest="a", help="destinatari (per defecte, HEBRA_CORREU_REDIRIGEIX)")
     sub.add_parser("estoc").add_argument("fitxer")
     sub.add_parser("shopify").add_argument("--botiga", required=True)
     sub.add_parser("retencio")
+    sub.add_parser("copia", help="còpia de seguretat de la base de dades")
+    sub.add_parser("copies", help="llista les còpies locals")
+    r = sub.add_parser("restaura", help="restaura una còpia (amb el servei web aturat)")
+    r.add_argument("fitxer")
+    r.add_argument("--si", action="store_true", help="no demanis confirmació")
+    de = sub.add_parser("demo-enllacos", help="enllaç NFC d'una peça de cada model, per gravar-lo en un adhesiu")
+    de.add_argument("--botiga", default="PROVA-01")
+    de.add_argument("--url", required=True, help="URL pública de la plataforma")
+    dd = sub.add_parser("demo-directe", help="simula una sessió de cabina en directe (sense lector)")
+    dd.add_argument("--botiga", default="PROVA-01")
+    dd.add_argument("--cabina", default="1", help="número o id de la cabina")
+    dd.add_argument("--model", action="append", default=[], help="codi de model, p. ex. CL-24-NAT (es pot repetir); per defecte, els dos primers")
+    dd.add_argument("--minuts", type=float, default=3)
+    dd.add_argument("--api", default="http://127.0.0.1:8000", help="on escolta la plataforma")
+    npx = sub.add_parser("nfc-protegeix", help="associa un xip NTAG 424 DNA a una peça (peça original verificada)")
+    npx.add_argument("--uid", required=True, help="UID del xip (7 bytes en hex)")
+    npx.add_argument("--epc")
+    npx.add_argument("--model", help="si no es dona l'EPC: la primera peça del model")
+    npx.add_argument("--botiga", default="PROVA-01")
+    npx.add_argument("--url", default="https://plataforma.hebraia.com")
+    npr = sub.add_parser("nfc-prova", help="enllaç signat com el d'un toc real, sense xip (cada vegada un comptador nou)")
+    npr.add_argument("--epc")
+    npr.add_argument("--model", default="PH4012-166")
+    npr.add_argument("--botiga", default="PROVA-01")
+    npr.add_argument("--url", default="https://plataforma.hebraia.com")
+    dp = sub.add_parser("demo-peca", help="converteix un model de prova en una peça real (mateixos enllaços NFC)")
+    dp.add_argument("--model", default="CL-24-NAT", help="model de prova que es canvia")
+    dp.add_argument("--nou-model", default="PH4012-166", help="codi nou del model")
+    dp.add_argument("--fitxer", default=str(Path(__file__).resolve().parent.parent / "dades" / "demo-polo.json"),
+                    help="dades de la peça (format de peça de hebra-origen)")
+    dp.add_argument("--fet-a", help="país de confecció de l'etiqueta, codi de 2 lletres (p. ex. PE, SV, TH, MA)")
+    dp.add_argument("--oblida", action="store_true",
+                    help="deixa de recordar la peça: en recarregar el lot de prova tornarà a ser el model de prova")
+    dp.add_argument("--foto", action="append", default=[],
+                    help="foto de la peça (JPG o PNG; es pot repetir: la primera és la principal); també es poden pujar des del tauler")
     args = ap.parse_args()
 
     cfg = carrega()
+    if args.ordre in ("copia", "copies", "restaura"):
+        sys.exit(_copies(args, cfg.ruta_bd))
+    if args.ordre == "correu":
+        sys.exit(correu_prova(cfg, args.a))
     con = db.connecta(cfg.ruta_bd)
     db.inicialitza(con)
     if args.ordre == "botiga":
@@ -177,8 +252,50 @@ def main() -> None:
         control.desa_assignacio(con, args.botiga, "origen", a)
         print(f"{len(a)} dies assignats: {sum(g == 'amb' for g in a.values())} amb origen, "
               f"{sum(g == 'sense' for g in a.values())} sense")
+    elif args.ordre == "demo-enllacos":
+        for e in demo_directe.enllacos(con, args.botiga, args.url):
+            print(f"{e['model']} ({e['color']}, {e['talla']}): {e['url']}")
+    elif args.ordre in ("nfc-protegeix", "nfc-prova"):
+        base = args.url.rstrip("/")
+        try:
+            if args.ordre == "nfc-protegeix":
+                r = autenticitat.protegeix(con, cfg.secret, args.uid, epc=args.epc, model=args.model)
+                print(f"Xip {r['uid']} associat a la peça {r['epc']}.\n"
+                      f"Grava'l amb NXP TagXplorer o TagWriter (SUN / SDM, PICCData xifrat i CMAC):\n"
+                      f"  URL:              {base}/p/{r['token']}?b={args.botiga}&picc={'0' * 32}&cmac={'0' * 16}\n"
+                      f"  Clau 1 (meta):    {r['clau_meta']}\n"
+                      f"  Clau 2 (fitxer):  {r['clau_fitxer']}\n"
+                      "Guarda aquestes claus només fins que el xip estigui gravat.")
+            else:
+                r = autenticitat.toc_simulat(con, cfg.secret, epc=args.epc, model=None if args.epc else args.model)
+                print(f"Toc {r['comptador']} de la peça {r['epc']}. Obre aquest enllaç al mòbil (només val una vegada):\n"
+                      f"  {base}/p/{r['token']}?b={args.botiga}&picc={r['picc']}&cmac={r['cmac']}")
+        except autenticitat.ErrorXip as e:
+            sys.exit(str(e))
+    elif args.ordre == "demo-peca" and args.oblida:
+        print("Fet: ja no es recorda." if demo_peca.oblida(con, args.nou_model) else "No es recordava cap peça amb aquest codi.")
+    elif args.ordre == "demo-peca":
+        try:
+            r = demo_peca.canvia(con, args.model, args.nou_model,
+                                 json.loads(Path(args.fitxer).read_text(encoding="utf-8")), args.fet_a,
+                                 [Path(f).read_bytes() for f in args.foto])
+        except demo_peca.ErrorPeca as e:
+            sys.exit(str(e))
+        if r.get("ja_fet"):
+            print(f"{r['model']} ja hi era: ara es recorda tal com està (fotos i enllaç NFC inclosos). "
+                  "Si recarregues el lot de prova, hi tornarà a ser.")
+            return 0
+        print(f"Fet: {args.model} ara és {r['model']} ({r['nom']}, {r['color']}), {r['variants']} talles. "
+              + (f"{r['fotos']} fotos desades." if r["foto"] else "Si no en té, puja'n les fotos a «Imatges de les peces» del tauler.")
+              + "\nEs recorda: si recarregues el lot de prova, el polo hi tornarà a ser amb el mateix enllaç NFC.")
+    elif args.ordre == "demo-directe":
+        try:
+            demo_directe.executa(con, args.botiga, args.cabina, args.model, args.minuts,
+                                 demo_directe.envia_http(args.api, cfg.clau_passarella))
+        except demo_directe.ErrorDemo as e:
+            sys.exit(str(e))
     elif args.ordre == "processa":
-        n_proves = proves.processa_botiga(con, args.botiga, cfg.regla)
+        n_proves = proves.processa_botiga(con, args.botiga, cfg.regla, tot=True)  # a mà: tot el període
         n_atrib = vendes.atribueix(con, args.botiga)
         n_aband = sum(alertes.detecta_abandonades(con, c["id"], tot=True) for c in con.execute(
             "SELECT id FROM cabina WHERE botiga_id = ?", (args.botiga,)).fetchall())
@@ -194,6 +311,15 @@ def main() -> None:
         except ValueError as e:
             sys.exit(str(e))
         print(f"Usuari {uid} creat: {args.correu} ({args.rol})")
+    elif args.ordre == "contrasenya":
+        nova = getpass.getpass("Contrasenya nova: ")
+        if nova != getpass.getpass("Repeteix-la: "):
+            sys.exit("Les contrasenyes no coincideixen")
+        try:
+            auth.canvia_contrasenya(con, args.correu, nova)
+        except ValueError as e:
+            sys.exit(str(e))
+        print(f"Contrasenya canviada: {args.correu}. Les sessions obertes d'aquest usuari s'han tancat.")
     elif args.ordre == "estoc":
         n, errors = estoc.importa_csv(con, Path(args.fitxer).read_text(encoding="utf-8-sig"))
         print(f"{n} files d'estoc importades" + (f"; errors: {errors[:10]}" if errors else ""))
@@ -204,6 +330,37 @@ def main() -> None:
             sys.exit(str(e))
     elif args.ordre == "retencio":
         print(retencio.neteja(con, cfg.retencio_dies))
+
+
+def _copies(args, ruta_bd: str) -> int:
+    """Ordres de còpia de seguretat. No obren la base de dades abans (la restauració la substitueix)."""
+    import logging
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    cc = copies.ConfigCopies()
+    try:
+        if args.ordre == "copia":
+            e = copies.fes_copia(ruta_bd, cc)
+            print(f"Còpia feta: {e['fitxer']} ({e['mida_copia'] / 1e6:.1f} MB, {e['locals']} còpies locals)")
+            if e["remot"]:
+                print(f"Enviada a {e['remot']}")
+            elif e["error_remot"]:
+                print(f"ATENCIÓ: no s'ha pogut enviar fora: {e['error_remot']}", file=sys.stderr)
+                return 2
+            else:
+                print("ATENCIÓ: només local (HEBRA_COPIES_DESTI és buit)", file=sys.stderr)
+        elif args.ordre == "copies":
+            for p in copies.llista(cc.carpeta_per(ruta_bd)):
+                print(f"{p}  {p.stat().st_size / 1e6:.1f} MB")
+        else:
+            if not args.si and input(f"Substituir {ruta_bd} per {args.fitxer}? Escriu «si»: ").strip().lower() != "si":
+                print("Cancel·lat")
+                return 1
+            anterior = copies.restaura(args.fitxer, ruta_bd)
+            print(f"Restaurada. La base de dades anterior és a {anterior}" if anterior else "Restaurada.")
+    except copies.ErrorCopia as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

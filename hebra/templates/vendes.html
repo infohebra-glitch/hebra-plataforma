@@ -11,6 +11,7 @@
 {% if resultat %}
 <div class="panell">
   <p><b>{{ resultat.importades }}</b> línies importades.
+  {% if resultat.repetides %}<b>{{ resultat.repetides }}</b> ja hi eren i no s'han tornat a comptar.{% endif %}
   {% for b, n in resultat.atribuides.items() %}{{ b }}: {{ n }} vendes atribuïdes a proves. {% endfor %}</p>
   {% if resultat.errors %}<p class="alerta">Errors:</p><ul>{% for e in resultat.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
 </div>

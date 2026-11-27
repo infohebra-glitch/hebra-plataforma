@@ -1,0 +1,20 @@
+---
+import Base from '../layouts/Base.astro';
+import { path, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const T = {
+  es: { title: 'Mensaje enviado', desc: 'Hemos recibido tu mensaje.', h1: 'Mensaje enviado.', lead: 'Gracias. Te escribiremos pronto para preparar la demo.', cta: 'Mientras, toca una prenda de ejemplo' },
+  ca: { title: 'Missatge enviat', desc: 'Hem rebut el teu missatge.', h1: 'Missatge enviat.', lead: 'Gràcies. T’escriurem aviat per preparar la demo.', cta: 'Mentrestant, toca una peça d’exemple' },
+  en: { title: 'Message sent', desc: 'We have received your message.', h1: 'Message sent.', lead: 'Thank you. We’ll write to you soon to set up the demo.', cta: 'Meanwhile, tap an example garment' },
+}[lang];
+---
+<Base title={T.title} lang={lang} route="/gracias/" description={T.desc}>
+  <header class="page-head">
+    <div class="wrap">
+      <h1>{T.h1}</h1>
+      <p class="lead">{T.lead}</p>
+      <div class="actions"><a class="btn ghost" href={path(lang, '/p/demo/')}>{T.cta}</a></div>
+    </div>
+  </header>
+</Base>

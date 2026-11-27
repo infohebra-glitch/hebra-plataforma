@@ -211,11 +211,13 @@ class Shopify(Connector):
         longitud = self.config.get("sku_base_longitud")
         resultat = []
         productes = self.client.llista("products", "products",
-                                       fields="id,title,product_type,options,variants")
+                                       fields="id,title,product_type,options,variants,images,image")
         for p in productes:
             posicions = {(o.get("name") or "").strip().casefold(): o.get("position") for o in p.get("options") or []}
             pos_talla = next((posicions[n] for n in noms_talla if n in posicions), None)
             pos_color = next((posicions[n] for n in noms_color if n in posicions), None)
+            fotos = {str(im.get("id")): im.get("src") for im in p.get("images") or [] if im.get("src")}
+            foto_producte = (p.get("image") or {}).get("src") or next(iter(fotos.values()), None)
             for v in p.get("variants", []):
                 g = gtin(v.get("barcode"))
                 if not g:
@@ -234,7 +236,8 @@ class Shopify(Connector):
                     preu = None
                 resultat.append({"gtin": g, "model": model, "color": color, "talla": talla,
                                  "categoria": (p.get("product_type") or "").strip() or "altres",
-                                 "preu_eur": preu, "id_extern": str(v["id"])})
+                                 "preu_eur": preu, "id_extern": str(v["id"]),
+                                 "imatge_url": fotos.get(str(v.get("image_id"))) or foto_producte})
         self._variants = resultat
         return resultat
 
