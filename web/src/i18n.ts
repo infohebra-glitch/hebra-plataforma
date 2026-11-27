@@ -26,7 +26,7 @@ export const newsletterAction = 'https://assets.mailerlite.com/jsonp/2722998/for
 
 export const ui = {
   es: {
-    nav: [['/probador/', 'Probador'], ['/origen/', 'Origen'], ['/ficha/', 'La ficha'], ['/como-funciona/', 'Cómo funciona'], ['/blog/', 'Blog'], ['/nosotros/', 'Nosotros']],
+    nav: [['/probador/', 'Probador'], ['/origen/', 'Origen'], ['/ficha/', 'La ficha'], ['/como-funciona/', 'Cómo funciona'], ['/piloto/', 'Piloto'], ['/nosotros/', 'Nosotros'], ['/blog/', 'Blog']],
     contact: 'Contacto',
     demo: 'Pedir una demo',
     demoHero: 'Quiero una demo', demoCta: 'Reservar media hora', demoInline: 'Verlo en mi tienda',
@@ -49,7 +49,7 @@ export const ui = {
     titleHome: 'Hebra · Lo que pasa dentro del probador',
   },
   ca: {
-    nav: [['/probador/', 'Emprovador'], ['/origen/', 'Origen'], ['/ficha/', 'La fitxa'], ['/como-funciona/', 'Com funciona'], ['/blog/', 'Blog'], ['/nosotros/', 'Nosaltres']],
+    nav: [['/probador/', 'Emprovador'], ['/origen/', 'Origen'], ['/ficha/', 'La fitxa'], ['/como-funciona/', 'Com funciona'], ['/piloto/', 'Pilot'], ['/nosotros/', 'Nosaltres'], ['/blog/', 'Blog']],
     contact: 'Contacte',
     demo: 'Demanar una demo',
     demoHero: 'Vull una demo', demoCta: 'Reservar mitja hora', demoInline: 'Veure-ho a la meva botiga',
@@ -72,7 +72,7 @@ export const ui = {
     titleHome: 'Hebra · El que passa dins l’emprovador',
   },
   en: {
-    nav: [['/probador/', 'Fitting room'], ['/origen/', 'Origin'], ['/ficha/', 'The garment page'], ['/como-funciona/', 'How it works'], ['/blog/', 'Blog'], ['/nosotros/', 'About']],
+    nav: [['/probador/', 'Fitting room'], ['/origen/', 'Origin'], ['/ficha/', 'The garment page'], ['/como-funciona/', 'How it works'], ['/piloto/', 'Pilot'], ['/nosotros/', 'About'], ['/blog/', 'Blog']],
     contact: 'Contact',
     demo: 'Book a demo',
     demoHero: 'Get a demo', demoCta: 'Book half an hour', demoInline: 'See it in my store',
