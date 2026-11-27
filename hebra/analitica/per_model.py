@@ -191,7 +191,22 @@ def model_detall(con: sqlite3.Connection, f: Filtre, model: str) -> dict | None:
         "origen": origen_resum(info["origen"]),
         "efecte_origen": experiments.efecte_origen(con, f, model),
         "dubte_talla": dubte_talla_model(con, f, model),
+        "provador_online": _provador_online(con, f, model),
     }
+
+
+def _provador_online(con: sqlite3.Connection, f: Filtre, model: str) -> dict | None:
+    """v0.9: motius del provador i de les devolucions online d'aquest model. None si la marca encara
+    no ha pujat cap devolució (així la fitxa no ensenya un bloc buit)."""
+    if not con.execute("SELECT 1 FROM devolucio_online LIMIT 1").fetchone():
+        return None
+    from .devolucions import provador_online
+    r = provador_online(con, f, model)
+    fila = r["models"][0] if r["models"] else None
+    return {k: r[k] for k in ("respostes_provador", "devolucions_online", "nomes_online", "coincidencia",
+                              "categories", "nomes_online_detall", "talla_sentit", "minim")} | {
+        "lectura": fila["lectura"] if fila else "Cap resposta ni devolució d'aquest model en aquest període.",
+        "talles": r["talles"]}
 
 
 def origen_resum(origen: dict | None) -> dict | None:

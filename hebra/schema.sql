@@ -451,3 +451,28 @@ CREATE TABLE IF NOT EXISTS condicio_dia (
     condicio   TEXT NOT NULL,
     PRIMARY KEY (botiga_id, data, condicio)
 );
+
+-- ================================================================ v0.9: devolucions online
+-- El que diu el client de la botiga en línia quan torna una peça, per comparar-ho amb el que diu
+-- (o fa) al provador. Mai dades de cap persona: data, GTIN, unitats i el motiu (hebra/devolucions.py).
+-- Una instal·lació per marca: les devolucions són de tota la marca, no d'una botiga física.
+CREATE TABLE IF NOT EXISTS devolucio_online (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ref         TEXT UNIQUE NOT NULL,           -- empremta SHA-256 de la línia: tornar a pujar el fitxer no duplica
+    data        TEXT NOT NULL,                  -- AAAA-MM-DD de la devolució
+    gtin        TEXT NOT NULL,
+    quantitat   INTEGER NOT NULL DEFAULT 1,
+    codi        TEXT NOT NULL DEFAULT '',       -- motiu tal com el dona la marca (codi o text curt, net)
+    motiu_comentari TEXT,                       -- categoria deduïda del comentari (el comentari no es desa mai)
+    sentit_comentari TEXT,                      -- 'petita' | 'gran' deduït del comentari
+    lot_prova   INTEGER NOT NULL DEFAULT 0      -- 1 = dades del lot de prova (s'esborren amb ell)
+);
+CREATE INDEX IF NOT EXISTS ix_devolucio_data ON devolucio_online(data);
+
+-- Com es tradueix cada motiu de la marca a les categories del provador. `manual` = 1 si l'ha triat la marca.
+CREATE TABLE IF NOT EXISTS devolucio_mapa (
+    codi        TEXT PRIMARY KEY,
+    motiu       TEXT NOT NULL,
+    sentit      TEXT,                           -- 'petita' | 'gran' | NULL
+    manual      INTEGER NOT NULL DEFAULT 0
+);

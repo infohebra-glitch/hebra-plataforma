@@ -11,6 +11,7 @@ import {
 import { isoData, dataLocal } from '../lib/format';
 import { llegeixCorreus } from '../lib/programacio';
 import * as V3 from './v3';
+import * as DEV from './devolucions';
 import { foto, fotosPropies, teFoto } from './fotos';
 
 type Cos = unknown;
@@ -163,6 +164,10 @@ function modelDetall(f: FiltreMock, codi: string): T.ModelDetall | null {
     origen: ORIGENS[codi] ?? null,
     efecte_origen: ORIGENS[codi] ? experimentOrigen(f, codi) : null,
     dubte_talla: V3.dubteTallaModel(f, codi),
+    provador_online: (() => {
+      const r = DEV.provadorOnline(f, f.botigues.length, BOTIGUES.length, codi);
+      return { ...r, lectura: r.models[0]?.lectura ?? 'Cap resposta ni devolució d’aquest model en aquest període.' };
+    })(),
   };
 }
 
@@ -507,6 +512,12 @@ export function respon(metode: string, url: URL, cos: unknown): Resposta {
       case '/talles': return ok(tallesResp(f));
       case '/demanda-perduda': return ok(demandaPerduda(f));
       case '/motius': return ok(motius(f));
+      case '/provador-online':
+        if (u.rol === 'botiga') return error(403, 'No tens permís per a aquesta acció');
+        return ok(DEV.provadorOnline(f, f.botigues.length, BOTIGUES.length, q.get('model') ?? undefined));
+      case '/devolucions/mapa':
+        if (u.rol === 'botiga') return error(403, 'No tens permís per a aquesta acció');
+        return ok(DEV.mapa());
       case '/servei': return ok(servei(f));
       case '/estoc': return ok(estocV3(f));
       case '/fitxa-nfc': return ok(fitxaNfc(f));
@@ -557,6 +568,18 @@ export function respon(metode: string, url: URL, cos: unknown): Resposta {
     if (u.rol === 'botiga') return error(403, 'Només la marca pot canviar els paràmetres.');
     Object.assign(estat.parametres, (cos as T.Parametres).valors);
     return ok({ botiga_id: '*', valors: estat.parametres });
+  }
+  if (ruta === '/devolucions/mapa' && metode === 'PUT') {
+    const c = cos as { codi: string; motiu: string; sentit: 'petita' | 'gran' | null };
+    const x = DEV.mapaMock.find((k) => k.codi === c.codi);
+    if (!x) return error(404, 'Aquest motiu no surt a cap devolució');
+    Object.assign(x, { motiu: c.motiu, sentit: c.sentit, manual: true });
+    return ok(x);
+  }
+  if (ruta === '/devolucions' && metode === 'DELETE') return ok({ esborrades: 0 });
+  if (ruta === '/importa/devolucions' && metode === 'POST') {
+    if (u.rol === 'botiga') return error(403, 'No tens permís per a aquesta acció');
+    return ok({ importades: 0, repetides: 0, errors: [], avisos: ['Demostració: el fitxer no es desa.'] });
   }
   const imp = ruta.match(/^\/importa\/(vendes|estoc|cataleg)$/);
   if (imp && metode === 'POST') {

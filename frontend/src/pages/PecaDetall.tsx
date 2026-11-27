@@ -15,6 +15,7 @@ import { useFiltre } from '../context/Filtre';
 import { motiu } from '../lib/etiquetes';
 import { deCada, diaCurt, enter, eur, pct } from '../lib/format';
 import { useApi } from '../lib/useApi';
+import { GraficProvadorOnline, InsigniaCoincidencia } from './ProvadorOnline';
 
 export function PecaDetall() {
   const { model = '' } = useParams();
@@ -46,6 +47,33 @@ function BlocDubte({ d }: { d: ModelDetall }) {
             <TaulaParells parells={x.parells_talla} />
           </>
         ) : <Buit titol="Sense dubte de talla">En aquest període ningú s’ha emportat aquesta peça en dues talles a la vegada.</Buit>}
+      </div>
+    </Seccio>
+  );
+}
+
+function BlocProvadorOnline({ d }: { d: ModelDetall }) {
+  const x = d.provador_online!;
+  const talles = x.talles.filter((t) => t.petita + t.gran > 0);
+  return (
+    <Seccio titol="Al provador i online" subtitol={<>{enter(x.respostes_provador)} respostes a la fitxa i {enter(x.devolucions_online)} unitats tornades online. <Link to="/provador-online">Totes les peces</Link></>}>
+      <div className="reixa-2">
+        <div className="panell">
+          <p style={{ marginTop: 0 }}>{x.lectura} <InsigniaCoincidencia c={x.coincidencia} /></p>
+          {x.categories.length ? <GraficProvadorOnline categories={x.categories} titol={`Motius de ${d.nom} al provador i online`} /> : <p className="muted">Sense motius comparables.</p>}
+        </div>
+        <div className="panell">
+          {x.nomes_online_detall.length > 0 && (
+            <Barres titol="Motius només online" items={x.nomes_online_detall.map((m) => ({ clau: m.motiu, etiqueta: m.nom, n: m.online, pct: m.pct }))} />
+          )}
+          {talles.length ? (
+            <table style={{ marginTop: 12 }}>
+              <caption className="petit" style={{ textAlign: 'left' }}>Tornades per talla</caption>
+              <thead><tr><th scope="col">Talla</th><th scope="col" className="n">Massa petita</th><th scope="col" className="n">Massa gran</th></tr></thead>
+              <tbody>{talles.map((t) => <tr key={t.talla ?? '?'}><td><b>{t.talla}</b></td><td className="n">{enter(t.petita)}</td><td className="n">{enter(t.gran)}</td></tr>)}</tbody>
+            </table>
+          ) : !x.nomes_online_detall.length && <p className="muted">Cap devolució per talla ni per motius només online.</p>}
+        </div>
       </div>
     </Seccio>
   );
@@ -122,6 +150,8 @@ function Detall({ d }: { d: ModelDetall }) {
           </div>
         </Seccio>
       </div>
+
+      {d.provador_online && <BlocProvadorOnline d={d} />}
 
       <div className="reixa-2">
         <Seccio titol="Es prova amb" subtitol="Peces que entren a la mateixa cabina, a la mateixa sessió. Si la marca no tria res, la fitxa NFC les proposa a «Combina amb».">

@@ -80,6 +80,26 @@ Regla «molt provat, poc venut» (insight 3): proves ≥ `N` al període (paràm
 }
 ```
 
+`provador_online` (v0.9): `null` si la marca no ha pujat cap devolució online; si no, el bloc de `GET /provador-online` d'aquest model (`categories`, `coincidencia`, `talla_sentit`, `talles`, `lectura`...).
+
+### `GET /provador-online?model=` → `analitica.provador_online` (v0.9, marca o admin)
+Motiu de no compra al provador (fitxa NFC) comparat amb el motiu de devolució online. Sempre agregat per model i talla, mai per persona. El filtre de botiga només s'aplica al provador (online és de tota la marca).
+```json
+{"respostes_provador": 159, "devolucions_online": 49, "nomes_online": 16, "pct_nomes_online": 0.33,
+ "coincidencia": 0.5,
+ "categories": [{"motiu": "talla", "nom": "Talla", "provador": 39, "pct_provador": 0.25, "online": 21, "pct_online": 0.64}],
+ "nomes_online_detall": [{"motiu": "diferent_foto", "nom": "No era com a la foto o la descripció", "online": 7, "pct": 0.14}],
+ "talla_sentit": {"online": {"petita": 13, "gran": 8}, "provador": {"petita": 37, "gran": 39}},
+ "models": [{"model", "nom", "respostes_provador", "devolucions_online", "motiu_provador", "motiu_online",
+             "provador": {"preu": 4}, "online": {"talla": 6}, "nomes_online", "coincidencia", "divergent",
+             "talla_online": {"petita", "gran"}, "talla_provador": {"petita", "gran"}, "lectura"}],
+ "talles": [{"model", "nom", "talla", "petita", "gran", "sense"}],
+ "etiquetes": {"talla": "Talla"}, "minim": 5, "text": "...", "importat": {"linies", "unitats", "des", "fins"}}
+```
+Coincidència = Σ min(% provador, % online) sobre les categories que existeixen als dos llocs («només mirava» fora). `null` amb menys de 5 respostes a cada costat. `divergent` = coincidència < 50 %. Talla al provador: peticions de talla des de la fitxa cap a una de més gran («petita») o més petita («gran»).
+
+Relacionades: `POST /importa/devolucions` (CSV `data,gtin,quantitat,motiu,comentari,comanda`; respon `{importades, repetides, errors, avisos}`), `GET /devolucions/mapa`, `PUT /devolucions/mapa` (`{codi, motiu, sentit}`), `DELETE /devolucions`.
+
 ### `GET /talles` → `analitica.talles`
 ```json
 {
