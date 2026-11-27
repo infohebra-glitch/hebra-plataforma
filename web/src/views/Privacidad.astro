@@ -2,6 +2,7 @@
 // Generat a partir de /mnt/project-files/web/legal/textos-legals-*.md (no editar a mà: canviar el markdown i regenerar).
 import Legal from '../components/Legal.astro';
 import { mainEmail, type Lang } from '../i18n';
+import { fillLegal } from '../legal';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const T = {
@@ -22,7 +23,7 @@ const T = {
  }
 } as const;
 const email = `<a class="textlink" href="mailto:${mainEmail}">${mainEmail}</a>`;
-const body = T[lang].html.replaceAll('__EMAIL__', email);
+const body = fillLegal(T[lang].html.replaceAll('__EMAIL__', email), lang);
 ---
 <Legal lang={lang} route="/privacidad/" title={T[lang].title} description={T[lang].description}>
   <Fragment set:html={body} />

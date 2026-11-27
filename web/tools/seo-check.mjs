@@ -21,6 +21,7 @@ for (const f of files) {
   for (const img of h.match(/<img[^>]*>/g) || []) if (!/alt="[^"]+"/.test(img)) err(f, `imagen sin ALT: ${img.slice(0, 80)}`);
   for (const [, href] of h.matchAll(/<a [^>]*href="(\/[^"]*)"/g)) if (href.includes('?')) err(f, `enlace con parámetros: ${href}`);
   for (const [, j] of h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) { try { JSON.parse(j); } catch { err(f, 'JSON-LD no válido'); } }
+  if (/class="pend"|\[(RAZÓN SOCIAL|RAÓ SOCIAL|COMPANY NAME|NIF|fecha de publicación|data de publicació|publication date)/.test(h)) err(f, "texto pendiente visible (claudàtors): omplir src/legal.ts");
 }
 console.log(errors ? `\n${errors} problemas en ${files.length} páginas` : `✓ ${files.length} páginas sin problemas SEO`);
 process.exit(errors ? 1 : 0);
