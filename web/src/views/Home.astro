@@ -3,9 +3,6 @@ import Base from '../layouts/Base.astro';
 import Hero from '../components/Hero.astro';
 import Calculator from '../components/Calculator.astro';
 import Process from '../components/Process.astro';
-import Film from '../components/Film.astro';
-import Fan from '../components/Fan.astro';
-import VideoDemo from '../components/VideoDemo.astro';
 import Report from '../components/Report.astro';
 import Cta from '../components/Cta.astro';
 import Newsletter from '../components/Newsletter.astro';
@@ -75,6 +72,20 @@ const T = {
   },
 }[lang];
 // Textos nuevos de la v4
+const E = {
+  es: { k: 'Dónde estamos', h: 'Estado real, sin adornos.', l: 'Hebra es un proyecto joven de Barcelona. Esto es lo que ya funciona y lo que buscamos ahora.',
+    items: [['Plataforma en marcha', 'Tablero, informe del lunes y ficha de cada prenda, en castellano, catalán e inglés.', '/como-funciona/', 'Probar el simulador'],
+            ['Ficha que puedes tocar', 'La misma ficha que verá tu cliente al acercar el móvil a la etiqueta, con una prenda real.', '/p/demo/', 'Ver la ficha de ejemplo'],
+            ['Primeros pilotos', 'Buscamos las primeras marcas para un piloto de ocho semanas, de una tienda a una cadena.', '/piloto/', 'Cómo es el piloto']] },
+  ca: { k: 'On som', h: 'Estat real, sense adorns.', l: 'Hebra és un projecte jove de Barcelona. Això és el que ja funciona i el que busquem ara.',
+    items: [['Plataforma en marxa', 'Tauler, informe del dilluns i fitxa de cada peça, en català, castellà i anglès.', '/como-funciona/', 'Provar el simulador'],
+            ['Una fitxa que pots tocar', 'La mateixa fitxa que veurà el teu client en acostar el mòbil a l’etiqueta, amb una peça real.', '/p/demo/', 'Veure la fitxa d’exemple'],
+            ['Primers pilots', 'Busquem les primeres marques per a un pilot de vuit setmanes, d’una botiga a una cadena.', '/piloto/', 'Com és el pilot']] },
+  en: { k: 'Where we are', h: 'Where we really are.', l: 'Hebra is a young Barcelona company. This is what already works and what we are looking for now.',
+    items: [['Platform up and running', 'Dashboard, Monday report and a page for every garment, in Spanish, Catalan and English.', '/como-funciona/', 'Try the simulator'],
+            ['A garment page you can touch', 'The same page your customer sees when they hold their phone to the label, with a real garment.', '/p/demo/', 'See the example page'],
+            ['First pilots', 'We are looking for the first brands for an eight-week pilot, from one store to a chain.', '/piloto/', 'How the pilot works']] },
+}[lang];
 const N = {
   es: {
     man: 'Cada día, miles de prendas entran en un probador. Se [prueban], se [comparan] y se quedan en la [percha]. La caja solo ve lo que se [vende]. Hebra sabe todo lo demás: las [pruebas], las [tallas] que faltan, los [motivos] y el [tiempo].',
@@ -120,16 +131,6 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
 <Base title="Hebra" lang={lang} route="/" description={T.desc}>
   <Hero lang={lang} />
 
-  <section class="man" aria-label={T.pH.replace(/<[^>]+>/g, '')}>
-    <div class="wrap">
-      <p class="man-text" data-words>
-        {man.map((m) => m.hot ? <span class="mw" data-w>{m.w}</span> : /\s/.test(m.w) ? ' ' : <span class="mw-plain">{m.w}</span>)}
-      </p>
-    </div>
-  </section>
-
-  <Film src="/video/etiquetas.mp4" poster="/video/etiquetas.jpg" title={N.vid} text={N.vidL} />
-
   <section class="band" id="problema">
     <div class="wrap">
       <h2 class="big" data-lines set:html={N.pH} />
@@ -164,50 +165,6 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
     </div>
   </section>
 
-  <div class="wipe" data-wipe aria-hidden="true"><i></i></div>
-  <Process lang={lang} />
-
-  <section class="band deep" id="datos">
-    <div class="wrap">
-      <div class="split head-split">
-        <div><p class="kick">{T.dK}</p><h2 data-lines set:html={N.dH} /></div>
-        <p class="lead" data-reveal>{T.dL}</p>
-      </div>
-      <Fan lang={lang} />
-    </div>
-  </section>
-
-  <div class="marquee" data-marquee aria-hidden="true">
-    <div class="marquee-track" data-marquee-track>
-      {[0, 1].map(() => (
-        <div class="marquee-set">
-          {N.words.map((w) => <span>{w}<i></i></span>)}
-        </div>
-      ))}
-    </div>
-  </div>
-
-  <VideoDemo lang={lang} />
-
-  <section class="band" id="explora">
-    <div class="wrap">
-      <p class="kick">{N.xK}</p>
-      <ul class="xlist" data-xlist>
-        {N.x.map(([href, h, p, img]) => (
-          <li>
-            <a href={path(lang, href)} data-ximg={`/img/foto/${img}.webp`}>
-              <span class="x-h">{h}</span>
-              <span class="x-p">{p}</span>
-              <span class="x-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.5" /></svg></span>
-            </a>
-          </li>
-        ))}
-      </ul>
-      <p class="note" data-reveal>{T.note}</p>
-    </div>
-    <div class="xfloat" data-xfloat aria-hidden="true"></div>
-  </section>
-
   <section class="band perla" id="lunes">
     <div class="wrap split rev">
       <div data-reveal><Report lang={lang} /></div>
@@ -221,12 +178,29 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
     </div>
   </section>
 
+  <div class="wipe" data-wipe aria-hidden="true"><i></i></div>
+  <Process lang={lang} />
+
   <section class="band dark" id="confianza">
     <div class="wrap">
       <h2 class="big" data-lines set:html={N.tH} />
       <div class="trust">
         {T.tr.map(([h, p], i) => <div data-reveal><h3>{h}</h3><p class="quiet">{p}{i === 3 && <> <a class="textlink" href={path(lang, '/privacidad/')}>{T.privacy}</a></>}</p></div>)}
       </div>
+    </div>
+  </section>
+
+  <section class="band" id="estado">
+    <div class="wrap">
+      <div class="split head-split">
+        <div><p class="kick">{E.k}</p><h2 data-lines>{E.h}</h2></div>
+        <p class="lead" data-reveal>{E.l}</p>
+      </div>
+      <ul class="estado" data-reveal>
+        {E.items.map(([h, p, href, a]) => (
+          <li><h3>{h}</h3><p class="quiet">{p}</p>{href && <a class="textlink" href={path(lang, href)}>{a}</a>}</li>
+        ))}
+      </ul>
     </div>
   </section>
 
@@ -287,4 +261,8 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
   @media (min-width: 1100px) { .trust { grid-template-columns: repeat(4, 1fr); } }
   .trust > div { border-top: 1px solid var(--rule-dark); padding-top: 1.2rem; }
   .trust h3 { margin-bottom: .5rem; }
+  .estado { list-style: none; padding: 0; margin: 2.5rem 0 0; display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
+  .estado li { border-top: 1px solid var(--rule); padding-top: 1.2rem; }
+  .estado h3 { margin: 0 0 .4rem; font-size: var(--step-1); }
+  .estado p { margin: 0 0 .8rem; }
 </style>
