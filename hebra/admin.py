@@ -226,6 +226,8 @@ def main() -> None:
     dp.add_argument("--fitxer", default=str(Path(__file__).resolve().parent.parent / "dades" / "demo-polo.json"),
                     help="dades de la peça (format de peça de hebra-origen)")
     dp.add_argument("--fet-a", help="país de confecció de l'etiqueta, codi de 2 lletres (p. ex. PE, SV, TH, MA)")
+    dp.add_argument("--oblida", action="store_true",
+                    help="deixa de recordar la peça: en recarregar el lot de prova tornarà a ser el model de prova")
     dp.add_argument("--foto", action="append", default=[],
                     help="foto de la peça (JPG o PNG; es pot repetir: la primera és la principal); també es poden pujar des del tauler")
     args = ap.parse_args()
@@ -270,6 +272,8 @@ def main() -> None:
                       f"  {base}/p/{r['token']}?b={args.botiga}&picc={r['picc']}&cmac={r['cmac']}")
         except autenticitat.ErrorXip as e:
             sys.exit(str(e))
+    elif args.ordre == "demo-peca" and args.oblida:
+        print("Fet: ja no es recorda." if demo_peca.oblida(con, args.nou_model) else "No es recordava cap peça amb aquest codi.")
     elif args.ordre == "demo-peca":
         try:
             r = demo_peca.canvia(con, args.model, args.nou_model,
@@ -277,8 +281,13 @@ def main() -> None:
                                  [Path(f).read_bytes() for f in args.foto])
         except demo_peca.ErrorPeca as e:
             sys.exit(str(e))
+        if r.get("ja_fet"):
+            print(f"{r['model']} ja hi era: ara es recorda tal com està (fotos i enllaç NFC inclosos). "
+                  "Si recarregues el lot de prova, hi tornarà a ser.")
+            return 0
         print(f"Fet: {args.model} ara és {r['model']} ({r['nom']}, {r['color']}), {r['variants']} talles. "
-              + (f"{r['fotos']} fotos desades." if r["foto"] else "Puja'n les fotos a «Imatges de les peces» del tauler."))
+              + (f"{r['fotos']} fotos desades." if r["foto"] else "Si no en té, puja'n les fotos a «Imatges de les peces» del tauler.")
+              + "\nEs recorda: si recarregues el lot de prova, el polo hi tornarà a ser amb el mateix enllaç NFC.")
     elif args.ordre == "demo-directe":
         try:
             demo_directe.executa(con, args.botiga, args.cabina, args.model, args.minuts,

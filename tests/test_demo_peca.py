@@ -61,3 +61,61 @@ def test_amb_foto_i_errors(client):
         demo_peca.canvia(con, "CL-24-NAT", "X", POLO)
     with pytest.raises(demo_peca.ErrorPeca, match="Ja hi ha"):
         demo_peca.canvia(con, "PH4012-166", "TX-26-IND", POLO)
+
+
+def test_recarregar_el_lot_no_perd_el_polo(tmp_path):
+    """v0.9: esborrar i tornar a carregar el lot de prova torna a posar el polo, amb les fotos i el mateix enllaç NFC."""
+    from hebra import autenticitat, db, lot_prova
+    con = db.connecta(str(tmp_path / "lot.db"))
+    db.inicialitza(con)
+    lot_prova.carrega(con, avui=date(2026, 11, 27))
+    foto = (Path(__file__).resolve().parent.parent / "dades" / "fotos-prova" / "camisa.jpg")
+    foto = foto if foto.exists() else next((Path(__file__).resolve().parent.parent / "dades" / "fotos-prova").glob("*.jpg"))
+    demo_peca.canvia(con, "CL-24-NAT", "PH4012-166", POLO, fet_a="PE", foto=[foto.read_bytes()] * 2)
+    abans = {r["talla"]: r["nfc_token"] for r in con.execute(
+        "SELECT k.talla, e.nfc_token FROM etiqueta e JOIN catalog_sku k ON k.gtin = e.gtin WHERE k.model = 'PH4012-166'")}
+    autenticitat.protegeix(con, "secret", "04A1B2C3D4E5F6", model="PH4012-166")
+    uid_epc_talla = con.execute("""SELECT k.talla FROM etiqueta e JOIN catalog_sku k ON k.gtin = e.gtin
+                                   WHERE e.nfc_uid IS NOT NULL""").fetchone()["talla"]
+
+    lot_prova.esborra(con)
+    assert not con.execute("SELECT 1 FROM catalog_sku WHERE model = 'PH4012-166'").fetchone()
+    lot_prova.carrega(con, avui=date(2026, 11, 27))
+
+    k = con.execute("SELECT * FROM catalog_sku WHERE model = 'PH4012-166' LIMIT 1").fetchone()
+    assert k and k["categoria"] == "polo" and json.loads(k["origen_json"])["etapes"][-1]["pais"] == "PE"
+    assert not con.execute("SELECT 1 FROM catalog_sku WHERE model = 'CL-24-NAT'").fetchone()
+    despres = {r["talla"]: r["nfc_token"] for r in con.execute(
+        "SELECT k.talla, e.nfc_token FROM etiqueta e JOIN catalog_sku k ON k.gtin = e.gtin WHERE k.model = 'PH4012-166'")}
+    assert set(abans.items()) <= set(despres.items()) or abans == despres  # el mateix enllaç per talla
+    assert con.execute("SELECT 1 FROM imatge_peca WHERE model = 'PH4012-166'").fetchone()
+    assert con.execute("SELECT COUNT(*) FROM imatge_galeria WHERE model = 'PH4012-166'").fetchone()[0] == 1
+    assert con.execute("""SELECT k.talla FROM etiqueta e JOIN catalog_sku k ON k.gtin = e.gtin
+                          WHERE e.nfc_uid = '04A1B2C3D4E5F6'""").fetchone()["talla"] == uid_epc_talla
+
+    assert demo_peca.oblida(con, "PH4012-166")
+    lot_prova.esborra(con)
+    lot_prova.carrega(con, avui=date(2026, 11, 27))
+    assert con.execute("SELECT 1 FROM catalog_sku WHERE model = 'CL-24-NAT'").fetchone()
+    con.close()
+
+
+def test_peca_ja_convertida_es_pot_recordar(tmp_path):
+    """Si el polo ja es va fer abans de v0.9, tornar a executar demo-peca només el recorda (no falla ni toca fotos)."""
+    from hebra import db, imatges, lot_prova
+    con = db.connecta(str(tmp_path / "lot.db"))
+    db.inicialitza(con)
+    lot_prova.carrega(con, avui=date(2026, 11, 27))
+    demo_peca.canvia(con, "CL-24-NAT", "PH4012-166", POLO, fet_a="PE", desa=False)
+    foto = next((Path(__file__).resolve().parent.parent / "dades" / "fotos-prova").glob("*.jpg")).read_bytes()
+    imatges.desa(con, "PH4012-166", "", foto, font="pujada")
+    con.commit()
+    tokens = {r[0] for r in con.execute(
+        "SELECT e.nfc_token FROM etiqueta e JOIN catalog_sku k ON k.gtin = e.gtin WHERE k.model = 'PH4012-166'")}
+    r = demo_peca.canvia(con, "CL-24-NAT", "PH4012-166", POLO, fet_a="PE")
+    assert r["ja_fet"]
+    lot_prova.esborra(con)
+    lot_prova.carrega(con, avui=date(2026, 11, 27))
+    assert tokens == {r[0] for r in con.execute(
+        "SELECT e.nfc_token FROM etiqueta e JOIN catalog_sku k ON k.gtin = e.gtin WHERE k.model = 'PH4012-166'")}
+    assert con.execute("SELECT 1 FROM imatge_peca WHERE model = 'PH4012-166'").fetchone()

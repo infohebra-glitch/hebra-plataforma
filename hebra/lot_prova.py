@@ -25,7 +25,7 @@ import threading
 from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
 
-from . import alertes, devolucions, simulador, temps
+from . import alertes, demo_peca, devolucions, simulador, temps
 
 BOTIGA = "PROVA-01"
 NOM = "Botiga de prova"
@@ -120,6 +120,8 @@ def carrega(con: sqlite3.Connection, avui: date | None = None) -> dict:
         gtins = sorted({r[0] for r in con.execute("SELECT gtin FROM catalog_sku")} - gtins_abans)
         # v0.9: devolucions online inventades dels mateixos models, per veure la comparativa provador-online.
         devolucions.simula(con, inici, ahir, gtins, lot_prova=True)
+        # Les peces de demo (p. ex. el polo) tornen a ser-hi, amb les fotos i l'enllaç NFC de sempre.
+        demo_peca.reaplica(con)
         epcs = sorted({r[0] for r in con.execute("SELECT epc FROM etiqueta")} - epcs_abans)
         resum.pop("csv_vendes", None)
         resum = {"sessions": resum["sessions"], "proves": resum["proves_detectades"],
@@ -232,7 +234,8 @@ def _esborra_botiga(con: sqlite3.Connection, gtins: set[str], epcs: set[str]) ->
                 esborra(f'DELETE FROM "{t}" WHERE cabina_id IN ({q})', tuple(cab), t)
         esborra(f"DELETE FROM antena WHERE cabina_id IN ({q})", tuple(cab), "antena")
     for t in _taules_amb(con, "botiga_id"):
-        if t not in ("botiga", "cabina"):
+        # demo_peca_desada és el record de les peces de demo: ha de sobreviure a l'esborrat.
+        if t not in ("botiga", "cabina", "demo_peca_desada"):
             esborra(f'DELETE FROM "{t}" WHERE botiga_id = ?', (BOTIGA,), t)
     esborra("DELETE FROM colleccio WHERE lot_prova = 1", (), "colleccio")
     k = devolucions.esborra_lot_prova(con)
@@ -262,6 +265,7 @@ def esborra(con: sqlite3.Connection) -> dict:
         if not f:
             raise ErrorLot("No hi ha cap lot de prova carregat.")
         try:
+            demo_peca.recorda_etiquetes(con)
             n = _esborra_botiga(con, set(json.loads(f["gtins_json"])), set(json.loads(f["epcs_json"])))
             con.execute("DELETE FROM lot_prova WHERE botiga_id = ?", (BOTIGA,))
             con.commit()

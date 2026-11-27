@@ -476,3 +476,14 @@ CREATE TABLE IF NOT EXISTS devolucio_mapa (
     sentit      TEXT,                           -- 'petita' | 'gran' | NULL
     manual      INTEGER NOT NULL DEFAULT 0
 );
+
+-- v0.9: peces de demo fetes amb `hebra-admin demo-peca` (p. ex. el polo). Es recorden perquè recarregar
+-- el lot de prova les torni a crear soles, amb les mateixes fotos i el mateix enllaç NFC (l'adhesiu no canvia).
+CREATE TABLE IF NOT EXISTS demo_peca_desada (
+    nou_model      TEXT PRIMARY KEY,
+    model_antic    TEXT NOT NULL,
+    peca_json      TEXT NOT NULL,
+    fet_a          TEXT,
+    botiga_id      TEXT NOT NULL DEFAULT 'PROVA-01',
+    etiquetes_json TEXT NOT NULL DEFAULT '[]'   -- [{talla, nfc_token, nfc_uid, nfc_ctr, nfc_ctr_simulat, nfc_simulat}]
+);
