@@ -17,7 +17,7 @@ const T = {
     valH: 'Cómo trabajamos',
     vals: [['Claros', 'Datos que se entienden sin manual y sin letra pequeña.'], ['Discretos', 'Sin cámaras y sin datos personales. Medimos prendas, no personas.'], ['Útiles', 'Una acción concreta cada semana, no un panel más.'], ['Honestos', 'Medimos antes de prometer y decimos de dónde sale cada dato.']],
     teamH: 'El equipo.',
-    team: [['Iscle', 'Cofundador y CEO', 'Dirección, marketing y ventas.'], ['Guillem', 'Cofundador, negocio', 'Ventas y desarrollo de negocio.']],
+    team: [['Iscle Beltran Romeu', 'Cofundador y CEO', 'Dirección, marketing y ventas.'], ['Guillem Serra', 'Cofundador, negocio', 'Ventas y desarrollo de negocio.']],
     photo: 'Foto pendiente: retrato de',
     notH: 'Lo que no hacemos.',
     not: ['Cámaras, biometría ni seguimiento de personas.', 'Ningún dato personal del cliente.', 'Medir al personal de la tienda.', 'Inventario de toda la tienda, caja ni antirrobo.', 'Auditar fábricas: mostramos lo que declaran la marca y el proveedor, con certificados vigentes y diciendo de dónde sale cada dato.', 'Prometer porcentajes de mejora antes de medirlos.'],
@@ -34,7 +34,7 @@ const T = {
     valH: 'Com treballem',
     vals: [['Clars', 'Dades que s’entenen sense manual i sense lletra petita.'], ['Discrets', 'Sense càmeres i sense dades personals. Mesurem peces, no persones.'], ['Útils', 'Una acció concreta cada setmana, no un panell més.'], ['Honestos', 'Mesurem abans de prometre i diem d’on surt cada dada.']],
     teamH: 'L’equip.',
-    team: [['Iscle', 'Cofundador i CEO', 'Direcció, màrqueting i vendes.'], ['Guillem', 'Cofundador, negoci', 'Vendes i desenvolupament de negoci.']],
+    team: [['Iscle Beltran Romeu', 'Cofundador i CEO', 'Direcció, màrqueting i vendes.'], ['Guillem Serra', 'Cofundador, negoci', 'Vendes i desenvolupament de negoci.']],
     photo: 'Foto pendent: retrat de',
     notH: 'El que no fem.',
     not: ['Càmeres, biometria ni seguiment de persones.', 'Cap dada personal del client.', 'Mesurar el personal de la botiga.', 'Inventari de tota la botiga, caixa ni antirobatori.', 'Auditar fàbriques: mostrem el que declaren la marca i el proveïdor, amb certificats vigents i dient d’on surt cada dada.', 'Prometre percentatges de millora abans de mesurar-los.'],
@@ -51,14 +51,16 @@ const T = {
     valH: 'How we work',
     vals: [['Clear', 'Data you understand without a manual or small print.'], ['Discreet', 'No cameras and no personal data. We measure garments, not people.'], ['Useful', 'One concrete action every week, not one more dashboard.'], ['Honest', 'We measure before we promise and say where each data point comes from.']],
     teamH: 'The team.',
-    team: [['Iscle', 'Co-founder and CEO', 'Management, marketing and sales.'], ['Guillem', 'Co-founder, business', 'Sales and business development.']],
+    team: [['Iscle Beltran Romeu', 'Co-founder and CEO', 'Management, marketing and sales.'], ['Guillem Serra', 'Co-founder, business', 'Sales and business development.']],
     photo: 'Photo pending: portrait of',
     notH: 'What we don’t do.',
     not: ['Cameras, biometrics or tracking people.', 'Any personal customer data.', 'Measuring store staff.', 'Whole-store inventory, tills or anti-theft.', 'Auditing factories: we show what the brand and supplier declare, with valid certificates and saying where each data point comes from.', 'Promising improvement percentages before measuring them.'],
     invH: 'Investors, press and accelerators.', inv: 'We’ll send you the deck with the thesis, the model and where the project stands.', invCta: 'Ask for the deck', direct: 'Or write to us directly:',
   },
 }[lang];
+// Fotos (a public/img/equip/) i LinkedIn de l'equip. Buit = no es mostra.
 const fotos: Record<string, string> = { Iscle: '', Guillem: '' };
+const linkedin: Record<string, string> = { Iscle: '', Guillem: '' };
 ---
 <Base title={T.title} lang={lang} route="/nosotros/" description={T.desc}>
   <header class="page-head">
@@ -113,14 +115,18 @@ const fotos: Record<string, string> = { Iscle: '', Guillem: '' };
       <h2 data-reveal>{T.teamH}</h2>
       <div class="team">
         {T.team.map(([name, role, text]) => {
+          const first = name.split(' ')[0];
           return (
             <article class="person" data-reveal>
-              <figure class="photo" style="--ar: 4/5">
-                {fotos[name] ? <img src={fotos[name]} alt={`${name}, ${role}`} loading="lazy" /> : <span class="mono" aria-hidden="true">{name[0]}</span>}
-              </figure>
+              {fotos[first] && (
+                <figure class="photo" style="--ar: 4/5">
+                  <img src={fotos[first]} alt={`${name}, ${role}`} loading="lazy" />
+                </figure>
+              )}
               <h3>{name}</h3>
               <p class="role">{role}</p>
               <p class="quiet">{text}</p>
+              {linkedin[first] && <p><a class="textlink" href={linkedin[first]} rel="noopener">LinkedIn</a></p>}
             </article>
           );
         })}
