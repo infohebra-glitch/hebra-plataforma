@@ -54,6 +54,11 @@ def inicialitza(con: sqlite3.Connection) -> None:
     _migra_v04(con)
     _afegeix_columna(con, "imatge_peca", "fons", "TEXT")  # v0.6: color del fons de la foto
     _afegeix_columna(con, "colleccio", "lot_prova", "INTEGER NOT NULL DEFAULT 0")  # v0.7
+    # v0.8: xip NFC protegit (NTAG 424 DNA): UID, últim comptador verificat, xip simulat per a la demo.
+    _afegeix_columna(con, "etiqueta", "nfc_uid", "TEXT")
+    _afegeix_columna(con, "etiqueta", "nfc_ctr", "INTEGER NOT NULL DEFAULT -1")
+    _afegeix_columna(con, "etiqueta", "nfc_ctr_simulat", "INTEGER NOT NULL DEFAULT -1")
+    _afegeix_columna(con, "etiqueta", "nfc_simulat", "INTEGER NOT NULL DEFAULT 0")
     con.commit()
 
 

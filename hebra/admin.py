@@ -16,6 +16,10 @@
   python -m hebra.admin restaura FITXER.db.gz        # restaura una còpia (atureu abans hebra-web)
   python -m hebra.admin demo-enllacos --botiga PROVA-01 --url https://plataforma.hebraia.com   # enllaços NFC per a la demo
   python -m hebra.admin demo-directe --botiga PROVA-01 --cabina 1 --minuts 3   # cabina ocupada en directe, sense lector
+  python -m hebra.admin nfc-protegeix --model PH4012-166 --uid 04A1B2C3D4E5F6 --url https://plataforma.hebraia.com
+                                         # associa un xip NTAG 424 DNA a la peça i dona les claus per gravar-lo
+  python -m hebra.admin nfc-prova --model PH4012-166 --url https://plataforma.hebraia.com
+                                         # enllaç signat com el d'un toc real (demo de «Peça original verificada»)
 
 Formats CSV (capçalera obligatòria, separador coma o punt i coma):
   cataleg.csv:   gtin,model,color,talla,categoria,preu
@@ -33,7 +37,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from . import alertes, auth, cataleg, control, copies, db, demo_directe, demo_peca, estoc, proves, retencio, shopify, vendes
+from . import alertes, auth, autenticitat, cataleg, control, copies, db, demo_directe, demo_peca, estoc, proves, retencio, shopify, vendes
 from .integracions import ErrorIntegracio
 from .integracions import motor as integracions_motor
 from . import epc as epc_mod
@@ -205,6 +209,17 @@ def main() -> None:
     dd.add_argument("--model", action="append", default=[], help="codi de model, p. ex. CL-24-NAT (es pot repetir); per defecte, els dos primers")
     dd.add_argument("--minuts", type=float, default=3)
     dd.add_argument("--api", default="http://127.0.0.1:8000", help="on escolta la plataforma")
+    npx = sub.add_parser("nfc-protegeix", help="associa un xip NTAG 424 DNA a una peça (peça original verificada)")
+    npx.add_argument("--uid", required=True, help="UID del xip (7 bytes en hex)")
+    npx.add_argument("--epc")
+    npx.add_argument("--model", help="si no es dona l'EPC: la primera peça del model")
+    npx.add_argument("--botiga", default="PROVA-01")
+    npx.add_argument("--url", default="https://plataforma.hebraia.com")
+    npr = sub.add_parser("nfc-prova", help="enllaç signat com el d'un toc real, sense xip (cada vegada un comptador nou)")
+    npr.add_argument("--epc")
+    npr.add_argument("--model", default="PH4012-166")
+    npr.add_argument("--botiga", default="PROVA-01")
+    npr.add_argument("--url", default="https://plataforma.hebraia.com")
     dp = sub.add_parser("demo-peca", help="converteix un model de prova en una peça real (mateixos enllaços NFC)")
     dp.add_argument("--model", default="CL-24-NAT", help="model de prova que es canvia")
     dp.add_argument("--nou-model", default="PH4012-166", help="codi nou del model")
@@ -238,6 +253,23 @@ def main() -> None:
     elif args.ordre == "demo-enllacos":
         for e in demo_directe.enllacos(con, args.botiga, args.url):
             print(f"{e['model']} ({e['color']}, {e['talla']}): {e['url']}")
+    elif args.ordre in ("nfc-protegeix", "nfc-prova"):
+        base = args.url.rstrip("/")
+        try:
+            if args.ordre == "nfc-protegeix":
+                r = autenticitat.protegeix(con, cfg.secret, args.uid, epc=args.epc, model=args.model)
+                print(f"Xip {r['uid']} associat a la peça {r['epc']}.\n"
+                      f"Grava'l amb NXP TagXplorer o TagWriter (SUN / SDM, PICCData xifrat i CMAC):\n"
+                      f"  URL:              {base}/p/{r['token']}?b={args.botiga}&picc={'0' * 32}&cmac={'0' * 16}\n"
+                      f"  Clau 1 (meta):    {r['clau_meta']}\n"
+                      f"  Clau 2 (fitxer):  {r['clau_fitxer']}\n"
+                      "Guarda aquestes claus només fins que el xip estigui gravat.")
+            else:
+                r = autenticitat.toc_simulat(con, cfg.secret, epc=args.epc, model=None if args.epc else args.model)
+                print(f"Toc {r['comptador']} de la peça {r['epc']}. Obre aquest enllaç al mòbil (només val una vegada):\n"
+                      f"  {base}/p/{r['token']}?b={args.botiga}&picc={r['picc']}&cmac={r['cmac']}")
+        except autenticitat.ErrorXip as e:
+            sys.exit(str(e))
     elif args.ordre == "demo-peca":
         try:
             r = demo_peca.canvia(con, args.model, args.nou_model,
