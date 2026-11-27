@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { ui, path, contacts, formKey, mainEmail, type Lang } from '../i18n';
+import { ownerName } from '../legal';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const T = {
@@ -113,7 +114,7 @@ const T = {
         </div>
         <label>{T.msg} <textarea name="mensaje" rows="4"></textarea></label>
         <label class="check"><input type="checkbox" name="privacidad" required /> <span>{T.privA} <a class="textlink" href={path(lang, '/privacidad/')}>{T.privL}</a> {T.privB}</span></label>
-        <p class="layer small quiet" set:html={T.layer.replace(/\[([^\]]+)\]/g, '<span class="pend">[$1]</span>')} />
+        <p class="layer small quiet" set:html={T.layer.replace(/\[[^\]]+\]/g, ownerName(lang))} />
         <div><button class="btn" type="submit">{T.send}</button></div>
       </form>
     </div>

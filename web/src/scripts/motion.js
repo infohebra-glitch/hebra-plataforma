@@ -37,16 +37,6 @@ if (bar) {
   });
 }
 
-// La barra de navegación viaja: en la portada empieza arriba y se acomoda abajo al hacer scroll
-const dock = document.querySelector('[data-dock]');
-if (dock && document.querySelector('[data-hero]') && !reduce && window.matchMedia('(min-width: 1101px)').matches) {
-  const lift = () => -(window.innerHeight - dock.offsetHeight - window.innerHeight * 0.028 - 18);
-  gsap.fromTo(dock, { y: lift }, {
-    y: 0, ease: 'none',
-    scrollTrigger: { start: 0, end: () => window.innerHeight * 0.7, scrub: 0.2, invalidateOnRefresh: true },
-  });
-}
-
 // Menú a pantalla completa
 const menuBtn = document.querySelector('[data-menu]');
 const overlay = document.querySelector('[data-overlay]');

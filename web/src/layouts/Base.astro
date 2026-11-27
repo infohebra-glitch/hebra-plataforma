@@ -95,18 +95,10 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
   {!bare && (
     <>
       <div class="progress" data-progress aria-hidden="true"><i></i></div>
+      <header class="site-head">
       <a class="brand-fixed" href={path(lang, '/')}>
         <img src="/img/logo-blanc.png" alt={`Hebra, ${t.home.toLowerCase()}`} width="20" height="29" />
       </a>
-      <div class="top-right">
-        <span class="top-langs" aria-label={t.langLabel}>
-          {langs.map((l) => (
-            <a href={path(l, route)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} title={langName[l]}>{langShort[l]}</a>
-          ))}
-        </span>
-        {hasNl && <a class="nl-fixed" href="#newsletter">{t.newsletter}</a>}
-        <a class="cta-fixed" href={path(lang, '/contacto/#demo')} data-magnetic>{t.demo}</a>
-      </div>
       <nav class="dock" aria-label={t.navMain} data-dock>
         <a class="dock-word" href={path(lang, '/')}>Hebra<sup>®</sup></a>
         <ul class="dock-links">
@@ -116,6 +108,15 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
         </ul>
         <button class="dock-menu" type="button" aria-expanded="false" aria-controls="overlay" data-menu data-close={t.close}>{t.menu}</button>
       </nav>
+      <div class="top-right">
+        <span class="top-langs" aria-label={t.langLabel}>
+          {langs.map((l) => (
+            <a href={path(l, route)} hreflang={l} lang={l} aria-current={l === lang ? 'true' : undefined} title={langName[l]}>{langShort[l]}</a>
+          ))}
+        </span>
+        <a class="cta-fixed" href={path(lang, '/contacto/#demo')} data-magnetic>{t.demo}</a>
+      </div>
+      </header>
       <!-- El menú móvil se monta con JS a partir de estos datos (no son enlaces en el HTML: así no repiten los de la barra) -->
       <div class="overlay" id="overlay" data-overlay hidden data-items={JSON.stringify({
         links: [...nav.map((n) => [n.href, n.label]), [path(lang, '/contacto/'), t.contact]],
@@ -145,7 +146,6 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
           </nav>
           <p class="foot-claim">{t.footClaim}</p>
         </div>
-        <p class="foot-word" aria-hidden="true">Hebra</p>
         <p class="foot-base"><span>{t.base}</span><span class="foot-legal"><a href={path(lang, '/privacidad/')}>{t.privacy}</a><a href={path(lang, '/aviso-legal/')}>{t.legal}</a><a href={path(lang, '/cookies/')}>{t.cookies}</a></span></p>
       </div>
     </footer>
@@ -171,6 +171,20 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
   @media (max-width: 720px) { .nl-fixed { display: none; } }
   .cta-fixed { padding: .75em 1.3em; border-radius: 999px; font: 560 .92rem/1 var(--sans); text-decoration: none; color: var(--ink); background: var(--on-dark); transition: background .4s var(--ease); }
   .cta-fixed:hover { background: var(--tint); }
+
+  /* Capçalera fixa amb fons: res no tapa el contingut */
+  .site-head { position: fixed; inset: 0 0 auto; z-index: 70; height: var(--head-h, 68px); display: flex; align-items: center; gap: 2rem; padding: 0 var(--gutter); background: color-mix(in srgb, var(--ink) 94%, transparent); border-bottom: 1px solid var(--rule-dark); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .site-head .brand-fixed, .site-head .top-right, .site-head .dock { position: static; inset: auto; translate: none; transform: none; mix-blend-mode: normal; }
+  .site-head .brand-fixed { display: flex; align-items: center; }
+  .site-head .brand-fixed img { height: 26px; }
+  .site-head .dock { margin-right: auto; padding: 0; gap: 1.6rem; color: var(--on-dark); background: none; border: 0; border-radius: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .site-head .dock-word { display: none; }
+  .site-head .top-right { gap: .8rem; }
+  @media (max-width: 1100px) {
+    .site-head .dock { order: 3; margin-right: 0; padding: .55rem .2rem; }
+    .site-head .brand-fixed { margin-right: auto; }
+  }
+  @media (max-width: 720px) { .site-head .top-langs { display: none; } .site-head { --head-h: 60px; gap: 1rem; } }
 
   /* La barra viaja: empieza arriba, baja con el scroll y se queda abajo en el centro */
   .dock { position: fixed; left: 50%; bottom: 1.4vh; z-index: 70; display: flex; align-items: center; gap: 2rem; padding: .7rem 1.1rem .7rem 1.3rem; translate: -50% 0; color: #fff; mix-blend-mode: difference; font-size: .9rem; white-space: nowrap; }
