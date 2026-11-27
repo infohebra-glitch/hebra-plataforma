@@ -1,12 +1,12 @@
 /* Estils del tauler. Escrits a mà, sense framework; les fitxes són a tokens.css. */
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); overflow-x: hidden; -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; }
-h1, h2, h3 { font-family: var(--sans); font-weight: 560; line-height: 1.15; margin: 0; letter-spacing: -0.02em; }
-h1 { font-size: 30px; font-weight: 520; letter-spacing: -0.035em; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--sans); font-weight: 600; font-stretch: var(--estreta); line-height: 1.1; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 34px; font-weight: 650; letter-spacing: -0.02em; }
 h2 { font-size: 19px; }
 h3 { font-size: 16px; }
-em.accent, .accent-serif { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.02em; }
+em.accent, .accent-serif { font-style: normal; font-weight: inherit; letter-spacing: inherit; }
 ::selection { background: var(--accent); color: var(--accent-fg); }
 p { margin: 0 0 8px; }
 a { color: var(--accent); text-underline-offset: 2px; }
@@ -25,7 +25,7 @@ img, svg { max-width: 100%; }
 /* ── Controls ─────────────────────────────────────────────────────────── */
 button, .boto {
   font: 500 14px var(--sans); border: 1px solid var(--line); background: var(--surface); color: var(--fg);
-  border-radius: 999px; padding: 8px 16px; min-height: 38px; cursor: pointer; text-decoration: none;
+  border-radius: var(--radi-petit); padding: 8px 16px; min-height: 38px; cursor: pointer; text-decoration: none;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1.2;
   transition: background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease), box-shadow .2s var(--ease);
 }
@@ -75,7 +75,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--a
 .nav-llista a:hover { background: var(--accent-soft); color: var(--fg); }
 .nav-llista a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .nav-llista svg { flex: none; opacity: .85; }
-.nav-grup { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 18px 12px 6px; font-weight: 600; }
+.nav-grup { font-size: 11px;  color: var(--muted); padding: 18px 12px 6px; font-weight: 600; }
 .comptador { margin-left: auto; background: var(--warn); color: var(--surface); font-size: 11px; font-weight: 700; border-radius: 999px; padding: 1px 7px; }
 
 .nav-inferior {
@@ -125,9 +125,9 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--a
 /* ── Capçalera de pàgina ─────────────────────────────────────────────── */
 .titol-pagina { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: end; justify-content: space-between; margin-bottom: 24px; }
 .titol-pagina p { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
-.titol-pagina .periode { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12.5px; color: var(--fg-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px 3px 8px; }
+.titol-pagina .periode { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12.5px; color: var(--fg-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radi-petit); padding: 3px 10px 3px 8px; }
 .titol-pagina .periode::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--grana); }
-.kicker { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--grana); margin: 0 0 6px !important; }
+.kicker { font-size: 12px; font-weight: 600;  color: var(--grana); margin: 0 0 6px !important; }
 .titol-pagina .accions { display: flex; gap: 8px; flex-wrap: wrap; }
 .seccio { margin-top: 36px; }
 .seccio > h2 { margin-bottom: 4px; font-size: 20px; }
@@ -144,17 +144,20 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--a
 @media (min-width: 760px) { .reixa-2 { grid-template-columns: 1fr 1fr; } .reixa-3 { grid-template-columns: repeat(3, 1fr); } }
 .reixa-2 > *, .reixa-3 > * { min-width: 0; }
 
-.rajoles { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+/* Xifres: una sola franja dividida per filets, no targetes soltes. */
+.rajoles { display: grid; gap: 1px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); background: var(--line);
+  border: 1px solid var(--line); border-radius: var(--radi); overflow: hidden; }
+.rajoles > .rajola { border: 0; border-radius: 0; }
 .rajola {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radi); padding: 18px 18px 16px; display: grid; gap: 6px;
   align-content: start; box-shadow: var(--ombra); min-width: 0; position: relative; overflow: hidden;
   transition: box-shadow .3s var(--ease), transform .3s var(--ease), border-color .3s var(--ease);
 }
-.rajola:hover { box-shadow: var(--ombra-alta); transform: translateY(-1px); }
+
 @media (prefers-reduced-motion: reduce) { .rajola, .rajola:hover { transition: none; transform: none; } }
 .rajola-etiqueta { font-size: 13px; color: var(--muted); font-weight: 550; letter-spacing: 0; }
-.rajola-valor { font: 520 36px/1.05 var(--sans); letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: var(--fg); }
-.rajola-delta { font-size: 12.5px; font-weight: 600; display: inline-flex; gap: 4px; align-items: center; width: fit-content; border-radius: 999px; padding: 1px 8px; background: var(--line-2); }
+.rajola-valor { font: 650 40px/1 var(--sans); font-stretch: var(--estreta); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--fg); }
+.rajola-delta { font-size: 12.5px; font-weight: 600; display: inline-flex; gap: 4px; align-items: center; width: fit-content; border-radius: var(--radi-petit); padding: 1px 8px; background: var(--line-2); }
 .rajola-delta.bo { background: var(--good-soft); }
 .rajola-delta.dolent { background: var(--critical-soft); }
 .rajola-delta.bo { color: var(--good); }
@@ -173,7 +176,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--a
 }
 .accio-setmana::after { content: ""; position: absolute; right: -40px; bottom: -60px; width: 220px; height: 320px; opacity: .07;
   background: currentColor; -webkit-mask: var(--logo-mask) center / contain no-repeat; mask: var(--logo-mask) center / contain no-repeat; pointer-events: none; }
-.accio-setmana .etiqueta-seccio { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--marca-text-2); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+.accio-setmana .etiqueta-seccio { font-size: 12px;  color: var(--marca-text-2); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
 .accio-setmana .etiqueta-seccio::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #E4B3C1; box-shadow: 0 0 0 4px rgba(228,179,193,.18); }
 .accio-setmana p.text { font: 400 21px/1.4 var(--sans); letter-spacing: -0.02em; margin: 10px 0 14px; max-width: 46ch; position: relative; z-index: 1; }
 .accio-setmana .metadades { color: var(--marca-text-2); position: relative; z-index: 1; }
@@ -183,7 +186,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--a
 .metadades b { color: var(--fg-2); font-weight: 600; }
 
 /* ── Insígnies ───────────────────────────────────────────────────────── */
-.insignia { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 9px; white-space: nowrap; line-height: 1.5; }
+.insignia { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; border-radius: var(--radi-petit); padding: 2px 9px; white-space: nowrap; line-height: 1.5; }
 .insignia-marca { background: var(--grana-soft); color: var(--grana); margin-left: 8px; font-size: 11px; vertical-align: 1px; }
 :root[data-theme="dark"] .insignia-marca { color: #E4B3C1; }
 .insignia-alerta { background: var(--warn-soft); color: var(--warn); }
@@ -198,7 +201,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--a
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 caption { text-align: left; color: var(--muted); font-size: 13px; padding-bottom: 6px; }
 th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
-th { font-weight: 600; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: 11.5px;  white-space: nowrap; }
 thead th { background: var(--surface-2); }
 tbody th { text-transform: none; letter-spacing: 0; color: var(--fg); font-weight: 600; font-size: 14px; white-space: normal; }
 thead th:first-child { border-top-left-radius: 8px; } thead th:last-child { border-top-right-radius: 8px; }
@@ -394,12 +397,12 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .segmentat > label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
 .segmentat input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .xips-tria { display: flex; flex-wrap: wrap; gap: 6px; }
-.xips-tria label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px 5px 8px; font-size: 14px; cursor: pointer; background: var(--surface); min-height: 34px; }
+.xips-tria label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: var(--radi-petit); padding: 5px 12px 5px 8px; font-size: 14px; cursor: pointer; background: var(--surface); min-height: 34px; }
 .xips-tria label.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .xips-tria input { width: 16px; height: 16px; min-height: 0; accent-color: var(--accent); margin: 0; }
 .sense-vora { border: 0; padding: 0; margin: 0; min-width: 0; }
 .sense-vora:disabled { opacity: .6; }
-.etiqueta-mini { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; padding: 0; }
+.etiqueta-mini { font-size: 12px; font-weight: 600;  color: var(--muted); margin-bottom: 4px; padding: 0; }
 .barra-eines { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 12px; }
 .camp-linia { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--fg-2); }
 .camp-linia select { font-weight: 400; }
@@ -414,7 +417,7 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .insignia-assistencia { background: var(--accent); color: var(--accent-fg); }
 
 /* Provadors en directe */
-.estat-cabina { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.estat-cabina { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; border-radius: var(--radi-petit); padding: 2px 10px; white-space: nowrap; }
 .estat-cabina.ocupada { color: var(--estat-ocupada); background: var(--critical-soft); }
 .estat-cabina.lliure { color: var(--estat-lliure); background: var(--good-soft); }
 .estat-cabina.porta_oberta { color: var(--estat-porta); background: var(--warn-soft); }
@@ -448,7 +451,7 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 
 /* Estoc parat */
 .xips-categoria { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--fg-2); }
-.xips-categoria li { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+.xips-categoria li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radi-petit); padding: 3px 10px; }
 .taula-parat td { vertical-align: top; }
 .taula-parat tr.seleccionada { background: var(--accent-soft); }
 .taula-parat input[type=checkbox] { width: 18px; height: 18px; min-height: 0; accent-color: var(--accent); }
@@ -464,7 +467,7 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .targeta.tasca.feta, .targeta.tasca.descartada, .targeta.desactivada { opacity: .7; }
 
 /* Informes lliurats */
-.grup-data { font: 600 12px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 6px 0 8px; }
+.grup-data { font: 600 12px var(--sans);  color: var(--muted); margin: 6px 0 8px; }
 .llista-lliurats { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radi); }
 .lliurat { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 14px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line-2); }
 .lliurat:last-child { border-bottom: 0; }
@@ -528,7 +531,7 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .fp ul { margin: 0; padding-left: 18px; }
 .fp p { margin: 0 0 8px; }
 .fp-cap { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.fp-marca { font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 13px; }
+.fp-marca { font-weight: 700;  font-size: 13px; }
 .fp-logo { max-height: 28px; max-width: 120px; }
 .fp-idiomes { display: flex; gap: 4px; font-size: 11px; }
 .fp-idiomes span { border: 1px solid transparent; border-radius: 4px; padding: 1px 4px; color: #5A6270; }
@@ -547,7 +550,7 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .fp-boto-sec { background: #fff; }
 .fp-enllac { font-weight: 600; font-size: 14px; text-decoration: underline; }
 .fp-motius { display: flex; flex-wrap: wrap; gap: 6px; }
-.fp-xip { border: 1px solid #E2E1DF; border-radius: 999px; padding: 4px 10px; font-size: 13px; background: #F9F9F9; }
+.fp-xip { border: 1px solid #E2E1DF; border-radius: var(--radi-petit); padding: 4px 10px; font-size: 13px; background: #F9F9F9; }
 .fp details summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 4px 0; }
 .fp-peu { text-align: center; font-family: var(--serif); font-style: italic; color: #2E3A4A; margin-top: 14px !important; }
 
@@ -664,3 +667,78 @@ th.fila-cap { text-transform: none; letter-spacing: 0; color: var(--fg); font-we
 .fp-look li { display: grid; gap: 4px; font-size: 12px; line-height: 1.25; scroll-snap-align: start; }
 .fp-look img, .fp-look .fp-sense-foto { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 8px; background: #EFEDEA; display: block; }
 .fp-look li.actual img { outline: 2px solid #0B1522; outline-offset: -2px; }
+
+/* v0.7 — Mapa de les peces (foto segons proves i conversió) */
+.graella-mapa { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-bottom: 16px; }
+@media (max-width: 1100px) { .graella-mapa { grid-template-columns: 1fr; } }
+.dispersio .zona-alerta { fill: var(--warn); opacity: .06; }
+.dispersio .mitjana { stroke: var(--eix); stroke-dasharray: 3 4; stroke-width: 1; }
+.dispersio .eix-text { fill: var(--muted); font-size: 11px; }
+.dispersio .eix-nom { fill: var(--fg-2); font-size: 12px; }
+.dispersio .zona-text { fill: var(--warn); font-size: 12px; font-weight: 600; }
+.dispersio .zona-text.suau { fill: var(--muted); font-weight: 400; }
+.dispersio .peca-punt { cursor: pointer; }
+.dispersio .peca-punt .diana { fill: transparent; }
+.dispersio .peca-punt .cercle { fill: var(--serie-1); stroke: var(--surface); stroke-width: 2; transition: r .15s ease; }
+.dispersio .peca-punt.alerta .cercle { fill: var(--warn); }
+.dispersio .peca-punt .nom-punt { fill: var(--fg); font-size: 12.5px; font-weight: 500; }
+.dispersio .peca-punt.alerta .nom-punt { fill: var(--warn); font-weight: 650; }
+.dispersio .guia-nom { stroke: var(--muted); stroke-width: 0.75; opacity: 0.7; }
+.dispersio .peca-punt.actiu .cercle { r: 8; }
+.dispersio a:focus-visible .cercle { stroke: var(--fg); stroke-width: 3; }
+.dispersio .globus-svg rect { fill: var(--fg); opacity: .94; }
+.dispersio .globus-svg text { fill: var(--surface); font-size: 12px; font-weight: 600; }
+.dispersio .globus-svg text.suau { font-weight: 400; opacity: .8; }
+@media (prefers-reduced-motion: reduce) { .dispersio .peca-punt .cercle { transition: none; } }
+.proves-compres { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.proves-compres a { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "nom" "barra" "xifres"; column-gap: 12px; row-gap: 4px; padding: 8px; border-radius: var(--radi-petit); color: inherit; text-decoration: none; }
+.proves-compres a:hover { background: var(--accent-soft); }
+.proves-compres .pc-nom { grid-area: nom; font-weight: 600; font-size: 14px; }
+.proves-compres .pc-barra { grid-area: barra; position: relative; height: 12px; }
+.proves-compres .pc-proves, .proves-compres .pc-compres { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; }
+.proves-compres .pc-proves { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--serie-1); }
+.proves-compres .pc-compres { background: var(--serie-1); }
+.proves-compres .alerta .pc-compres { background: var(--warn); }
+.proves-compres .pc-xifres { grid-area: xifres; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.proves-compres .pc-xifres b { color: var(--fg); }
+
+/* v0.7 — Informes: cada gràfic porta la seva lectura (què hi veiem i què en podem fer) */
+.grafic-lectura { margin: 4px 0 12px; font-size: 14px; line-height: 1.5; color: var(--fg-2, var(--fg)); max-width: 68ch; }
+
+/* v0.7: la marca tria els gràfics de cada informe */
+.tria-grafics { max-width: 920px; margin: 0 auto 12px; }
+.tria-grafics-panell { margin-top: 8px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+.tria-grafics-panell ol { list-style: none; margin: 8px 0 12px; padding: 0; }
+.tria-grafics-panell li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.tria-grafics-panell li.apagat label { color: var(--muted); }
+.tria-grafics-panell label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.tria-grafics-panell .ordre { display: flex; gap: 4px; }
+.tria-grafics-panell .ordre button { min-width: 32px; padding: 2px 6px; }
+.tria-grafics-panell .accions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* v0.7: proves i compres per dia, comparades */
+.grafic .linia.discontinua { stroke-dasharray: 5 4; stroke-width: 1.5; opacity: .8; }
+.grafic .punt.buit { fill: var(--surface); stroke-width: 1.5; }
+.grafic .punt.buit.f1 { stroke: var(--serie-1); }
+.grafic .punt.buit.f2 { stroke: var(--serie-2); }
+.clau-linia.discontinua { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px) !important; color: var(--muted); }
+.clau-linia.discontinua.bg-s1 { color: var(--serie-1); }
+.clau-linia.discontinua.bg-s2 { color: var(--serie-2); }
+.comparativa-controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end; margin-bottom: 14px; }
+.comparativa-controls label { display: grid; gap: 4px; font-size: 12.5px; color: var(--fg-2); }
+.comparativa-controls select { min-width: 170px; }
+.comparativa-resum { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 4px; margin-bottom: 14px; overflow: hidden; }
+.comparativa-resum > div { background: var(--surface); padding: 10px 12px; }
+.comparativa-resum b { display: block; font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.comparativa-resum span { font-size: 12px; color: var(--muted); }
+.comparativa-resum .bo { color: var(--ok, #2e7d4f); }
+.comparativa-resum .dolent { color: var(--warn); }
+.comparativa-lectura { margin: 12px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--fg-2); max-width: 72ch; }
+.fila-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin: 10px 0; }
+.fila-form label { display: grid; gap: 4px; font-size: 12.5px; color: var(--fg-2); }
+.llista-simple { list-style: none; margin: 8px 0 0; padding: 0; }
+.llista-simple li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.dies-marcats .xips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.xip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 12.5px; background: var(--bg, transparent); }
+.xip button { border: 0; background: none; padding: 0 4px; min-width: 0; min-height: 0; line-height: 1; color: var(--muted); cursor: pointer; }
+.xip button:hover { color: var(--critical); }

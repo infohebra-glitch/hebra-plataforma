@@ -150,6 +150,32 @@ async def _bucle_cabines() -> None:
             log.exception("Error publicant l'estat de les cabines")
 
 
+def lot_prova_al_dia() -> int:
+    """v0.7: hi afegeix els clients simulats des de l'última vegada (amb una connexió pròpia)."""
+    from . import lot_prova
+    c = db.connecta(cfg.ruta_bd)
+    try:
+        return lot_prova.posa_al_dia(c)
+    finally:
+        c.close()
+
+
+async def _bucle_lot_prova() -> None:
+    """Cada 5 minuts, el lot de prova (si n'hi ha) es posa al dia: sembla una botiga oberta."""
+    while True:
+        await asyncio.sleep(60 if _bucle_lot_prova.primer else 300)
+        _bucle_lot_prova.primer = False
+        try:
+            n = await asyncio.to_thread(lot_prova_al_dia)
+            if n:
+                log.info("Lot de prova: %s sessions noves", n)
+        except Exception:
+            log.exception("Error posant al dia el lot de prova")
+
+
+_bucle_lot_prova.primer = True
+
+
 @asynccontextmanager
 async def _cicle_de_vida(_app):
     try:  # v0.5: fotos de les peces de prova en dades simulades d'abans (no toca les de la marca)
@@ -165,6 +191,7 @@ async def _cicle_de_vida(_app):
     tasques.append(asyncio.create_task(_bucle_integracions()))
     tasques.append(asyncio.create_task(_bucle_informes()))
     tasques.append(asyncio.create_task(_bucle_cabines()))
+    tasques.append(asyncio.create_task(_bucle_lot_prova()))
     yield
     for t in tasques:
         t.cancel()

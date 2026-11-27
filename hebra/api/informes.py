@@ -232,6 +232,28 @@ def _informe(con: sqlite3.Connection, f: analitica.Filtre, tipus: str) -> dict:
     return analitica.informe(con, f, _tipus(tipus))
 
 
+class TriaGrafics(BaseModel):
+    grafics: list[str] | None = Field(default=None, max_length=40)
+
+
+@router.put("/informes/{tipus}/grafics")
+def tria_grafics(tipus: str, cos: TriaGrafics, f: analitica.Filtre = Depends(filtre),
+                 con: sqlite3.Connection = Depends(bd), _u: dict = Depends(rol(*MARCA_O_MES))) -> dict:
+    """La marca tria quins gràfics surten a aquest tipus d'informe (tauler, PDF i correu) i en quin ordre.
+    `grafics: null` torna a posar-los tots."""
+    from hebra.analitica import informes_grafics as ig
+    _tipus(tipus)
+    if cos.grafics is not None:
+        tots = {g["id"] for g in analitica.informe(con, f, tipus)["grafics_disponibles"]}
+        desconeguts = [g for g in cos.grafics if g not in tots]
+        if desconeguts:
+            raise HTTPException(400, f"Gràfics desconeguts: {', '.join(desconeguts)}")
+        if not cos.grafics:
+            raise HTTPException(400, "Tria almenys un gràfic")
+    ig.desa_grafics_triats(con, tipus, list(dict.fromkeys(cos.grafics)) if cos.grafics is not None else None)
+    return {"tipus": tipus, "grafics_triats": ig.grafics_triats(con, tipus)}
+
+
 @router.get("/informes/{tipus}.pdf")
 def informe_pdf_ara(tipus: str, f: analitica.Filtre = Depends(filtre), con: sqlite3.Connection = Depends(bd)) -> Response:
     inf = _informe(con, f, tipus)

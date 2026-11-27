@@ -130,11 +130,12 @@ def test_experiments_alertes_valor(con):
 @pytest.mark.parametrize("tipus", ["diari", "setmanal", "mensual", "temporada", "pilot", "mango"])
 def test_informes(con, tipus):
     r = A.informe(con, F, tipus)
-    claus(r, "tipus", "titol", "periode", "blocs", "accio", "avisos", "xifres", "grafics")
+    claus(r, "tipus", "titol", "periode", "blocs", "accio", "avisos", "xifres", "grafics",
+          "grafics_disponibles", "grafics_triats")
     assert r["tipus"] == tipus and r["blocs"] and r["xifres"] and r["grafics"]
     for g in r["grafics"]:
-        claus(g, "id", "titol", "tipus", "unitat", "eix_x", "series", "nota")
-        assert g["tipus"] in ("linia", "barres", "barres_apilades", "donut")
+        claus(g, "id", "titol", "tipus", "unitat", "eix_x", "series", "nota", "destaca", "lectura")
+        assert g["tipus"] in ("linia", "barres", "barres_apilades", "donut", "dispersio")
         assert all(len(s["valors"]) == len(g["eix_x"]) for s in g["series"])
     for x in r["xifres"]:
         assert {"etiqueta", "valor", "unitat", "variacio", "vs"} <= set(x)
@@ -184,3 +185,37 @@ def test_rendiment(con):
         t = time.perf_counter()
         fn(con, F)
         assert time.perf_counter() - t < 0.5, fn.__name__
+
+
+@pytest.mark.parametrize("tipus", ["setmanal", "mensual", "temporada"])
+def test_cada_grafic_porta_lectura(con, tipus):
+    """v0.7: un informe no és només gràfics: cada gràfic amb dades porta què hi veiem i què en podem fer."""
+    r = A.informe(con, F, tipus)
+    for g in r["grafics"]:
+        if any(v for s in g["series"] for v in s["valors"] if v):
+            assert g["lectura"] and len(g["lectura"]) > 40, g["id"]
+            assert "." in g["lectura"] and "{" not in g["lectura"]
+
+
+def test_lectures_concretes():
+    from hebra.analitica.informes_grafics import llegeix
+    mapa = {"id": "mapa_peces", "tipus": "dispersio", "unitat": "pct", "eix_x": ["Polo", "Vestit"],
+            "series": [{"nom": "Proves", "valors": [99, 75]}, {"nom": "Conversió", "valors": [0.31, 0.15]}],
+            "destaca": [False, True]}
+    assert "«Vestit» s'ha provat 75 vegades i només el 15 % acaba en compra (mitjana, 23 %)" in llegeix(mapa)
+    motius = {"id": "motius", "tipus": "donut", "unitat": "enter", "eix_x": ["Talla", "Preu"],
+              "series": [{"nom": "Respostes", "valors": [6, 2]}]}
+    assert "«Talla» (75 % de 8 respostes)" in llegeix(motius) and "patronatge" in llegeix(motius)
+    hores = {"id": "sessions_hora", "tipus": "barres", "unitat": "enter", "eix_x": ["10 h", "11 h", "12 h", "13 h"],
+             "series": [{"nom": "Sessions", "valors": [1, 2, 8, 9]}]}
+    assert "de 12 h a 14 h" in llegeix(hores)
+    assert llegeix({"id": "motius", "tipus": "donut", "unitat": "enter", "eix_x": [], "series": [{"nom": "x", "valors": []}]}) is None
+
+
+def test_lectures_amb_context(con):
+    """Amb les dades del model, la lectura diu el motiu, la talla que falla, l'estoc i què cal fer."""
+    inf = A.informe(con, F, "setmanal")
+    l = {g["id"]: g["lectura"] for g in inf["grafics"]}
+    assert "Vestit de viscosa" in l["mapa_peces"] and "talla" in l["mapa_peces"] and "setmanes de venda" in l["mapa_peces"]
+    assert "Rebaixar-lo no ho arreglarà" in l["cua_models"]
+    assert "Respecte a la setmana anterior" in l["proves_compres_dia"]

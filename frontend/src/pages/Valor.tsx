@@ -3,6 +3,7 @@ import { analitica, operacio } from '../api/endpoints';
 import type { Parametres } from '../api/types';
 import { Consulta, Esquelet } from '../components/Estat';
 import { Estimacio } from '../components/Insignies';
+import { Barres } from '../components/grafics/Barres';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
 import { useFiltre } from '../context/Filtre';
 import { insight } from '../lib/etiquetes';
@@ -38,6 +39,14 @@ export function Valor() {
               </div>
             )}
             <Seccio titol="Palanques">
+              {v.palanques.some((p) => p.valor_eur) && (
+                <div className="panell" style={{ marginBottom: 16 }}>
+                  <p className="petit muted" style={{ marginTop: 0 }}>Euros al mes que pot aportar cada palanca, de més a menys.</p>
+                  <Barres titol="Valor estimat de cada palanca" fmt={(n) => `≈ ${eur(n)}`}
+                    items={[...v.palanques].filter((p) => p.valor_eur).sort((a, b) => (b.valor_eur ?? 0) - (a.valor_eur ?? 0))
+                      .map((p) => ({ clau: p.palanca, etiqueta: p.palanca, n: p.valor_eur ?? 0 }))} />
+                </div>
+              )}
               <ul className="llista-targetes reixa-2" style={{ display: 'grid' }}>
                 {v.palanques.map((p) => (
                   <li key={p.palanca} className="targeta">

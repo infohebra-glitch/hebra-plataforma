@@ -36,6 +36,7 @@
   .grafic { break-inside: avoid; margin: 10pt 0 6pt; }
   .grafic svg { width: 100%; height: auto; display: block; }
   .grafic .nota { font-size: 8pt; color: #52514e; margin-top: 2pt; }
+  .grafic .lectura { font-size: 9.5pt; line-height: 1.4; color: #1f1f1e; margin: 2pt 0 6pt; }
   .bloc { break-inside: avoid; margin: 0 0 9pt; }
   .bloc p { margin: 0; }
   ul.linies { margin: 0; padding-left: 14pt; }
@@ -78,6 +79,7 @@
 {% for g in grafics %}
 <div class="grafic">
   <h3>{{ g.titol }}</h3>
+  {% if g.lectura %}<p class="lectura">{{ g.lectura }}</p>{% endif %}
   {{ g.svg }}
   {% if g.nota %}<div class="nota">{{ g.nota }}</div>{% endif %}
 </div>

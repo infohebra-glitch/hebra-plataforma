@@ -33,6 +33,17 @@ export const analitica = {
   valor: (x: T.Filtre, s?: AbortSignal) => api.get<T.Valor>('/valor', f(x), s),
   estatSistema: (x: T.Filtre, s?: AbortSignal) => api.get<T.EstatSistema>('/estat-sistema', f(x), s),
   informe: (x: T.Filtre, tipus: T.TipusInforme, s?: AbortSignal) => api.get<T.Informe>(`/informes/${tipus}`, f(x), s),
+  triaGrafics: (x: T.Filtre, tipus: T.TipusInforme, grafics: string[] | null) =>
+    api.put<{ tipus: string; grafics_triats: string[] | null }>(`/informes/${tipus}/grafics`, { grafics }, f(x)),
+  comparativa: (x: T.Filtre, o: { compara?: string; colleccio?: number; franja?: string; condicio?: string }, s?: AbortSignal) =>
+    api.get<T.Comparativa>('/comparativa', { ...f(x), ...o }, s),
+  colleccions: (s?: AbortSignal) => api.get<T.Colleccio[]>('/colleccions', undefined, s),
+  novaColleccio: (c: { nom: string; des: string; fins: string }) => api.post<T.Colleccio>('/colleccions', c),
+  esborraColleccio: (id: number) => api.del<{ ok: boolean }>(`/colleccions/${id}`),
+  condicions: (botiga?: string | null, s?: AbortSignal) => api.get<T.CondicioDia[]>('/condicions', { botiga: botiga ?? undefined }, s),
+  novaCondicio: (c: { botiga_id?: string | null; data: string; condicio: string }) => api.post<{ ok: boolean }>('/condicions', c),
+  esborraCondicio: (data: string, condicio: string, botiga?: string | null) =>
+    api.del<{ ok: boolean }>('/condicions', { data, condicio, botiga: botiga ?? undefined }),
   historial: (epc: string) => api.get<T.HistorialPeca>(`/peces/${enc(epc)}/historial`),
   perdues: (x: T.Filtre) => api.get<T.Perdues>('/perdues', f(x)),
   sessions: (x: T.Filtre, s?: AbortSignal) => api.get<T.Sessions>('/sessions', f(x), s),

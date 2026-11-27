@@ -426,3 +426,28 @@ CREATE TABLE IF NOT EXISTS imatge_galeria (
     actualitzada TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_imatge_galeria_model ON imatge_galeria(model, ordre);
+
+-- v0.7: quins gràfics vol la marca a cada tipus d'informe, i en quin ordre. Sense fila: tots.
+CREATE TABLE IF NOT EXISTS config_informe (
+    tipus        TEXT PRIMARY KEY,
+    grafics_json TEXT NOT NULL,                 -- ["proves_compres_dia", "mapa_peces", ...]
+    actualitzat  TEXT NOT NULL
+);
+
+-- v0.7: col·leccions (temporades) de la marca, per comparar-les entre elles.
+CREATE TABLE IF NOT EXISTS colleccio (
+    id     INTEGER PRIMARY KEY,
+    nom    TEXT NOT NULL,
+    des    TEXT NOT NULL,                       -- AAAA-MM-DD
+    fins   TEXT NOT NULL,
+    lot_prova INTEGER NOT NULL DEFAULT 0        -- 1 = creada pel lot de prova (s'esborra amb ell)
+);
+
+-- v0.7: condicions d'un dia a una botiga (pluja, calor, festiu, rebaixes...), per filtrar i comparar.
+-- Ara les marca la botiga o la marca; més endavant es podran omplir soles (meteorologia).
+CREATE TABLE IF NOT EXISTS condicio_dia (
+    botiga_id  TEXT NOT NULL,
+    data       TEXT NOT NULL,                   -- AAAA-MM-DD
+    condicio   TEXT NOT NULL,
+    PRIMARY KEY (botiga_id, data, condicio)
+);

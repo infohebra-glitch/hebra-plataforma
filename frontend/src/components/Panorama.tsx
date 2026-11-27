@@ -95,7 +95,7 @@ export function Panorama({ p }: { p: TPanorama }) {
           <MapaCalor
             titol="Proves per dia de la setmana i hora"
             files={DIES.map((d, i) => ({ clau: String(i), nom: d })).filter((_, i) => p.mapa_calor.proves[i].some((v) => v > 0))}
-            columnes={p.mapa_calor.hores.map((h) => ({ clau: String(h), nom: `${h}` }))}
+            columnes={p.mapa_calor.hores.filter((_, i) => p.mapa_calor.proves.some((f) => f[i] > 0)).map((h) => ({ clau: String(h), nom: `${h} h` }))}
             cel={(f, c) => {
               const v = p.mapa_calor.proves[Number(f)][p.mapa_calor.hores.indexOf(Number(c))];
               return { v, text: v ? enter(v) : '', titol: `${DIES_SETMANA_LLARG[Number(f)]}, ${c} h: ${enter(v)} proves` };

@@ -6,10 +6,10 @@ import { MostraPetita } from '../components/Insignies';
 import { Panorama } from '../components/Panorama';
 import { TargetaLotProva, useLotProva } from '../components/LotProva';
 import { Rajola, type Delta } from '../components/Rajola';
-import { SerieTemporal } from '../components/grafics/SerieTemporal';
+import { ProvesCompresDia } from '../components/ProvesCompresDia';
 import { Seccio, TitolPagina } from '../components/TitolPagina';
 import { useFiltre } from '../context/Filtre';
-import { deCada, diaCurt, diaLlarg, diaSetmana, enter, hora, pct, punts, segons } from '../lib/format';
+import { deCada, diaCurt, enter, hora, pct, punts, segons } from '../lib/format';
 import { insight } from '../lib/etiquetes';
 import { useApi } from '../lib/useApi';
 
@@ -146,25 +146,8 @@ export function Resum() {
                 <Link className="boto" to="/dependent">Obre la web del dependent</Link>
               </section>
             </div>
-            <Seccio titol="Proves i compres per dia" subtitol="Les franges de color marquen els dies en què la fitxa NFC ensenyava l’origen de la peça (prova A/B per dies).">
-              <div className="panell">
-                {r.serie_diaria.length ? (
-                  <SerieTemporal
-                    titol="Proves i compres per dia"
-                    x={r.serie_diaria.map((d) => d.data)}
-                    etiquetaX={(i) => (r.serie_diaria.length > 10 ? diaCurt(r.serie_diaria[i].data) : diaSetmana(r.serie_diaria[i].data))}
-                    detallX={(i) => diaLlarg(r.serie_diaria[i].data)}
-                    series={[
-                      { clau: 'proves', nom: 'Proves', classe: 's1', valors: r.serie_diaria.map((d) => d.proves) },
-                      { clau: 'compres', nom: 'Compres després de provar', classe: 's2', valors: r.serie_diaria.map((d) => d.compres) },
-                    ]}
-                    formatY={enter}
-                    formatValor={(v, s, i) => (v === null ? '—' : s.clau === 'compres' ? `${enter(v)} (${pct(r.serie_diaria[i].conversio)})` : enter(v))}
-                    bandes={r.serie_diaria.map((d) => d.grup_origen === 'amb')}
-                    nomBanda="Dia amb origen visible"
-                  />
-                ) : <p className="muted">Encara no hi ha dies amb dades en aquest període.</p>}
-              </div>
+            <Seccio titol="Proves i compres per dia" subtitol="Compara-ho amb un altre període o col·lecció, o mira només una franja del dia o els dies de pluja. Sense filtres, les franges de color marquen els dies en què la fitxa ensenyava l’origen.">
+              <ProvesCompresDia r={r} />
             </Seccio>
             {qp.dades && <Panorama p={qp.dades} />}
           </>

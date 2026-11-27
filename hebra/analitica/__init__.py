@@ -42,6 +42,7 @@ from .palanques import valor  # noqa: E402
 from .sistema import estat_sistema  # noqa: E402
 from .sessions import sessions  # noqa: E402  (v0.3, C)
 from .visual import panorama  # noqa: E402  (v0.5)
+from .comparativa import colleccions, comparativa  # noqa: E402  (v0.7)
 
 __all__ = [
     "Filtre", "parametre",

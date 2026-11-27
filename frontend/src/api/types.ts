@@ -364,10 +364,14 @@ export interface BlocInforme {
   dades: unknown;
 }
 export type UnitatGrafic = 'pct' | 'enter' | 'eur' | 'segons';
-export type TipusGrafic = 'linia' | 'barres' | 'barres_apilades' | 'donut';
+export type TipusGrafic = 'linia' | 'barres' | 'barres_apilades' | 'donut' | 'dispersio';
 export interface GraficInforme {
   id: string; titol: string; tipus: TipusGrafic; unitat: UnitatGrafic;
   eix_x: string[]; series: { nom: string; valors: (number | null)[] }[]; nota?: string | null;
+  /** v0.7: per a cada element de l'eix, si es remarca (p. ex. «molt provat, poc venut»). */
+  destaca?: boolean[] | null;
+  /** v0.7: què hi veiem i què en podem fer, amb les xifres del gràfic. */
+  lectura?: string | null;
 }
 export interface XifraInforme { etiqueta: string; valor: number | null; unitat: UnitatGrafic; variacio?: number | null; vs?: string | null; /** pilot */ objectiu?: number | null; compleix?: boolean | null }
 export interface Informe {
@@ -380,7 +384,20 @@ export interface Informe {
   /** v0.3 (E.2) */
   grafics?: GraficInforme[];
   xifres?: XifraInforme[];
+  /** v0.7: tots els gràfics que pot portar aquest informe i els que la marca ha triat (null = tots). */
+  grafics_disponibles?: { id: string; titol: string }[];
+  grafics_triats?: string[] | null;
 }
+
+// ── Comparativa de proves i compres per dia (v0.7) ───────────────────────
+export interface DiaComparat { data: Data; condicions: string[]; compleix: boolean; proves: number | null; compres: number | null; conversio: number | null }
+export interface TotalComparat { proves: number; compres: number; conversio: number | null; dies: number }
+export interface Comparativa {
+  dies: DiaComparat[]; total: TotalComparat; franja: string | null; condicio: string | null; condicions_disponibles: string[];
+  comparacio: { etiqueta: string; des: Data; fins: Data; dies: DiaComparat[]; total: TotalComparat } | null;
+}
+export interface Colleccio { id: number; nom: string; des: Data; fins: Data }
+export interface CondicioDia { botiga_id: string; data: Data; condicio: string }
 
 // ── Informes lliurats i programació (E.4) ────────────────────────────────
 export type EstatEnviament = 'no_enviat' | 'enviat' | 'error';
