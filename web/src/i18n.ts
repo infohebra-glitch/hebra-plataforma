@@ -19,7 +19,7 @@ export const contacts = [
   { name: 'Hebra', email: 'clientes@hebraia.com' },
 ];
 // Clave pública de Web3Forms (web3forms.com, gratis). Vacía: el formulario abre el correo del visitante.
-export const formKey = '';
+export const formKey = '435be49d-46fb-4fdf-aee1-dfc823cf9c9a';
 export const mainEmail = 'clientes@hebraia.com';
 // Formulario de la newsletter en MailerLite (cuenta 2722998, grupo «Newsletter web hebraia.com»).
 export const newsletterAction = 'https://assets.mailerlite.com/jsonp/2722998/forms/204389154466825680/subscribe';
