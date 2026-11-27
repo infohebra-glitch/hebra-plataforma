@@ -94,7 +94,6 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
 <body class={bare ? 'bare' : ''}>
   {!bare && (
     <>
-      <div class="progress" data-progress aria-hidden="true"><i></i></div>
       <header class="site-head">
       <a class="brand-fixed" href={path(lang, '/')}>
         <img src="/img/logo-blanc.png" alt={`Hebra, ${t.home.toLowerCase()}`} width="20" height="29" />
@@ -123,7 +122,6 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
         langs: langs.map((l) => [path(l, route), langName[l], l, l === lang]),
         demo: [path(lang, '/contacto/#demo'), t.demo],
       })}></div>
-      <div class="cursor" aria-hidden="true" data-cursor><span></span></div>
     </>
   )}
   <main id="main"><slot />{!bare && nlStrip && <Newsletter lang={lang} compact />}</main>
@@ -211,7 +209,7 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
   .overlay { position: fixed; inset: 0; z-index: 65; background: var(--ink); color: var(--on-dark); display: grid; align-content: center; padding: 6rem var(--gutter) 7rem; }
   .overlay ul { list-style: none; margin: 0; padding: 0; }
   .overlay li a { display: block; padding: .5rem 0; font: 420 clamp(2.2rem, 9vw, 4rem)/1.05 var(--sans); letter-spacing: -0.05em; text-decoration: none; }
-  .overlay li a:hover { font-family: var(--serif); font-style: italic; font-weight: 300; }
+  .overlay li a:hover { color: var(--tint); }
   .overlay-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.5rem; margin-top: 3rem; }
   .overlay .dock-langs { font-size: .95rem; gap: 1.2rem; }
   .overlay .btn { background: var(--on-dark); color: var(--ink); border-color: var(--on-dark); }
@@ -227,7 +225,7 @@ const jsonld = JSON.stringify({ '@context': 'https://schema.org', '@graph': grap
   .foot { background: var(--ink); color: var(--on-dark); padding: clamp(4rem, 8vw, 6rem) 0 calc(5.5rem + 2vh); overflow: hidden; }
   .foot-grid { display: grid; gap: 3rem; }
   @media (min-width: 860px) { .foot-grid { grid-template-columns: 1fr 1fr; align-items: end; } }
-  .foot-claim { font: 300 italic var(--step-2)/1.15 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 100; letter-spacing: -0.03em; color: var(--on-dark); max-width: 22ch; margin: 0; justify-self: end; }
+  .foot-claim { font: 450 var(--step-2)/1.15 var(--serif); letter-spacing: -0.03em; color: var(--on-dark); max-width: 22ch; margin: 0; justify-self: end; }
   .foot nav { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; font-size: .95rem; }
   .foot nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; align-content: start; }
   .foot nav a { text-decoration: none; color: var(--on-dark-2); transition: color .3s; }

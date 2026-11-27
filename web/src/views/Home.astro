@@ -227,7 +227,7 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
   .man { background: var(--ink); color: var(--on-dark); padding: clamp(5rem, 12vw, 10rem) 0; }
   .man-text { max-width: 30ch; margin: 0; font: 400 clamp(1.9rem, 1rem + 3.4vw, 4.6rem)/1.08 var(--sans); letter-spacing: -0.05em; color: color-mix(in srgb, var(--on-dark) 38%, transparent); text-wrap: pretty; }
   .mw { color: var(--on-dark); transition: color .6s var(--ease); }
-  .mw.on { font-family: var(--serif); font-style: italic; font-weight: 300; color: var(--tint); letter-spacing: -0.04em; }
+  .mw.on { color: var(--tint); }
 
   /* La tinta sube y cubre la sección clara */
   .wipe { position: relative; height: 22vh; background: var(--paper-2); overflow: hidden; }
@@ -237,7 +237,7 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
   .marquee { background: var(--deep); color: #fff; overflow: hidden; padding: 1.6rem 0; border-top: 1px solid rgba(255,255,255,.18); cursor: grab; touch-action: pan-y; user-select: none; }
   .marquee-track { display: flex; width: max-content; will-change: transform; }
   .marquee-set { display: flex; }
-  .marquee span { display: inline-flex; align-items: center; gap: 2.2rem; padding-right: 2.2rem; font: 300 italic clamp(2rem, 1.2rem + 3vw, 4rem)/1 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 100; letter-spacing: -0.04em; white-space: nowrap; }
+  .marquee span { display: inline-flex; align-items: center; gap: 2.2rem; padding-right: 2.2rem; font: 450 clamp(2rem, 1.2rem + 3vw, 4rem)/1 var(--serif); letter-spacing: -0.04em; white-space: nowrap; }
   .marquee i { width: .32em; height: .32em; border-radius: 50%; border: 1.5px solid currentColor; opacity: .6; }
 
   /* Lista para explorar: la foto sigue al ratón */
@@ -249,7 +249,7 @@ const man = N.man.split(/(\[[^\]]+\])/).filter(Boolean).flatMap((part) =>
   @media (min-width: 860px) { .x-p { grid-row: auto; } }
   .x-arrow { grid-row: 1 / span 2; width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--rule-light); display: grid; place-items: center; transition: background .5s var(--ease), color .5s, transform .6s var(--ease); }
   @media (min-width: 860px) { .x-arrow { grid-row: auto; } }
-  .xlist a:hover .x-h { transform: translateX(.6rem); color: var(--deep); font-family: var(--serif); font-style: italic; font-weight: 300; }
+  .xlist a:hover .x-h { color: var(--deep); }
   .xlist a:hover .x-arrow { background: var(--deep); color: #fff; border-color: var(--deep); transform: rotate(-45deg); }
   .xfloat { position: fixed; left: 0; top: 0; z-index: 40; width: 300px; aspect-ratio: 4 / 5; pointer-events: none; border-radius: 16px; overflow: hidden; opacity: 0; scale: .6; transition: opacity .4s, scale .6s var(--ease); }
   .xfloat.on { opacity: 1; scale: 1; }

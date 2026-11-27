@@ -23,6 +23,7 @@ const { src, poster, title, text, steps } = Astro.props;
   .film-frame::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.7), rgba(0,0,0,.05) 60%); }
   .film-cap { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; padding: 0 calc(var(--gutter) * 2) clamp(2.5rem, 6vw, 4.5rem); }
   .film-cap h2 { font-size: clamp(2.6rem, 1.4rem + 5vw, 7rem); line-height: .95; letter-spacing: -0.055em; max-width: 12ch; margin: 0 0 1rem; }
+  .film-cap h2 :global(em) { color: var(--tint); }
   .film-cap p { margin: 0; color: rgba(255,255,255,.82); }
   .film-steps { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.6rem 0 0; padding: 0; }
   .film-steps li { padding: .5rem .9rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); backdrop-filter: blur(8px); background: rgba(0,0,0,.18); font-size: .88rem; }

@@ -1,41 +1,13 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { SplitText } from 'gsap/SplitText';
-import Lenis from 'lenis';
 
-gsap.registerPlugin(ScrollTrigger, SplitText);
+gsap.registerPlugin(ScrollTrigger);
 
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-// Scroll suave
-let lenis = null;
-if (!reduce) {
-  lenis = new Lenis({ lerp: 0.1, wheelMultiplier: 1 });
-  lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((t) => lenis.raf(t * 1000));
-  gsap.ticker.lagSmoothing(0);
-  document.querySelectorAll('a[href^="#"]').forEach((a) =>
-    a.addEventListener('click', (e) => {
-      const id = a.getAttribute('href');
-      if (id.length > 1 && document.querySelector(id)) { e.preventDefault(); lenis.scrollTo(id, { offset: -40, duration: 1.4 }); }
-    })
-  );
-}
-window.__lenis = lenis;
-
-// Barra de progreso: muestra cuánto queda y, al hacer clic, salta a ese punto
-const bar = document.querySelector('[data-progress]');
-if (bar) {
-  const fillEl = bar.querySelector('i');
-  const set = gsap.quickSetter(fillEl, 'scaleX');
-  ScrollTrigger.create({ start: 0, end: 'max', onUpdate: (s) => set(s.progress) });
-  bar.addEventListener('click', (e) => {
-    const p = e.clientX / window.innerWidth;
-    const y = p * (document.documentElement.scrollHeight - window.innerHeight);
-    lenis ? lenis.scrollTo(y, { duration: 1.6 }) : window.scrollTo({ top: y, behavior: 'smooth' });
-  });
-}
+// Sin scroll suave ni barra de progreso: el navegador desplaza la página de forma nativa.
+const lenis = null;
 
 // Menú a pantalla completa
 const menuBtn = document.querySelector('[data-menu]');
@@ -79,62 +51,7 @@ if (menuBtn && overlay) {
   overlay.querySelectorAll('a').forEach((a) => a.addEventListener('click', close));
 }
 
-// Cursor: un anillo que sigue al ratón, crece sobre enlaces y muestra una palabra sobre zonas de arrastre
-const cursor = document.querySelector('[data-cursor]');
-if (cursor && fine && !reduce) {
-  const ring = cursor.querySelector('span');
-  const xTo = gsap.quickTo(cursor, 'x', { duration: 0.45, ease: 'power3' });
-  const yTo = gsap.quickTo(cursor, 'y', { duration: 0.45, ease: 'power3' });
-  window.addEventListener('pointermove', (e) => { xTo(e.clientX); yTo(e.clientY); cursor.classList.add('on'); }, { passive: true });
-  document.addEventListener('pointerleave', () => cursor.classList.remove('on'));
-  window.addEventListener('pointerdown', () => cursor.classList.add('down'), { passive: true });
-  window.addEventListener('pointerup', () => cursor.classList.remove('down'), { passive: true });
-  window.addEventListener('blur', () => cursor.classList.remove('down', 'on'));
-  document.addEventListener('pointerover', (e) => {
-    const lab = e.target.closest('[data-cursor-label]');
-    const link = e.target.closest('a, button, input[type=range], label, select');
-    cursor.classList.toggle('label', !!lab);
-    cursor.classList.toggle('link', !lab && !!link);
-    ring.textContent = lab ? lab.dataset.cursorLabel : '';
-  });
-}
-
-// Botones magnéticos
-if (fine && !reduce) {
-  document.querySelectorAll('[data-magnetic]').forEach((el) => {
-    const xTo = gsap.quickTo(el, 'x', { duration: 0.6, ease: 'elastic.out(1, .4)' });
-    const yTo = gsap.quickTo(el, 'y', { duration: 0.6, ease: 'elastic.out(1, .4)' });
-    el.addEventListener('pointermove', (e) => {
-      const r = el.getBoundingClientRect();
-      xTo((e.clientX - (r.left + r.width / 2)) * 0.28);
-      yTo((e.clientY - (r.top + r.height / 2)) * 0.28);
-    });
-    el.addEventListener('pointerleave', () => { xTo(0); yTo(0); });
-  });
-}
-
-// Titulares: cada línea sube desde detrás de una máscara
-function lines() {
-  const els = document.querySelectorAll('[data-lines], main h2[data-reveal], main .page-head h1');
-  els.forEach((el) => {
-    el.removeAttribute('data-reveal');
-    if (reduce) { el.style.visibility = 'visible'; return; }
-    const inHero = !!el.closest('[data-hero]');
-    SplitText.create(el, {
-      type: 'lines', mask: 'lines', linesClass: 'ln', autoSplit: true,
-      onSplit(self) {
-        el.style.visibility = 'visible';
-        return gsap.from(self.lines, {
-          yPercent: 105, duration: inHero ? 1.3 : 1.1, ease: 'expo.out', stagger: 0.1,
-          delay: inHero ? 0.25 : 0,
-          scrollTrigger: inHero ? undefined : { trigger: el, start: 'top 85%', once: true },
-        });
-      },
-    });
-  });
-}
-if (document.fonts?.status === 'loaded') lines();
-else (document.fonts?.ready || Promise.resolve()).then(lines);
+// Sin cursor propio, botones magnéticos ni titulares por líneas: menos efectos, más sobrio.
 
 // Revelado discreto, una sola vez por bloque
 if (!reduce) {

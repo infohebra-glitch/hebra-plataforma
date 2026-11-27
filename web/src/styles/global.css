@@ -1,5 +1,3 @@
-@import '@fontsource-variable/fraunces/wght-italic.css';
-@import '@fontsource-variable/fraunces';
 @import '@fontsource-variable/hanken-grotesk';
 [hidden] { display: none !important; }
 
@@ -28,7 +26,7 @@
   --rule-dark: rgba(237,239,242,.14);
   --rule-light: rgba(11,21,34,.14);
 
-  --serif: 'Fraunces Variable', Georgia, serif;
+  --serif: var(--sans); /* una sola tipografía: Hanken Grotesk */
   --sans: 'Hanken Grotesk Variable', system-ui, sans-serif;
 
   --step--1: clamp(0.8rem, 0.78rem + 0.1vw, 0.86rem);
@@ -93,9 +91,10 @@ h1 { font-size: var(--step-4); }
 h2 { font-size: var(--step-3); }
 h3 { font-size: var(--step-1); font-weight: 520; letter-spacing: -0.025em; line-height: 1.2; }
 h1 em, h2 em, h3 em, .em {
-  font-family: var(--serif); font-style: italic; font-weight: 300;
-  font-variation-settings: 'opsz' 144, 'SOFT' 100; letter-spacing: -0.035em;
+  font-style: normal; font-weight: inherit; color: var(--deep);
 }
+.band.blau :is(h1,h2,h3) em, .band.dark :is(h1,h2,h3) em { color: var(--tint); }
+.band.grana :is(h1,h2,h3) em, .band.deep :is(h1,h2,h3) em { color: inherit; }
 p { margin: 0 0 1em; max-width: 62ch; text-wrap: pretty; }
 .lead { font-size: var(--step-1); line-height: 1.45; max-width: 46ch; letter-spacing: -0.02em; }
 .quiet { color: var(--on-light-2); }
@@ -199,7 +198,7 @@ form.f { display: grid; gap: 1.2rem; max-width: 44rem; }
 /* Revelados: el JS los activa; sin JS o con menos movimiento, todo visible */
 .js [data-reveal] { opacity: 0; transform: translateY(28px); }
 @media (prefers-reduced-motion: reduce) { .js [data-reveal] { opacity: 1; transform: none; } }
-.js [data-lines], .js [data-split] { visibility: hidden; animation: split-safe 0s 2.5s forwards; }
+
 @keyframes split-safe { to { visibility: visible; } }
 .line-mask { display: block; overflow: clip; padding-bottom: .06em; margin-bottom: -.06em; }
 
